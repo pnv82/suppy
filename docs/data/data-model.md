@@ -49,3 +49,7 @@ Issue IDs come from `data/reference/technique-issues.json`. Do not use free-form
 The REST/MCP dashboard adds `boards: [{id, name, sessionCount}]` and `defaultBoardId`. Each session has nullable `boardId`; model-visible session context resolves it to `board: {id, name, source: "athlete_reported"}` or `null`. No supplied source identifies a board, so all initial assignments are null and the board list starts empty.
 
 Board names are unique ignoring case. Renaming preserves the board ID and advances revisions of assigned sessions so subsequent analysis receives the updated name. Assignment changes also advance the session revision. Deleting an assigned board is rejected; deleting an unused default clears the default. A default is a shortcut for explicit assignment, never evidence that a historical session used that board. Board state shares the existing temporary server lifetime. Arbitrary new-session import and automatic default preselection for that future flow remain deferred.
+
+## Session detail edits
+
+`update_session_details` takes `session_id` (string), `name` (trimmed, 1–100 characters) and nullable `board_id`. It validates both edits before applying either, then increments the session revision once if anything changed. Name edits set `titleSource` to `athlete_reported`; initial titles use `source_location`. The original `location`, source references and session ID remain unchanged. The dashboard and analysis context include the edited title and its provenance. Changes remain in server memory only.

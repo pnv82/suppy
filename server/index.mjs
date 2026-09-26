@@ -61,6 +61,7 @@ export function createMcpServer(store) {
       "upsert_annotation",
       "delete_annotation",
       "update_session_context",
+      "update_session_details",
       "update_training_focus",
       "upsert_board",
       "delete_board",

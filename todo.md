@@ -8,7 +8,7 @@
 
 - [ ] allow to delete sessions, so i can test the uploads
 - [ ] review docs\product\llm vs app.md and add it to the documentation, architecture and principles of the app. Analyse if any adjustment of the current app need to be made. If yes - document them in todo.md and start implementing one by one.
-- [ ] to keep the map not so busy display only one active interval at a time on the map
+- [ ] optimize the space usage by moving the top bar into vertical on the left. Use compacted version of that menu bar - ala Jira.
 
 
 # Deferred work

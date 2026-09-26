@@ -105,3 +105,26 @@ The address bar now records page and string session ID. Direct links, refresh, a
 - Production build and all 19 tests pass. Existing dependency-comment and bundle-size warnings remain. An initial test run overlapped the build and hit a missing packaging artifact; rerunning after build completion passed.
 - Browser verification at 1280 × 900 and 390 × 844: direct Aug 29 summary-only link, keyboard page/session selection, Back/Forward, Boards and session refresh, ChatGPT refresh retaining Sep 5 context, missing wind, and unknown-session recovery. No page-wide overflow or captured warnings/errors.
 - Existing server and temporary board state were preserved. Viewport override reset. Live ChatGPT embedding is still unverified; sandboxed hosts retain UI navigation if history updates are denied.
+
+## Selected interval only — 2026-09-26
+
+The map now draws only the selected best interval, including its travel arrows and start/end labels. With no selection it shows the full route without interval overlays. Annotation markers remain independent of the selection and render above the interval line; the current point is preserved.
+
+- Production build and all 19 tests pass; existing build warnings remain.
+- Browser checks at 1280 × 1000 and 390 × 844: switched 5/10/20-minute windows using keyboard and click, confirmed only selected boundary labels, and verified a temporary annotation outside every best window remained on the map throughout. Removed the QA annotation afterward.
+- Checked initial unselected map, summary-only session and narrow layout without horizontal overflow. No browser errors or warnings captured.
+- Screenshot: `.tools/qa/selected-interval-map.png`. Existing server state preserved; no restart. Live ChatGPT embedding remains separately unverified.
+
+## Hover-only map hints — 2026-09-26
+
+Removed permanent current-point and best-window boundary tooltips. Current point now accepts pointer hover; annotation/session endpoint hints retain their existing hover behavior. Markers and sidebar/chart timing remain visible without tooltip boxes.
+
+Build passes. Browser verified no idle hints, current-point hint on hover, removal on pointer leave, keyboard best-window selection, and no idle hints or horizontal overflow at 390 px. Screenshot: `.tools/qa/hover-only-map.png`. Existing build warnings remain.
+
+## Minimal session header and Edit dialog — 2026-09-26
+
+Moved the board picker into a native modal opened by the small pencil beside the title. The dialog also edits the launch-point name, stages both fields until Save, and retains Cancel, default-board selection and board management. A compact native chevron picker replaces the wide session selector. Removed the Sheet summary block from Best windows; Home and model context retain source values. Existing selected-window map changes were preserved.
+
+- Build and all 20 tests pass, including atomic detail edits, invalid-board rollback, name validation, unchanged source location/string ID and updated analysis context. Existing build warnings remain.
+- Browser checks at 1280 × 900 and 390 × 844 covered keyboard session selection, empty boards, default selection, combined name/board save, blank-name rejection, Escape/Cancel, focus entering the name field and returning to Edit, modal Tab containment, and the summary-only session. No horizontal page overflow. No captured browser warnings/errors.
+- Private screenshot: `.tools/qa/minimal-session-header.png`. Tests that changed data used an isolated server. The running app on port 3001 was updated with all existing temporary session and board state restored and compared against the pre-restart snapshot. Live ChatGPT embedding remains unverified.

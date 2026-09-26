@@ -103,9 +103,9 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
     (run) => cursor >= run[0].elapsed_s && cursor <= run.at(-1).elapsed_s,
   );
   const marker = cursorRun ? interpolate(cursorRun, cursor) : null;
-  const windows = session.windows
-    .filter((w) => w.start != null)
-    .sort((a, b) => b.duration - a.duration);
+  const windows = session.windows.filter(
+    (w) => w.start != null && w.duration === selected,
+  );
   if (!all.length)
     return (
       <div className="map-empty">
@@ -123,7 +123,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
         zoom={13}
         scrollWheelZoom={false}
         className="route-map"
-        aria-label="GPS track with best 5, 10 and 20 minute sections"
+        aria-label="GPS track with the selected best interval and annotations"
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -139,20 +139,6 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
             key={i}
             positions={run.map((p) => [p.latitude_deg, p.longitude_deg])}
             pathOptions={{ color: "#304d61", weight: 3, opacity: 0.55 }}
-          />
-        ))}
-        {windows.map((w) => (
-          <Polyline
-            key={w.duration}
-            positions={segmentPoints(session.records, w.start, w.end).map(
-              (p) => [p.latitude_deg, p.longitude_deg],
-            )}
-            pathOptions={{
-              color: WINDOW_COLORS[w.duration],
-              weight: w.duration === 1200 ? 13 : w.duration === 600 ? 8 : 4,
-              opacity: selected && selected !== w.duration ? 0.25 : 0.95,
-            }}
-            eventHandlers={{ click: () => onSelect(w) }}
           />
         ))}
         {selected &&
@@ -202,7 +188,6 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
                 eventHandlers={{ click: () => onSelect(w) }}
               >
                 <MapTooltip
-                  permanent
                   direction={
                     w.duration === 300
                       ? "right"
@@ -234,7 +219,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
                     fillOpacity: 1,
                   }}
                 >
-                  <MapTooltip direction="bottom" permanent>
+                  <MapTooltip direction="bottom">
                     {selected / 60} min end · {timeLabel(w.end)}
                   </MapTooltip>
                 </CircleMarker>
@@ -265,37 +250,36 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
         >
           <MapTooltip>Session finish</MapTooltip>
         </CircleMarker>
-        {session.annotations.map((a) => {
-          const p = interpolate(session.records, a.start_s);
-          return (
-            p?.latitude_deg != null && (
-              <CircleMarker
-                key={a.id}
-                center={[p.latitude_deg, p.longitude_deg]}
-                radius={7}
-                pathOptions={{
-                  color: "#fff",
-                  fillColor: "#ae4265",
-                  fillOpacity: 1,
-                  weight: 2,
-                }}
-              >
-                <MapTooltip>
-                  {a.kind} · {timeLabel(a.start_s)} · {a.note}
-                </MapTooltip>
-              </CircleMarker>
-            )
-          );
-        })}
-        <Pane
-          name="current-point"
-          style={{ zIndex: 625, pointerEvents: "none" }}
-        >
+        <Pane name="annotations" style={{ zIndex: 450 }}>
+          {session.annotations.map((a) => {
+            const p = interpolate(session.records, a.start_s);
+            return (
+              p?.latitude_deg != null && (
+                <CircleMarker
+                  key={a.id}
+                  center={[p.latitude_deg, p.longitude_deg]}
+                  radius={7}
+                  pathOptions={{
+                    color: "#fff",
+                    fillColor: "#ae4265",
+                    fillOpacity: 1,
+                    weight: 2,
+                  }}
+                >
+                  <MapTooltip>
+                    {a.kind} · {timeLabel(a.start_s)} · {a.note}
+                  </MapTooltip>
+                </CircleMarker>
+              )
+            );
+          })}
+        </Pane>
+        <Pane name="current-point" style={{ zIndex: 625 }}>
           {marker && (
             <CircleMarker
               center={[marker.latitude_deg, marker.longitude_deg]}
               radius={8}
-              interactive={false}
+              interactive
               pathOptions={{
                 color: "#fff",
                 weight: 3,
@@ -304,7 +288,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
                 className: "current-point",
               }}
             >
-              <MapTooltip permanent direction="top" offset={[0, -8]}>
+              <MapTooltip direction="top" offset={[0, -8]}>
                 Current point · {timeLabel(cursor)}
               </MapTooltip>
             </CircleMarker>
@@ -313,8 +297,9 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
       </MapContainer>
       <p className="map-direction-caption">
         <ArrowUp size={16} />{" "}
-        {selected ? `${selected / 60} min arrows` : "5 / 10 / 20 min arrows"}:
-        direction of travel.{" "}
+        {selected
+          ? `${selected / 60} min arrows: direction of travel.`
+          : "Select a best window to highlight its interval."}{" "}
         {!marker && `GPS unavailable at ${timeLabel(cursor)}.`}
       </p>
       <div className="wind-overlay">
@@ -359,17 +344,11 @@ function TravelArrows({ session, selected }) {
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
   const arrows = useMemo(() => {
     const candidates = session.windows.filter(
-      (w) => w.start != null && (!selected || selected === w.duration),
+      (w) => w.start != null && selected === w.duration,
     );
     const accepted = [];
     for (const w of candidates) {
-      const fractions = selected
-        ? [0.15, 0.32, 0.5, 0.68, 0.85]
-        : {
-            300: [0.55, 0.4, 0.7],
-            600: [0.95, 0.08, 0.75],
-            1200: [0.27, 0.1, 0.5],
-          }[w.duration];
+      const fractions = [0.15, 0.32, 0.5, 0.68, 0.85];
       for (const p of segmentDirections(
         session.records,
         w,
@@ -377,12 +356,8 @@ function TravelArrows({ session, selected }) {
         fractions,
       )) {
         const pixel = map.project([p.latitude_deg, p.longitude_deg], zoom);
-        if (
-          accepted.some((a) => a.pixel.distanceTo(pixel) < (selected ? 38 : 24))
-        )
-          continue;
+        if (accepted.some((a) => a.pixel.distanceTo(pixel) < 38)) continue;
         accepted.push({ ...p, duration: w.duration, pixel });
-        if (!selected) break;
       }
     }
     return accepted;
@@ -441,17 +416,6 @@ export function BestWindows({ session, selected, onSelect }) {
                 : `${timeLabel(w.start)} – ${timeLabel(w.end)}`}
             </span>
           </button>
-        ))}
-      </div>
-      <div className="source-summary">
-        <h3>Sheet summary</h3>
-        {[5, 10, 20].map((n) => (
-          <div key={n}>
-            <span>{n} min</span>
-            <strong>
-              {fmt(session[`best${n}`], 2)} <small>mph</small>
-            </strong>
-          </div>
         ))}
       </div>
       <p className="caption">

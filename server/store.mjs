@@ -45,6 +45,7 @@ export function createStore() {
           ? "Liberty Station"
           : "Mission Bay",
         location: source.Location,
+        titleSource: "source_location",
         type: source["Session type"],
         distance: numeric(source["Distance mi"]),
         active: numeric(source["Duration min"]),
@@ -254,6 +255,20 @@ export function createStore() {
     }
     return context(session_id);
   }
+  function updateDetails({ session_id, name, board_id }) {
+    const session = get(session_id);
+    const clean = name.trim();
+    if (!clean || clean.length > 100)
+      throw new Error("Enter a launch name of 1–100 characters.");
+    if (board_id !== null) requireBoard(board_id);
+    if (session.title !== clean || session.boardId !== board_id) {
+      if (session.title !== clean) session.titleSource = "athlete_reported";
+      session.title = clean;
+      session.boardId = board_id;
+      session.revision++;
+    }
+    return context(session_id);
+  }
   return {
     get,
     dashboard,
@@ -266,6 +281,7 @@ export function createStore() {
     deleteBoard,
     setDefaultBoard,
     assignBoard,
+    updateDetails,
     issues,
   };
 }

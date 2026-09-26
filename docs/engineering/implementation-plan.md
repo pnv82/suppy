@@ -8,7 +8,7 @@
 - Chart-driven hover/keyboard time cursor, a labelled map point above overlays, click/tap annotations, gap-aware charts and missing-track/wind states. Duplicate below-map interval controls and the separate time slider are removed.
 - Automatic latest-10 trends; four current sessions, eight parameter choices.
 - Home now uses the comparison view, with newest-first session rows and phone cards.
-- Best-window travel arrows and selected-route emphasis make overlapping tracks readable.
+- Only the selected best-window route, arrows and boundaries appear on the map. Full route, current point and all annotation markers remain visible.
 - Documented start/launch-point naming; automatic geographic naming remains deferred.
 - Temporary board list, default preference and per-session assignments, shared through REST/MCP and analysis context.
 - Timed note create/edit/delete, extra context, speed targets and technique dictionary selection.
@@ -24,3 +24,5 @@ Run `npm test` and `npm run build`. Consult root `design-qa.md` for browser evid
 Use [todo.md](../../todo.md) as the deferred-work list. Start with live ChatGPT feedback and genuine user UI feedback before implementing costly analysis. New FIT decoding, reviewed analysis ingestion, timed weather and robust metric validation are explicit future work. Authentication, durable storage, sharing, broad imports and in-app model execution remain outside this slice.
 
 P03 is automatic latest-10 comparison, superseding the initial two-session selection idea. P05 is explicit timed annotations. P01/P02/P04/P06 remain discarded.
+
+- Minimal session header: chevron session picker and modal name/board editing, saved atomically through `update_session_details`. Removed the redundant Sheet summary block from session review.

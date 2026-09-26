@@ -25,11 +25,11 @@ This workspace includes four spreadsheet summaries and three detailed Garmin tra
 - **Home:** the previous Compare view is now the landing page. It lists the latest 10 sessions newest first (four currently available), with key metrics, board assignments and chronological parameter trends. Open any row to review that session; phone layouts show the rows as readable cards.
 - **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a labelled current map point. Hover a chart to explore; click/tap or press Enter to annotate. Arrow keys move the shared cursor.
 - **Metric details:** hours/minutes for duration, FIT maximum speed, estimated feet per stroke from recorded SUP totals, and median/max speed and HR reference lines. Methods and missing-data rules are in [metrics.md](docs/domain/metrics.md).
-- **Best sections:** distinct 5/10/20-minute map highlights, travel arrows, labelled starts and selected end markers, matching chart highlights, and exact elapsed boundaries. Select a window to bring its route and arrows to the front. Local FIT estimates stay separate from sheet values.
+- **Best sections:** select one 5/10/20-minute window to display its map highlight, travel arrows and start/end labels, with matching chart highlights and exact elapsed boundaries. Unselected windows are hidden; the full route, current point and annotation markers remain visible. Local FIT estimates stay separate from sheet values.
 - **Timeline annotations:** add, edit or delete conditions, falls, interruptions and notes at a time or over an interval. Timing confidence is explicit.
 - **Comparison on Home:** automatically selects the most recent 10 sessions and charts key parameters chronologically. Switch among average speed, best 5/10/20, HR, cadence, distance and duration.
 - **Boards:** add or rename boards, choose a default, and assign a board on each session. The default offers a one-click shortcut for unassigned sessions; it never backfills history. Delete unused boards; reassign sessions first if a board is in use. Board names and assignments are athlete reports and are included in ChatGPT context.
-- **Session naming:** names refer to the start/launch point. Source locations remain a fallback until the specific launch point is confirmed; see the [naming rule](docs/product/mvp.md#defaults-and-unresolved-decisions).
+- **Session editing:** use the pencil beside the title to edit the launch-point name and board together. Use the nearby chevron to select another session. Names refer to the start/launch point. Source locations remain a fallback until the specific launch point is confirmed; see the [naming rule](docs/product/mvp.md#defaults-and-unresolved-decisions).
 - **Context and focus:** add observations, choose a duration-scoped speed goal, and select from the SUP technique dictionary. Technique selections are athlete reports, never watch-confirmed faults.
 - **ChatGPT:** a working local MCP server exposes session tools and an embeddable copy of the UI. Saved notes and context are included when requesting fresh analysis. Standalone mode produces a copyable prompt.
 - **Import preview:** recognizes the three supplied FIT/ZIP samples by SHA-256 and opens their session. New-file decoding is explicitly deferred.
@@ -85,7 +85,7 @@ Environment variables set in one terminal may not be available in another proces
 1. Open **Settings → Security and login → Developer mode**.
 2. Open **Plugins**, select **+**, and name the connection **SUP Training**.
 3. Under **Connection**, choose **Tunnel**, then select your tunnel or enter its ID.
-4. Create the connection and review the eleven discovered tools.
+4. Create the connection and review the twelve discovered tools.
 5. Start a conversation and add SUP Training from the tools menu.
 
 Account/workspace policy controls availability; labels may vary by client. If Developer mode is absent, first check your workspace access. These steps follow the [official connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt), checked 2026-09-26.

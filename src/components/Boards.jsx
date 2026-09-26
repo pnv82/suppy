@@ -1,62 +1,6 @@
 import React, { useState } from "react";
 import { Plus, PencilSimple, Trash, Check, Star } from "@phosphor-icons/react";
 
-export function SessionBoard({
-  session,
-  boards,
-  defaultBoardId,
-  busy,
-  onAction,
-  onManage,
-}) {
-  const preferred = boards.find((b) => b.id === defaultBoardId);
-  const assign = (board_id) =>
-    onAction(
-      "assign_session_board",
-      { session_id: session.id, board_id },
-      "Session board saved.",
-    );
-  return (
-    <div className="session-board">
-      <label>
-        Board
-        <select
-          aria-label="Session board"
-          value={session.boardId ?? ""}
-          disabled={busy || !boards.length}
-          onChange={(e) => assign(e.target.value || null)}
-        >
-          <option value="">Not recorded</option>
-          {boards.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.name}
-              {b.id === defaultBoardId ? " · default" : ""}
-            </option>
-          ))}
-        </select>
-      </label>
-      {!session.boardId && preferred && (
-        <button
-          className="button secondary small"
-          disabled={busy}
-          title={`Assign ${preferred.name} to this session`}
-          onClick={() => assign(preferred.id)}
-        >
-          <Star size={16} /> Use default
-        </button>
-      )}
-      <button className="text-button" onClick={onManage}>
-        {boards.length ? "Manage boards" : "Add your boards"}
-      </button>
-      <span className="caption">
-        {session.boardId
-          ? "Athlete reported"
-          : "No board recorded for this session"}
-      </span>
-    </div>
-  );
-}
-
 function BoardRow({ board, isDefault, busy, onAction }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(board.name);

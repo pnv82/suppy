@@ -51,3 +51,5 @@ The map requests standard OpenStreetMap tiles, preserves attribution and browser
 `npm test` covers numeric policies, annotation/context validation and real MCP HTTP client/server interoperability. Browser QA covers rendering, interaction, responsive behavior and honest null states. `scripts/inspect_samples.py` and `scripts/validate_foundation.py` retain their offline data roles.
 
 Use the README's private tunnel instructions to connect your account. A live ChatGPT account test remains distinct from local transport tests.
+
+`SessionHeader.jsx` provides a compact native session picker and native modal dialog for name/board drafts. `update_session_details` is a write tool shared by REST/MCP; it validates the launch name and board before changing either, preserves source location and identity, and updates the analysis revision once. Dialog save errors remain inside the dialog. The native modal handles focus containment and Escape; Cancel discards local drafts.

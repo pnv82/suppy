@@ -3,6 +3,11 @@ import { z } from "zod";
 export const toolSchemas = {
   get_dashboard: z.object({}),
   get_session_context: z.object({ session_id: z.string() }),
+  update_session_details: z.object({
+    session_id: z.string(),
+    name: z.string().trim().min(1).max(100),
+    board_id: z.string().nullable(),
+  }),
   upsert_board: z.object({
     board_id: z.string().optional(),
     name: z.string().trim().min(1).max(100),
@@ -44,6 +49,8 @@ export const toolSchemas = {
   }),
 };
 export const descriptions = {
+  update_session_details:
+    "Save the user-confirmed launch/start-point name and athlete-reported board together for a session. Never infer a launch name or use the destination. Keeps source location and ID unchanged; temporary memory only.",
   upsert_board:
     "Create a user-named SUP board, or rename an existing board by ID. Temporary memory only.",
   delete_board:
@@ -71,6 +78,7 @@ export function executeTool(store, name, input) {
   if (!toolSchemas[name]) throw new Error("Unknown tool");
   const args = toolSchemas[name].parse(input);
   let result;
+  if (name === "update_session_details") result = store.updateDetails(args);
   if (name === "get_dashboard")
     result = {
       sessions: store.dashboard().sessions.map((s) => store.context(s.id)),

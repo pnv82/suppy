@@ -12,7 +12,7 @@ import {
   WarningCircle,
   ArrowClockwise,
 } from "@phosphor-icons/react";
-import { timeLabel, durationLabel, validRuns } from "./domain/metrics.mjs";
+import { timeLabel, validRuns } from "./domain/metrics.mjs";
 import { findSampleSession } from "./services/sample-import.mjs";
 import {
   connect,
@@ -22,8 +22,6 @@ import {
 } from "./services/client.mjs";
 import {
   shortDate,
-  fullDate,
-  fmt,
   SessionMap,
   BestWindows,
   MetricStrip,
@@ -36,7 +34,8 @@ import {
 } from "./components/ReviewPanels.jsx";
 import { Compare } from "./components/Compare.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
-import { Boards, SessionBoard } from "./components/Boards.jsx";
+import { Boards } from "./components/Boards.jsx";
+import { SessionHeader } from "./components/SessionHeader.jsx";
 import { useNavigation } from "./services/useNavigation.jsx";
 
 const parseTime = (value) =>
@@ -303,45 +302,20 @@ export function App() {
         )}
         {page === "Sessions" && session && (
           <>
-            <div className="session-heading">
-              <div>
-                <p className="eyebrow">SESSION REVIEW</p>
-                <h1>{session.title}</h1>
-                <p>
-                  {fullDate(session.date)}
-                  <span className="quiet-divider">·</span>
-                  {session.start}–{session.end} PT
-                  <span className="quiet-divider">|</span>
-                  {session.records.length
-                    ? "Garmin FIT + sheet snapshot"
-                    : "Sheet summary only"}
-                </p>
-              </div>
-              <label className="session-select">
-                Session · distance · active time
-                <select
-                  aria-label="Choose session"
-                  value={session.id}
-                  onChange={(e) => openSession(e.target.value)}
-                >
-                  {data.sessions.map((s) => (
-                    <option value={s.id} key={s.id}>
-                      {shortDate(s.date)} · {s.title} · {fmt(s.distance, 2)} mi
-                      · {durationLabel(s.active)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <MetricStrip session={session} />
-            <SessionBoard
+            <SessionHeader
+              key={session.id}
               session={session}
+              sessions={data.sessions}
               boards={data.boards || []}
               defaultBoardId={data.defaultBoardId}
-              busy={busy}
-              onAction={boardAction}
+              onOpen={openSession}
               onManage={() => setPage("Boards")}
+              onSave={async (args) => {
+                await callTool("update_session_details", args);
+                notice("Session details saved.");
+              }}
             />
+            <MetricStrip session={session} />
             <div className="route-layout">
               <SessionMap
                 session={session}

@@ -39,7 +39,7 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
       new StreamableHTTPClientTransport(new URL(base + "/mcp")),
     );
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 11);
+    assert.equal(tools.length, 12);
     const read = tools.find((t) => t.name === "get_dashboard");
     assert.equal(read.annotations.readOnlyHint, true);
     assert.equal(
