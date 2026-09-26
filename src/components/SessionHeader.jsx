@@ -204,16 +204,23 @@ export function SessionHeader({
             >
               <PencilSimple size={19} />
             </button>
+            <details className="session-metadata">
+              <summary aria-label="Session details">
+                {shortDate(session.date)}
+              </summary>
+              <div className="session-meta-popover">
+                <div>{fullDate(session.date)}</div>
+                <div>
+                  {session.start}–{session.end} PT
+                </div>
+                <div>
+                  {session.records.length
+                    ? "Garmin FIT + sheet snapshot"
+                    : "Sheet summary only"}
+                </div>
+              </div>
+            </details>
           </div>
-          <p>
-            {fullDate(session.date)}
-            <span className="quiet-divider">·</span>
-            {session.start}–{session.end} PT
-            <span className="quiet-divider">|</span>
-            {session.records.length
-              ? "Garmin FIT + sheet snapshot"
-              : "Sheet summary only"}
-          </p>
         </div>
       </div>
       {editing && (

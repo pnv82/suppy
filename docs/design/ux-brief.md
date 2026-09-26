@@ -77,3 +77,19 @@ Use the real Sep 25 summary and track for the main state; also inspect Sep 5 mis
 ## Minimal session header refinement
 
 The title has a small chevron for session selection, retaining date, launch name, distance and active duration in the native picker. A small Edit icon opens a modal dialog containing the launch-point name and board selection, with an explicit Save/Cancel. Board defaults are optional shortcuts inside the dialog; board management remains on Boards. Escape/Cancel discard drafts and restore focus to Edit. The duplicated Sheet summary block is removed from Best windows; source values remain on Home and in analysis context. Summary-only sessions still explicitly show unavailable local windows.
+
+## Compact left navigation
+
+A fixed 64 px icon rail replaces the top bar, narrowing to 56 px on phones. Home, Sessions, Boards and ChatGPT share one vertical navigation group; Import FIT sits at the bottom. Every icon has an accessible name and a hover/keyboard-focus label; Escape dismisses labels. Active pages use a filled icon, tinted background and edge marker. The content begins at the top of the viewport. Touch targets stay 44 px, and very narrow screens stack best-window controls and use two metric columns. URL navigation, session context and the Edit dialog are unchanged.
+
+## Best-window row refinement
+
+The map spans the full content width, with 5/10/20-minute controls in one compact horizontal row directly underneath, including on phones. Each control retains duration, speed and exact interval times; missing tracks show disabled controls. The section heading, local-estimate eyebrow, explanatory paragraph and map-direction help caption are removed. Local FIT provenance remains in the accessible region name and documented metric contract. Missing GPS is a conditional map status. Selection still synchronizes the map and charts.
+
+## Compact metric panel
+
+Desktop session review places key metrics in a bordered panel to the right of the map and its best-window row. A semantic definition list aligns labels and values, with secondary elapsed/max/stroke values kept distinct. At 900 px and below the panel stacks after the map, using two columns. Removed chart pointer instructions and repeated context/focus help paragraphs; chart keyboard instructions remain available to assistive technology. Units, unavailable values, evidence labels and source-quality context remain.
+
+## Session density refinements
+
+Performance has one heading row with Annotate at the current cursor. Current telemetry appears in a pointer-positioned chart tooltip (also available on chart keyboard focus); the separate values row and repeated elapsed caption are removed. The wind digest reveals HR/wind quality and the source link on hover or activation, including summary-only sessions. A compact date beside the session title opens full date/time/source details. The app footer is removed. Existing chart keyboard and annotation actions remain available.

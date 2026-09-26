@@ -1,14 +1,12 @@
 # next improvements
-- [x] display the current point on the map
-- [x] remove dedicated controls for Explore track and Intervals (ones that below the map). The point selection should be combined with the interactive behavior of the charts (including adding the annotation). For best intervals we already have a control on the right side of the map.
 
 - [ ] move board selection and session name adjustment to the separate dialog, that will be called via small Edit icon near the session name - we need to keep the UI light and minimalistic.
 - [ ] no need for the "Sheet summary" section - it seem to be a duplicate.
 - [ ] make a session selector a small chevron near the name of the session - this will allow the UI to remain tidy and light. It is overloaded right now.
 
 - [ ] allow to delete sessions, so i can test the uploads
-- [ ] review docs\product\llm vs app.md and add it to the documentation, architecture and principles of the app. Analyse if any adjustment of the current app need to be made. If yes - document them in todo.md and start implementing one by one.
-- [ ] optimize the space usage by moving the top bar into vertical on the left. Use compacted version of that menu bar - ala Jira.
+- [ ] review docs\product\llm vs app.md and add it to the documentation, architecture and principles of the app. Analyse if any adjustment of the current app need to be made. If yes - document them in todo.md.
+- [ ] if we have sufficient horizontal space - show the names of the sections in the left toolbar
 
 
 # Deferred work

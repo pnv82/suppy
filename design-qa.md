@@ -128,3 +128,28 @@ Moved the board picker into a native modal opened by the small pencil beside the
 - Build and all 20 tests pass, including atomic detail edits, invalid-board rollback, name validation, unchanged source location/string ID and updated analysis context. Existing build warnings remain.
 - Browser checks at 1280 × 900 and 390 × 844 covered keyboard session selection, empty boards, default selection, combined name/board save, blank-name rejection, Escape/Cancel, focus entering the name field and returning to Edit, modal Tab containment, and the summary-only session. No horizontal page overflow. No captured browser warnings/errors.
 - Private screenshot: `.tools/qa/minimal-session-header.png`. Tests that changed data used an isolated server. The running app on port 3001 was updated with all existing temporary session and board state restored and compared against the pre-restart snapshot. Live ChatGPT embedding remains unverified.
+
+## Compact left navigation — 2026-09-26
+
+Replaced the horizontal top bar with a fixed 64 px icon rail (56 px on phones), preserving Home, Sessions, Boards, ChatGPT and Import FIT. Removed duplicate ChatGPT navigation. Icons have accessible names, hover/focus labels, Escape dismissal, and active-page markers. The content starts at the top of the viewport. Removed superseded header styles.
+
+- Production build and all 20 tests pass; existing dependency-comment and bundle-size warnings remain.
+- Browser checks at 1280 × 900, 390 × 844 and 320 × 720 cover all pages, keyboard navigation, active states, focus labels/Escape, Skip to content, session URL updates, detailed tracks, unknown wind and summary-only states. No horizontal page overflow or captured warnings/errors. Import remains reachable at 740 × 360.
+- At the smallest width, metrics use two columns and best-window controls stack to fit beside the rail. Private screenshot: `.tools/qa/left-navigation-rail.png`. Viewport reset; server was not restarted and temporary data was preserved. Live ChatGPT embedding remains unverified.
+
+## Horizontal best-window controls — 2026-09-26
+
+Moved the three local best-window controls under the full-width map, removed the section heading/eyebrow/help paragraph and map-direction caption, and retained duration, speed, elapsed boundaries, selection and unavailable states. Missing GPS uses a conditional map status. The row stays horizontal at narrow widths.
+
+- Production build and all 20 tests pass; existing build warnings remain.
+- Browser checks at 981 × 884, 1280 × 900, 390 × 844 and 320 × 720: horizontal layout, no page-wide overflow, keyboard window selection and linked map/chart state, and disabled summary-only controls. Server state was preserved.
+
+## Right-side metrics and reduced help text — 2026-09-26
+
+Moved summary metrics into a compact right-side panel with aligned labels/values, subtle separators and retained secondary values. Narrow layouts stack the panel after the map. Removed visible chart interaction instructions and repeated context/focus explanatory text; keyboard instructions remain screen-reader accessible. Build and all 20 tests pass. Final browser visual verification was blocked by a browser URL-policy rejection while reloading the browser error page. The stopped local server was restarted using the previously saved temporary-state snapshot; edits made after that snapshot cannot be verified as recovered. Live embedding remains unverified.
+
+## Session tooltip and metadata cleanup — 2026-09-26
+
+Implemented all six browser comments: floating chart telemetry, heading-level Annotate, removed repeated elapsed caption, wind/source disclosure, removed footer, and inline date disclosure beside the title. Source metadata remains reachable without a track. Chart values remain available on keyboard focus and in slider ARIA values.
+
+Build and all 20 tests pass. Browser verification at 981 × 884, 390 × 844 and 320 × 720 covered pointer/keyboard values, annotation prefill/cancel, date disclosure, source link, summary-only state and no horizontal overflow. No captured warnings/errors. Private screenshot: `.tools/qa/session-density-final.png`. Viewport reset; no server restart or saved-data edits in this change. Live ChatGPT embedding remains unverified.

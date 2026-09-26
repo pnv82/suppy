@@ -141,3 +141,5 @@ For offline data verification, install `scripts/requirements.txt` into `.tools/p
 Source: [SUP Training Progress Tracker](https://docs.google.com/spreadsheets/d/1Hj6ef7uA-zpHMwvUCRXzpLBv_ty-uV-BX9iG945NEdE/edit), snapshot captured 2026-09-26 03:24:26 UTC. All supplied archives are preserved unchanged. Missing data and limitations are recorded in [data-audit.md](docs/data/data-audit.md).
 
 The map uses OpenStreetMap with visible attribution and normal browser tile caching. Only the visible map area is requested; no offline tile download. See the [tile policy](https://operations.osmfoundation.org/policies/tiles/). A production map service decision is deferred.
+
+Navigation uses a compact left icon rail. Hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail.

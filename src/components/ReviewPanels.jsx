@@ -106,7 +106,7 @@ export function ContextPanel({ session, onSave, onAsk, busy }) {
         onChange={(e) => setValue(e.target.value)}
         maxLength={4000}
         rows={3}
-        placeholder="For example: board used, water conditions, or what you felt during an interval…"
+        placeholder="Session notes…"
       />
       <div className="panel-actions">
         <button
@@ -124,10 +124,6 @@ export function ContextPanel({ session, onSave, onAsk, busy }) {
           <ChatCircleDots size={17} /> Ask for fresh analysis
         </button>
       </div>
-      <p className="caption">
-        Notes and context are temporary for this prototype. They reset when the
-        server restarts.
-      </p>
     </section>
   );
 }
@@ -232,10 +228,6 @@ export function FocusPanel({ session, issues, onSave, busy }) {
           </span>
         ))}
       </div>
-      <p className="caption">
-        A focus is an observation to explore. Watch data alone cannot confirm a
-        technique fault.
-      </p>
       <button
         className="button secondary small"
         disabled={

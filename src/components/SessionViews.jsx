@@ -1,12 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ArrowUp,
-  Wind,
-  Info,
-  Plus,
-  NotePencil,
-  MapPin,
-} from "@phosphor-icons/react";
+import { ArrowUp, Wind, Plus, NotePencil, MapPin } from "@phosphor-icons/react";
 import {
   MapContainer,
   TileLayer,
@@ -92,6 +85,63 @@ function FitBounds({ points, reset }) {
   }, [map, reset]);
   return null;
 }
+function WindDigest({ session }) {
+  return (
+    <details
+      className="wind-overlay"
+      onPointerEnter={(e) => {
+        if (e.pointerType === "mouse") e.currentTarget.open = true;
+      }}
+      onPointerLeave={(e) => {
+        if (
+          e.pointerType === "mouse" &&
+          !e.currentTarget.contains(document.activeElement)
+        )
+          e.currentTarget.open = false;
+      }}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget))
+          e.currentTarget.open = false;
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") e.currentTarget.open = false;
+      }}
+    >
+      <summary className="wind-summary" aria-label="Wind and source details">
+        {session.windFrom == null ? (
+          <Wind size={27} />
+        ) : (
+          <ArrowUp
+            size={29}
+            weight="bold"
+            style={{ transform: `rotate(${session.windFrom + 180}deg)` }}
+          />
+        )}
+        <div>
+          <strong>
+            {session.windFrom == null
+              ? "Wind unavailable"
+              : `From ${bearing(session.windFrom)} · ${fmt(session.wind, 2)} mph`}
+          </strong>
+          <span>
+            {session.windFrom == null
+              ? "No station observation in source"
+              : `${session.station || "Station"} · ${session.windFrom}° from · air flows ${bearing((session.windFrom + 180) % 360)}`}
+          </span>
+        </div>
+      </summary>
+
+      <div className="wind-source-popover">
+        <p>HR: {session.hrQuality || "quality unknown"}</p>
+        <p>Wind: {session.weatherQuality || "quality unknown"}</p>
+        <a href={session.sourceRef} target="_blank" rel="noreferrer">
+          View source sheet
+        </a>
+      </div>
+    </details>
+  );
+}
+
 export function SessionMap({ session, selected, onSelect, cursor }) {
   const [tileError, setTileError] = useState(false);
   const runs = useMemo(
@@ -109,6 +159,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
   if (!all.length)
     return (
       <div className="map-empty">
+        <WindDigest session={session} />
         <MapPin size={32} />
         <h3>No track for this session</h3>
         <p>
@@ -295,36 +346,12 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
           )}
         </Pane>
       </MapContainer>
-      <p className="map-direction-caption">
-        <ArrowUp size={16} />{" "}
-        {selected
-          ? `${selected / 60} min arrows: direction of travel.`
-          : "Select a best window to highlight its interval."}{" "}
-        {!marker && `GPS unavailable at ${timeLabel(cursor)}.`}
-      </p>
-      <div className="wind-overlay">
-        {session.windFrom == null ? (
-          <Wind size={27} />
-        ) : (
-          <ArrowUp
-            size={29}
-            weight="bold"
-            style={{ transform: `rotate(${session.windFrom + 180}deg)` }}
-          />
-        )}
-        <div>
-          <strong>
-            {session.windFrom == null
-              ? "Wind unavailable"
-              : `From ${bearing(session.windFrom)} · ${fmt(session.wind, 2)} mph`}
-          </strong>
-          <span>
-            {session.windFrom == null
-              ? "No station observation in source"
-              : `${session.station || "Station"} · ${session.windFrom}° from · air flows ${bearing((session.windFrom + 180) % 360)}`}
-          </span>
+      {!marker && (
+        <div className="map-gps-status" role="status">
+          GPS unavailable at {timeLabel(cursor)}
         </div>
-      </div>
+      )}
+      <WindDigest session={session} />
       <div className="map-north" aria-label="North is up">
         <span>N</span>
         <ArrowUp size={21} weight="fill" />
@@ -383,15 +410,10 @@ function TravelArrows({ session, selected }) {
 
 export function BestWindows({ session, selected, onSelect }) {
   return (
-    <aside className="best-panel">
-      <h2>
-        Best windows{" "}
-        <Info
-          size={16}
-          aria-label="Local estimates from FIT distance over continuous elapsed time"
-        />
-      </h2>
-      <p className="eyebrow">LOCAL FIT ESTIMATES</p>
+    <section
+      className="best-window-bar"
+      aria-label="Best windows · local FIT estimates"
+    >
       <div className="window-list">
         {session.windows.map((w) => (
           <button
@@ -418,11 +440,7 @@ export function BestWindows({ session, selected, onSelect }) {
           </button>
         ))}
       </div>
-      <p className="caption">
-        Tap a window to follow its arrows from start to finish on the map and
-        highlight its timeline. Local estimates may differ from the sheet.
-      </p>
-    </aside>
+    </section>
   );
 }
 
@@ -432,71 +450,77 @@ export function MetricStrip({ session }) {
   const stroke = stats?.distance_per_stroke;
   const duration = durationLabel(session.active);
   return (
-    <div className="metrics">
-      {[
-        ["Distance", fmt(session.distance, 2), "mi"],
-        [
-          "Duration · active",
-          duration,
-          "",
-          Math.abs(session.elapsed - session.active) > 1 / 60
-            ? `Elapsed ${durationLabel(session.elapsed)}`
-            : null,
-          `Active: ${fmt(session.active, 2)} min. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`,
-        ],
-        [
-          "Average speed",
-          fmt(session.avgSpeed, 2),
-          "mph",
-          `Max ${fmt(mph(maxSpeed?.max), 2)} mph`,
-          maxSpeed?.max_source === "fit_session"
-            ? "Maximum speed from the FIT session summary; unfiltered watch value."
-            : maxSpeed?.max_source === "fit_records"
-              ? "Maximum recorded FIT speed; unfiltered watch value."
-              : "Maximum speed unavailable: no detailed FIT data.",
-        ],
-        ["Average heart rate", fmt(session.avgHr), "bpm"],
-        [
-          "Cadence",
-          fmt(session.cadence),
-          "spm",
-          `${fmt(feet(stroke?.value_m), 1)} ft/stroke${stroke?.value_m != null ? " · est." : ""}`,
-          stroke?.value_m != null
-            ? `Distance per stroke: ${fmt(stroke.value_m, 2)} m/stroke. FIT distance ${fmt(stroke.distance_m, 2)} m ÷ ${stroke.strokes} watch-counted strokes. Ground distance includes glide and conditions; not a measure of biomechanical efficiency.`
-            : "Distance per stroke unavailable: a SUP FIT session with recorded distance and total strokes is required.",
-        ],
-      ].map(([label, value, unit, secondary, detail]) => (
-        <div className="metric" key={label}>
-          <div
-            className="metric-value"
-            title={label === "Duration · active" ? detail : undefined}
-          >
-            {label === "Duration · active" && value !== "—" ? (
-              value
-                .split(" ")
-                .map((part, i) =>
-                  i % 2 === 0 ? (
-                    <strong key={i}>{part}</strong>
-                  ) : (
-                    <span key={i}>{part}</span>
-                  ),
-                )
-            ) : (
-              <>
-                <strong>{value}</strong>
-                <span>{unit}</span>
-              </>
+    <section
+      className="session-metrics"
+      aria-labelledby="session-metrics-title"
+    >
+      <h2 id="session-metrics-title">Session overview</h2>
+      <dl className="summary-metrics">
+        {[
+          ["Distance", fmt(session.distance, 2), "mi"],
+          [
+            "Duration · active",
+            duration,
+            "",
+            Math.abs(session.elapsed - session.active) > 1 / 60
+              ? `Elapsed ${durationLabel(session.elapsed)}`
+              : null,
+            `Active: ${fmt(session.active, 2)} min. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`,
+          ],
+          [
+            "Average speed",
+            fmt(session.avgSpeed, 2),
+            "mph",
+            `Max ${fmt(mph(maxSpeed?.max), 2)} mph`,
+            maxSpeed?.max_source === "fit_session"
+              ? "Maximum speed from the FIT session summary; unfiltered watch value."
+              : maxSpeed?.max_source === "fit_records"
+                ? "Maximum recorded FIT speed; unfiltered watch value."
+                : "Maximum speed unavailable: no detailed FIT data.",
+          ],
+          ["Average heart rate", fmt(session.avgHr), "bpm"],
+          [
+            "Cadence",
+            fmt(session.cadence),
+            "spm",
+            `${fmt(feet(stroke?.value_m), 1)} ft/stroke${stroke?.value_m != null ? " · est." : ""}`,
+            stroke?.value_m != null
+              ? `Distance per stroke: ${fmt(stroke.value_m, 2)} m/stroke. FIT distance ${fmt(stroke.distance_m, 2)} m ÷ ${stroke.strokes} watch-counted strokes. Ground distance includes glide and conditions; not a measure of biomechanical efficiency.`
+              : "Distance per stroke unavailable: a SUP FIT session with recorded distance and total strokes is required.",
+          ],
+        ].map(([label, value, unit, secondary, detail]) => (
+          <div className="summary-metric" key={label}>
+            <dt>{label}</dt>
+            <dd
+              className="summary-value"
+              title={label === "Duration · active" ? detail : undefined}
+            >
+              {label === "Duration · active" && value !== "—" ? (
+                value
+                  .split(" ")
+                  .map((part, i) =>
+                    i % 2 === 0 ? (
+                      <strong key={i}>{part}</strong>
+                    ) : (
+                      <span key={i}>{part}</span>
+                    ),
+                  )
+              ) : (
+                <>
+                  <strong>{value}</strong>
+                  <span>{unit}</span>
+                </>
+              )}
+            </dd>
+            {secondary && (
+              <dd className="summary-secondary" title={detail}>
+                {secondary}
+              </dd>
             )}
           </div>
-          <p>{label}</p>
-          {secondary && (
-            <small className="metric-secondary" title={detail}>
-              {secondary}
-            </small>
-          )}
-        </div>
-      ))}
-    </div>
+        ))}
+      </dl>
+    </section>
   );
 }
 
@@ -508,6 +532,7 @@ export function Timeline({
   onAnnotate,
   onEdit,
 }) {
+  const [hover, setHover] = useState(null);
   const rows = useMemo(() => chartRows(session.records), [session.records]);
   const max = session.elapsed,
     ticks = Array.from({ length: Math.floor(max / 20) + 1 }, (_, i) => i * 20);
@@ -533,6 +558,7 @@ export function Timeline({
     onAnnotate(seconds);
   };
   const keyboardCursor = (event) => {
+    if (event.key === "Escape") setHover(null);
     const step = event.shiftKey ? 10 : 1;
     const next = {
       ArrowRight: cursor + step,
@@ -553,41 +579,19 @@ export function Timeline({
   return (
     <section className="timeline-section" aria-labelledby="timeline-title">
       <div className="section-heading">
-        <div>
-          <h2 id="timeline-title">Performance</h2>
-          <p>
-            Elapsed time · {durationLabel(session.elapsed)}
-            <span className="quiet-divider">/</span>Hover to explore · click or
-            tap to annotate
-          </p>
-        </div>
-        {!rows.length && (
-          <button
-            className="button secondary small"
-            onClick={() => onAnnotate(0)}
-          >
-            <Plus size={16} /> Add annotation
-          </button>
-        )}
+        <h2 id="timeline-title">Performance</h2>
+        <button
+          className="text-button"
+          onClick={() => onAnnotate(rows.length ? cursor : 0)}
+        >
+          <NotePencil size={16} />{" "}
+          {rows.length ? "Annotate " + timeLabel(cursor) : "Add annotation"}
+        </button>
       </div>
-      {rows.length > 0 && (
-        <>
-          <p id="chart-keyboard-help" className="caption chart-help">
-            Focus a chart and use arrow keys to move 1 second, Shift + arrow for
-            10 seconds, Home/End for the limits, and Enter to annotate.
-          </p>
-          <div className="cursor-values">
-            <span>At {timeLabel(cursor)}</span>
-            <strong>{fmt(mph(current?.speed_mps), 2)} mph</strong>
-            <strong>{fmt(current?.heart_rate_bpm)} bpm</strong>
-            <strong>{fmt(current?.cadence_raw)} spm</strong>
-            {!current && <span>No sample at this time</span>}
-            <button className="text-button" onClick={() => onAnnotate(cursor)}>
-              <NotePencil size={16} /> Annotate {timeLabel(cursor)}
-            </button>
-          </div>
-        </>
-      )}
+      <p id="chart-keyboard-help" className="sr-only">
+        Elapsed time. Arrow keys move one second, Shift + arrow ten seconds.
+        Home/End jump to limits. Enter annotates.
+      </p>
       {rows.length ? (
         <div className="chart-stack">
           {[
@@ -635,7 +639,39 @@ export function Timeline({
                     (!current ? ", no sample" : "")
                   }
                   onKeyDown={keyboardCursor}
+                  onPointerMove={(e) => {
+                    if (e.pointerType === "touch") return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setHover({
+                      key,
+                      x: Math.max(
+                        0,
+                        Math.min(rect.width - 174, e.clientX - rect.left + 14),
+                      ),
+                      y: e.clientY - rect.top - 82,
+                    });
+                  }}
+                  onPointerLeave={() => setHover(null)}
+                  onFocus={() => setHover({ key, x: 0, y: -60 })}
+                  onBlur={() => setHover(null)}
                 >
+                  {hover?.key === key && (
+                    <div
+                      className="chart-hover-values"
+                      role="tooltip"
+                      style={{ left: hover.x, top: hover.y }}
+                    >
+                      <b>{timeLabel(cursor)}</b>
+                      <span>
+                        {fmt(mph(current?.speed_mps), 2)} mph ·{" "}
+                        {fmt(current?.heart_rate_bpm)} bpm
+                      </span>
+                      <span>
+                        {fmt(current?.cadence_raw)} spm
+                        {!current ? " · No sample" : ""}
+                      </span>
+                    </div>
+                  )}
                   {key !== "cadence" && (
                     <div
                       className="chart-statistics"
@@ -784,9 +820,7 @@ export function Timeline({
         <span className="track-label">Annotations</span>
         <div className="annotation-lane">
           {!session.annotations.length && (
-            <span className="empty-annotation">
-              Add conditions, falls, interruptions, or a note
-            </span>
+            <span className="empty-annotation">No annotations</span>
           )}
           {session.annotations.map((a) => (
             <button

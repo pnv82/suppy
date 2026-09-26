@@ -26,3 +26,7 @@ Use [todo.md](../../todo.md) as the deferred-work list. Start with live ChatGPT 
 P03 is automatic latest-10 comparison, superseding the initial two-session selection idea. P05 is explicit timed annotations. P01/P02/P04/P06 remain discarded.
 
 - Minimal session header: chevron session picker and modal name/board editing, saved atomically through `update_session_details`. Removed the redundant Sheet summary block from session review.
+- Compact left icon navigation replaces the horizontal header; responsive rail retains Import and all four pages with accessible labels and active-page indication.
+- Best-window controls now form one compact horizontal row under the full-width map; removed section help text and map-direction caption.
+- Summary metrics now occupy a compact panel right of the map on desktop, stacking below on narrow screens. Repeated instructional copy removed from session review.
+- Session density refinement: pointer chart values, heading-level Annotate, wind/source disclosure, inline session date disclosure, and removal of repeated captions/footer.

@@ -1,14 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   Waves,
-  ChatCircleDots,
-  UploadSimple,
-  Info,
   X,
   Check,
   Trash,
   NotePencil,
-  ArrowSquareOut,
   WarningCircle,
   ArrowClockwise,
 } from "@phosphor-icons/react";
@@ -35,6 +31,7 @@ import {
 import { Compare } from "./components/Compare.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
 import { Boards } from "./components/Boards.jsx";
+import { NavigationRail } from "./components/NavigationRail.jsx";
 import { SessionHeader } from "./components/SessionHeader.jsx";
 import { useNavigation } from "./services/useNavigation.jsx";
 
@@ -233,267 +230,217 @@ export function App() {
       <a href="#main" className="skip-link">
         Skip to content
       </a>
-      <header className="app-header">
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            setPage("Home");
-          }}
-        >
-          <Waves size={32} weight="bold" />
-          <span>SUP Training</span>
-        </a>
-        <nav aria-label="Main navigation">
-          {["Home", "Sessions", "Boards", "ChatGPT"].map((p) => (
-            <button
-              key={p}
-              className={page === p ? "active" : ""}
-              aria-current={page === p ? "page" : undefined}
-              onClick={() => setPage(p)}
+      <NavigationRail
+        page={page}
+        onNavigate={setPage}
+        onImport={() => fileInput.current?.click()}
+      />
+      <input
+        ref={fileInput}
+        aria-label="Import Garmin sample"
+        type="file"
+        accept=".fit,.zip"
+        hidden
+        onChange={(e) => {
+          perform(() => importSample(e.target.files?.[0]));
+          e.target.value = "";
+        }}
+      />
+      <div className="app-workspace">
+        <main id="main" className="app-main" tabIndex={-1}>
+          {error && (
+            <div
+              className="error-banner"
+              role="alert"
+              ref={errorRef}
+              tabIndex={-1}
             >
-              {p}
-            </button>
-          ))}
-        </nav>
-        <div className="header-actions">
-          <button
-            className="button primary small"
-            onClick={() => setPage("ChatGPT")}
-          >
-            <ChatCircleDots size={18} />
-            <span>Ask ChatGPT</span>
-          </button>
-          <button
-            className="button plain small"
-            onClick={() => fileInput.current?.click()}
-          >
-            <UploadSimple size={18} />
-            <span>Import FIT</span>
-          </button>
-          <input
-            ref={fileInput}
-            aria-label="Import Garmin sample"
-            type="file"
-            accept=".fit,.zip"
-            hidden
-            onChange={(e) => {
-              perform(() => importSample(e.target.files?.[0]));
-              e.target.value = "";
-            }}
-          />
-        </div>
-      </header>
-      <main id="main" className="app-main">
-        {error && (
-          <div
-            className="error-banner"
-            role="alert"
-            ref={errorRef}
-            tabIndex={-1}
-          >
-            <WarningCircle size={20} />
-            <span>{error}</span>
-            <button aria-label="Dismiss error" onClick={() => setError("")}>
-              <X size={18} />
-            </button>
-          </div>
-        )}
-        {page === "Sessions" && session && (
-          <>
-            <SessionHeader
-              key={session.id}
-              session={session}
-              sessions={data.sessions}
-              boards={data.boards || []}
-              defaultBoardId={data.defaultBoardId}
-              onOpen={openSession}
-              onManage={() => setPage("Boards")}
-              onSave={async (args) => {
-                await callTool("update_session_details", args);
-                notice("Session details saved.");
-              }}
-            />
-            <MetricStrip session={session} />
-            <div className="route-layout">
-              <SessionMap
-                session={session}
-                selected={selected}
-                onSelect={chooseWindow}
-                cursor={cursor}
-              />
-              <BestWindows
-                session={session}
-                selected={selected}
-                onSelect={chooseWindow}
-              />
+              <WarningCircle size={20} />
+              <span>{error}</span>
+              <button aria-label="Dismiss error" onClick={() => setError("")}>
+                <X size={18} />
+              </button>
             </div>
-            <Timeline
-              session={session}
-              selected={selected}
-              cursor={cursor}
-              setCursor={setCursor}
-              onAnnotate={annotate}
-              onEdit={editAnnotation}
-            />
-            {draft && (
-              <div ref={editorRef}>
-                <AnnotationForm
-                  draft={draft}
-                  setDraft={setDraft}
-                  onSave={(e) => {
-                    e.preventDefault();
-                    perform(() => saveAnnotation());
-                  }}
-                  onCancel={() => setDraft(null)}
-                  onAsk={() => perform(() => saveAnnotation(true))}
+          )}
+          {page === "Sessions" && session && (
+            <>
+              <SessionHeader
+                key={session.id}
+                session={session}
+                sessions={data.sessions}
+                boards={data.boards || []}
+                defaultBoardId={data.defaultBoardId}
+                onOpen={openSession}
+                onManage={() => setPage("Boards")}
+                onSave={async (args) => {
+                  await callTool("update_session_details", args);
+                  notice("Session details saved.");
+                }}
+              />
+              <div className="session-overview">
+                <div className="route-layout">
+                  <SessionMap
+                    session={session}
+                    selected={selected}
+                    onSelect={chooseWindow}
+                    cursor={cursor}
+                  />
+                  <BestWindows
+                    session={session}
+                    selected={selected}
+                    onSelect={chooseWindow}
+                  />
+                </div>
+                <MetricStrip session={session} />
+              </div>
+              <Timeline
+                session={session}
+                selected={selected}
+                cursor={cursor}
+                setCursor={setCursor}
+                onAnnotate={annotate}
+                onEdit={editAnnotation}
+              />
+              {draft && (
+                <div ref={editorRef}>
+                  <AnnotationForm
+                    draft={draft}
+                    setDraft={setDraft}
+                    onSave={(e) => {
+                      e.preventDefault();
+                      perform(() => saveAnnotation());
+                    }}
+                    onCancel={() => setDraft(null)}
+                    onAsk={() => perform(() => saveAnnotation(true))}
+                    busy={busy}
+                  />
+                </div>
+              )}
+              {session.annotations.length > 0 && (
+                <div className="annotation-list">
+                  {session.annotations.map((a) => (
+                    <div key={a.id}>
+                      <NotePencil size={18} />
+                      <button
+                        className="annotation-description"
+                        onClick={() => editAnnotation(a)}
+                      >
+                        <strong>
+                          {timeLabel(a.start_s)}
+                          {a.end_s > a.start_s
+                            ? `–${timeLabel(a.end_s)}`
+                            : ""}{" "}
+                          <span>
+                            {a.kind} · {a.timing}
+                          </span>
+                        </strong>
+                        <p>{a.note}</p>
+                      </button>
+                      <button
+                        className="icon-button"
+                        aria-label={`Delete annotation: ${a.note}`}
+                        disabled={busy}
+                        onClick={() =>
+                          perform(async () => {
+                            await callTool("delete_annotation", {
+                              session_id: session.id,
+                              annotation_id: a.id,
+                            });
+                            notice("Annotation deleted.");
+                          })
+                        }
+                      >
+                        <Trash size={17} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="details-grid">
+                <ContextPanel
+                  session={session}
                   busy={busy}
+                  onSave={(note) =>
+                    perform(async () => {
+                      await callTool("update_session_context", {
+                        session_id: session.id,
+                        note,
+                      });
+                      notice("Session context saved.");
+                    })
+                  }
+                  onAsk={(note) =>
+                    perform(async () => {
+                      await callTool("update_session_context", {
+                        session_id: session.id,
+                        note,
+                      });
+                      await prepare(
+                        "Review this session with my latest notes and additional context. What should I focus on next?",
+                      );
+                    })
+                  }
+                />
+                <FocusPanel
+                  session={session}
+                  issues={data.issues}
+                  busy={busy}
+                  onSave={(args) =>
+                    perform(async () => {
+                      await callTool("update_training_focus", {
+                        session_id: session.id,
+                        ...args,
+                      });
+                      notice("Training focus saved.");
+                    })
+                  }
                 />
               </div>
-            )}
-            {session.annotations.length > 0 && (
-              <div className="annotation-list">
-                {session.annotations.map((a) => (
-                  <div key={a.id}>
-                    <NotePencil size={18} />
-                    <button
-                      className="annotation-description"
-                      onClick={() => editAnnotation(a)}
-                    >
-                      <strong>
-                        {timeLabel(a.start_s)}
-                        {a.end_s > a.start_s
-                          ? `–${timeLabel(a.end_s)}`
-                          : ""}{" "}
-                        <span>
-                          {a.kind} · {a.timing}
-                        </span>
-                      </strong>
-                      <p>{a.note}</p>
-                    </button>
-                    <button
-                      className="icon-button"
-                      aria-label={`Delete annotation: ${a.note}`}
-                      disabled={busy}
-                      onClick={() =>
-                        perform(async () => {
-                          await callTool("delete_annotation", {
-                            session_id: session.id,
-                            annotation_id: a.id,
-                          });
-                          notice("Annotation deleted.");
-                        })
-                      }
-                    >
-                      <Trash size={17} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div className="details-grid">
-              <ContextPanel
-                session={session}
-                busy={busy}
-                onSave={(note) =>
-                  perform(async () => {
-                    await callTool("update_session_context", {
-                      session_id: session.id,
-                      note,
-                    });
-                    notice("Session context saved.");
-                  })
-                }
-                onAsk={(note) =>
-                  perform(async () => {
-                    await callTool("update_session_context", {
-                      session_id: session.id,
-                      note,
-                    });
-                    await prepare(
-                      "Review this session with my latest notes and additional context. What should I focus on next?",
-                    );
-                  })
-                }
-              />
-              <FocusPanel
-                session={session}
-                issues={data.issues}
-                busy={busy}
-                onSave={(args) =>
-                  perform(async () => {
-                    await callTool("update_training_focus", {
-                      session_id: session.id,
-                      ...args,
-                    });
-                    notice("Training focus saved.");
-                  })
-                }
-              />
+            </>
+          )}
+          {page === "Home" && (
+            <Compare
+              sessions={data.sessions}
+              boards={data.boards || []}
+              onOpen={openSession}
+            />
+          )}
+          {page === "Boards" && (
+            <Boards
+              boards={data.boards || []}
+              defaultBoardId={data.defaultBoardId}
+              busy={busy}
+              onAction={boardAction}
+            />
+          )}
+          {(page === "Sessions" || page === "ChatGPT") && !session && (
+            <div role="status">
+              <p>
+                {sessionId
+                  ? `Session ${sessionId} is unavailable in this snapshot.`
+                  : "No sessions available in this snapshot."}
+              </p>
+              <button
+                className="button secondary"
+                onClick={() => navigate({ page: "Home", sessionId: null })}
+              >
+                Browse available sessions
+              </button>
             </div>
-            <div className="source-footer">
-              <span>
-                <Info size={15} /> HR: {session.hrQuality || "quality unknown"}{" "}
-                · Wind: {session.weatherQuality || "quality unknown"}
-              </span>
-              <a href={session.sourceRef} target="_blank" rel="noreferrer">
-                View source sheet <ArrowSquareOut size={14} />
-              </a>
-            </div>
-          </>
-        )}
-        {page === "Home" && (
-          <Compare
-            sessions={data.sessions}
-            boards={data.boards || []}
-            onOpen={openSession}
-          />
-        )}
-        {page === "Boards" && (
-          <Boards
-            boards={data.boards || []}
-            defaultBoardId={data.defaultBoardId}
-            busy={busy}
-            onAction={boardAction}
-          />
-        )}
-        {(page === "Sessions" || page === "ChatGPT") && !session && (
-          <div role="status">
-            <p>
-              {sessionId
-                ? `Session ${sessionId} is unavailable in this snapshot.`
-                : "No sessions available in this snapshot."}
-            </p>
-            <button
-              className="button secondary"
-              onClick={() => navigate({ page: "Home", sessionId: null })}
-            >
-              Browse available sessions
-            </button>
-          </div>
-        )}
-        {page === "ChatGPT" && session && (
-          <ChatGPTPage
-            connected={connected}
-            session={session}
-            onPrepare={(q) => perform(() => prepare(q))}
-            busy={busy}
-            prepared={prepared}
-            setPrepared={setPrepared}
-            notice={notice}
-          />
-        )}
-        <footer className="app-footer">
-          <span>
-            <Waves size={18} /> Made for the next paddle.
-          </span>
-          <span>
-            Snapshot {data.snapshotAt?.slice(0, 10)} · edits reset on server
-            restart
-          </span>
-        </footer>
-      </main>
+          )}
+          {page === "ChatGPT" && session && (
+            <ChatGPTPage
+              connected={connected}
+              session={session}
+              onPrepare={(q) => perform(() => prepare(q))}
+              busy={busy}
+              prepared={prepared}
+              setPrepared={setPrepared}
+              notice={notice}
+            />
+          )}
+        </main>
+      </div>
       {toast && (
         <div className="toast" role="status">
           <Check size={19} />
