@@ -5,7 +5,7 @@
 - Selected light map-led direction, with timeline annotations from concept 2.
 - React/Vite UI using four actual sheet summaries and three detailed tracks.
 - 5/10/20-minute map/timeline highlights with real local estimates and source values kept separate.
-- Linked time cursor, gap-aware charts and missing-track/wind states.
+- Chart-driven hover/keyboard time cursor, a labelled map point above overlays, click/tap annotations, gap-aware charts and missing-track/wind states. Duplicate below-map interval controls and the separate time slider are removed.
 - Automatic latest-10 trends; four current sessions, eight parameter choices.
 - Home now uses the comparison view, with newest-first session rows and phone cards.
 - Best-window travel arrows and selected-route emphasis make overlapping tracks readable.

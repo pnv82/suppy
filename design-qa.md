@@ -87,3 +87,13 @@ Board management supports create, rename, explicit default selection/clearing, s
 - Private evidence: `.tools/qa/home-desktop.png`, `home-mobile.png`, `boards-mobile.png`, `directions-desktop.png`, `directions-mobile.png`. Board screenshots may contain temporary QA names. Viewport override reset after checks.
 
 The server is running at `http://127.0.0.1:3001`. Board state is temporary and resets on server restart. Live account/tunnel integration remains a separate check; local MCP tests confirm eleven tool definitions and board round-trip behavior.
+
+## Chart point and simpler timeline — 2026-09-26
+
+Removed the separate Explore track slider and best-window timeline lanes. The existing best-window sidebar still selects route/chart highlights. Chart hover moves a shared cursor and a labelled current map point above interval overlays; click/tap opens an annotation at that timestamp. Each chart supports arrow keys, Shift + arrows, Home/End and Enter/Space, with focus moving into the editor. Initial selection uses the first valid GPS point; unavailable GPS and pauses do not invent map positions.
+
+- All 19 tests pass; production build passes with existing dependency-comment and bundle-size warnings.
+- Browser checks at 1280 × 1000 and 390 × 844 covered best-window selection, hover, chart click, keyboard movement, annotation save/delete, and editor focus. No page-wide horizontal overflow at narrow width.
+- Confirmed Aug 29 summary-only state retains manual annotation, Sep 5 unknown wind, and the missing GPS at Sep 25 0:00 hides the point while 0:10 restores it.
+- Rapid session switching exposed a Leaflet zoom-transition teardown error. Session fitBounds now disables animation to avoid a pending transition after map removal; final build verified, this last change has not had a separate browser replay.
+- Private screenshot: `.tools/qa/chart-cursor-desktop.png`. Temporary QA annotation was deleted; existing board state was preserved. Live ChatGPT embedding and formal screen-reader testing remain unverified.

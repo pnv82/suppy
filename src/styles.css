@@ -580,58 +580,6 @@ input[type="range"] {
   font-size: 10px;
   color: #8090a0;
 }
-.window-lanes {
-  padding-top: 4px;
-  margin-bottom: 13px;
-}
-.window-lanes .timeline-row {
-  height: 32px;
-}
-.lane {
-  position: relative;
-  height: 27px;
-  margin-left: 36px;
-  margin-right: 16px;
-  border-bottom: 1px solid #e9eef3;
-  background: repeating-linear-gradient(
-    to right,
-    #e8eef4 0px,
-    #e8eef4 1px,
-    transparent 1px,
-    transparent 23%
-  );
-}
-.interval-bar {
-  position: absolute;
-  top: 14px;
-  height: 9px;
-  min-width: 2px;
-  background: color-mix(in srgb, var(--interval) 28%, white);
-  border-left: 3px solid var(--interval);
-  border-right: 3px solid var(--interval);
-  padding: 0;
-}
-.interval-bar.active {
-  background: color-mix(in srgb, var(--interval) 48%, white);
-}
-.interval-bar span {
-  position: absolute;
-  font-size: 9px;
-  line-height: 1;
-  color: #576c80;
-  top: -12px;
-  white-space: nowrap;
-}
-.bar-start {
-  left: -3px;
-}
-.bar-end {
-  right: -3px;
-}
-.unavailable-lane {
-  font-size: 10px;
-  color: #81909f;
-}
 .metric-chart {
   min-width: 0;
   position: relative;
@@ -668,15 +616,6 @@ input[type="range"] {
   align-self: start;
   padding-top: 14px;
 }
-.chart-tip {
-  background: white;
-  border: 1px solid #dce4eb;
-  padding: 8px 12px;
-  font-size: 11px;
-  box-shadow: 0 3px 12px #12283f12;
-  display: flex;
-  gap: 12px;
-}
 .annotation-track {
   margin-top: 8px;
 }
@@ -702,35 +641,6 @@ input[type="range"] {
 }
 .annotation-marker:hover {
   background: #fceaf1;
-}
-.scrubber {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-top: 17px;
-  padding-left: 0;
-}
-.scrubber label {
-  flex-direction: row;
-  gap: 12px;
-  white-space: nowrap;
-  font-size: 11px;
-  min-width: 136px;
-}
-.scrubber strong {
-  font-variant-numeric: tabular-nums;
-  color: #18374c;
-  font-weight: 600;
-}
-.scrubber input {
-  flex: 1;
-  width: 100%;
-  height: 25px;
-  min-height: 25px;
-}
-.scrubber .text-button {
-  white-space: nowrap;
-  padding-right: 15px;
 }
 .annotation-editor {
   margin: 17px 0;
@@ -1818,21 +1728,6 @@ td small {
   .map-empty {
     min-height: 300px;
   }
-  .scrubber {
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-  .scrubber label {
-    min-width: auto;
-  }
-  .scrubber .text-button {
-    font-size: 10px;
-    padding-right: 0;
-  }
-  .scrubber input {
-    min-width: 80px;
-    width: auto;
-  }
   .annotation-editor {
     padding: 12px;
   }
@@ -1939,35 +1834,11 @@ td small {
   .timeline-row {
     grid-template-columns: 64px minmax(0, 1fr);
   }
-  .interval-bar span {
-    font-size: 8px;
-  }
-  .interval-bar .bar-end {
-    top: 12px;
-  }
-  .window-lanes .timeline-row {
-    height: 38px;
-  }
-  .window-lanes {
-    margin-bottom: 9px;
-  }
   .track-label {
     font-size: 9px;
   }
   .empty-annotation {
     font-size: 9px;
-  }
-  .scrubber label {
-    font-size: 10px;
-    gap: 7px;
-  }
-  .scrubber .text-button {
-    font-size: 0;
-    gap: 0;
-  }
-  .scrubber .text-button svg {
-    width: 20px;
-    height: 20px;
   }
   .panel-actions {
     flex-wrap: wrap;
@@ -2087,9 +1958,6 @@ td small {
 .window-time {
   font-size: 11px;
 }
-.interval-bar span {
-  font-size: 10px;
-}
 .best-panel .eyebrow {
   font-size: 10px;
 }
@@ -2125,9 +1993,6 @@ td small {
   .source-summary > div {
     font-size: 11px;
   }
-  .interval-bar span {
-    font-size: 9px;
-  }
 }
 @media (max-width: 450px) {
   .route-map {
@@ -2135,9 +2000,6 @@ td small {
   }
   .window-time {
     font-size: 9px;
-  }
-  .interval-bar span {
-    font-size: 8px;
   }
   .source-summary h3 {
     font-size: 10px;
@@ -2184,11 +2046,6 @@ td small {
   font-weight: 500;
   color: #39566d;
 }
-.interval-bar:after {
-  content: "";
-  position: absolute;
-  inset: -8px -3px;
-}
 .annotation-marker {
   min-width: 28px;
   min-height: 28px;
@@ -2217,4 +2074,32 @@ td small {
   .editor-fields label:nth-child(4) {
     width: 130px;
   }
+}
+
+/* The charts themselves are the shared time control. */
+.metric-chart[role="slider"] {
+  cursor: crosshair;
+  border-radius: 4px;
+}
+.metric-chart[role="slider"]:focus-visible {
+  outline: 2px solid #008996;
+  outline-offset: 3px;
+}
+.chart-help {
+  margin: 0 0 8px;
+}
+.cursor-values {
+  margin: 0 0 10px;
+  min-height: 32px;
+  gap: 8px 17px;
+}
+.cursor-values .text-button {
+  margin-left: auto;
+  font-size: 11px;
+}
+.current-point {
+  filter: drop-shadow(0 0 3px #08293699);
+}
+.leaflet-current-point-pane {
+  pointer-events: none;
 }

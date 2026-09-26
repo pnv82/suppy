@@ -21,9 +21,9 @@ This workspace includes four spreadsheet summaries and three detailed Garmin tra
 ## What works now
 
 - **Home:** the previous Compare view is now the landing page. It lists the latest 10 sessions newest first (four currently available), with key metrics, board assignments and chronological parameter trends. Open any row to review that session; phone layouts show the rows as readable cards.
-- **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a keyboard-accessible time cursor.
+- **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a labelled current map point. Hover a chart to explore; click/tap or press Enter to annotate. Arrow keys move the shared cursor.
 - **Metric details:** hours/minutes for duration, FIT maximum speed, estimated feet per stroke from recorded SUP totals, and median/max speed and HR reference lines. Methods and missing-data rules are in [metrics.md](docs/domain/metrics.md).
-- **Best sections:** distinct 5/10/20-minute map highlights, travel arrows, labelled starts and selected end markers, matching timeline lanes, and exact elapsed boundaries. Select a window to bring its route and arrows to the front. Local FIT estimates stay separate from sheet values.
+- **Best sections:** distinct 5/10/20-minute map highlights, travel arrows, labelled starts and selected end markers, matching chart highlights, and exact elapsed boundaries. Select a window to bring its route and arrows to the front. Local FIT estimates stay separate from sheet values.
 - **Timeline annotations:** add, edit or delete conditions, falls, interruptions and notes at a time or over an interval. Timing confidence is explicit.
 - **Comparison on Home:** automatically selects the most recent 10 sessions and charts key parameters chronologically. Switch among average speed, best 5/10/20, HR, cadence, distance and duration.
 - **Boards:** add or rename boards, choose a default, and assign a board on each session. The default offers a one-click shortcut for unassigned sessions; it never backfills history. Delete unused boards; reassign sessions first if a board is in use. Board names and assignments are athlete reports and are included in ChatGPT context.

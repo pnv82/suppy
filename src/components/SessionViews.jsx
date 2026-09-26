@@ -87,7 +87,7 @@ function FitBounds({ points, reset }) {
     if (points.length)
       map.fitBounds(
         points.map((p) => [p.latitude_deg, p.longitude_deg]),
-        { padding: [45, 45], maxZoom: 15 },
+        { padding: [45, 45], maxZoom: 15, animate: false },
       );
   }, [map, reset]);
   return null;
@@ -98,8 +98,11 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
     () => validRuns(session.records, session.pauses, true),
     [session.records, session.pauses],
   );
-  const all = runs.flat(),
-    marker = interpolate(session.records, cursor);
+  const all = runs.flat();
+  const cursorRun = runs.find(
+    (run) => cursor >= run[0].elapsed_s && cursor <= run.at(-1).elapsed_s,
+  );
+  const marker = cursorRun ? interpolate(cursorRun, cursor) : null;
   const windows = session.windows
     .filter((w) => w.start != null)
     .sort((a, b) => b.duration - a.duration);
@@ -284,23 +287,35 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
             )
           );
         })}
-        {marker?.latitude_deg != null && (
-          <CircleMarker
-            center={[marker.latitude_deg, marker.longitude_deg]}
-            radius={6}
-            pathOptions={{
-              color: "#fff",
-              weight: 3,
-              fillColor: "#082936",
-              fillOpacity: 1,
-            }}
-          />
-        )}
+        <Pane
+          name="current-point"
+          style={{ zIndex: 625, pointerEvents: "none" }}
+        >
+          {marker && (
+            <CircleMarker
+              center={[marker.latitude_deg, marker.longitude_deg]}
+              radius={8}
+              interactive={false}
+              pathOptions={{
+                color: "#fff",
+                weight: 3,
+                fillColor: "#082936",
+                fillOpacity: 1,
+                className: "current-point",
+              }}
+            >
+              <MapTooltip permanent direction="top" offset={[0, -8]}>
+                Current point · {timeLabel(cursor)}
+              </MapTooltip>
+            </CircleMarker>
+          )}
+        </Pane>
       </MapContainer>
       <p className="map-direction-caption">
         <ArrowUp size={16} />{" "}
         {selected ? `${selected / 60} min arrows` : "5 / 10 / 20 min arrows"}:
-        direction of travel. Select a window to follow it.
+        direction of travel.{" "}
+        {!marker && `GPS unavailable at ${timeLabel(cursor)}.`}
       </p>
       <div className="wind-overlay">
         {session.windFrom == null ? (
@@ -521,21 +536,9 @@ export function MetricStrip({ session }) {
   );
 }
 
-function ChartTip({ active, payload, label, unit }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="chart-tip">
-      <strong>{timeLabel(Number(label) * 60)}</strong>
-      <span>
-        {fmt(payload[0].value, unit === "mph" ? 2 : 0)} {unit}
-      </span>
-    </div>
-  );
-}
 export function Timeline({
   session,
   selected,
-  onSelect,
   cursor,
   setCursor,
   onAnnotate,
@@ -545,60 +548,82 @@ export function Timeline({
   const max = session.elapsed,
     ticks = Array.from({ length: Math.floor(max / 20) + 1 }, (_, i) => i * 20);
   const w = session.windows.find((w) => w.duration === selected);
-  const current = interpolate(session.records, cursor);
+  const current = session.pauses.some((p) => cursor > p.start && cursor < p.end)
+    ? null
+    : interpolate(session.records, cursor);
+  const pointTime = (event) => {
+    if (event?.activeLabel == null) return null;
+    const seconds = Math.round(Number(event.activeLabel) * 60);
+    return Number.isFinite(seconds)
+      ? Math.max(0, Math.min(Math.floor(max * 60), seconds))
+      : null;
+  };
+  const moveCursor = (event) => {
+    const seconds = pointTime(event);
+    if (seconds != null) setCursor(seconds);
+  };
+  const annotatePoint = (event) => {
+    const seconds = pointTime(event);
+    if (seconds == null) return;
+    setCursor(seconds);
+    onAnnotate(seconds);
+  };
+  const keyboardCursor = (event) => {
+    const step = event.shiftKey ? 10 : 1;
+    const next = {
+      ArrowRight: cursor + step,
+      ArrowUp: cursor + step,
+      ArrowLeft: cursor - step,
+      ArrowDown: cursor - step,
+      Home: 0,
+      End: Math.floor(max * 60),
+    }[event.key];
+    if (next != null) {
+      event.preventDefault();
+      setCursor(Math.max(0, Math.min(Math.floor(max * 60), next)));
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onAnnotate(cursor);
+    }
+  };
   return (
     <section className="timeline-section" aria-labelledby="timeline-title">
       <div className="section-heading">
         <div>
-          <h2 id="timeline-title">Interval windows & performance</h2>
+          <h2 id="timeline-title">Performance</h2>
           <p>
             Elapsed time · {durationLabel(session.elapsed)}
-            <span className="quiet-divider">/</span>Tap a chart or scrub to
-            explore the track
+            <span className="quiet-divider">/</span>Hover to explore · click or
+            tap to annotate
           </p>
         </div>
-        <button
-          className="button secondary small"
-          onClick={() => onAnnotate(cursor)}
-        >
-          <Plus size={16} /> Add annotation
-        </button>
+        {!rows.length && (
+          <button
+            className="button secondary small"
+            onClick={() => onAnnotate(0)}
+          >
+            <Plus size={16} /> Add annotation
+          </button>
+        )}
       </div>
-      <div className="window-lanes">
-        {session.windows.map((item) => (
-          <div className="timeline-row" key={item.duration}>
-            <strong
-              className="track-label"
-              style={{ color: WINDOW_COLORS[item.duration] }}
-            >
-              {item.duration / 60} min
-            </strong>
-            <div
-              className="lane"
-              style={{ "--interval": WINDOW_COLORS[item.duration] }}
-            >
-              {item.start == null ? (
-                <span className="unavailable-lane">
-                  Track required to locate this window
-                </span>
-              ) : (
-                <button
-                  className={`interval-bar ${selected === item.duration ? "active" : ""}`}
-                  style={{
-                    left: `${(item.start / 60 / max) * 100}%`,
-                    width: `${(item.duration / 60 / max) * 100}%`,
-                  }}
-                  onClick={() => onSelect(item)}
-                  aria-label={`Highlight best ${item.duration / 60} minutes, ${timeLabel(item.start)} to ${timeLabel(item.end)}`}
-                >
-                  <span className="bar-start">{timeLabel(item.start)}</span>
-                  <span className="bar-end">{timeLabel(item.end)}</span>
-                </button>
-              )}
-            </div>
+      {rows.length > 0 && (
+        <>
+          <p id="chart-keyboard-help" className="caption chart-help">
+            Focus a chart and use arrow keys to move 1 second, Shift + arrow for
+            10 seconds, Home/End for the limits, and Enter to annotate.
+          </p>
+          <div className="cursor-values">
+            <span>At {timeLabel(cursor)}</span>
+            <strong>{fmt(mph(current?.speed_mps), 2)} mph</strong>
+            <strong>{fmt(current?.heart_rate_bpm)} bpm</strong>
+            <strong>{fmt(current?.cadence_raw)} spm</strong>
+            {!current && <span>No sample at this time</span>}
+            <button className="text-button" onClick={() => onAnnotate(cursor)}>
+              <NotePencil size={16} /> Annotate {timeLabel(cursor)}
+            </button>
           </div>
-        ))}
-      </div>
+        </>
+      )}
       {rows.length ? (
         <div className="chart-stack">
           {[
@@ -621,7 +646,32 @@ export function Timeline({
                   {title}
                   <small>{unit}</small>
                 </div>
-                <div className="metric-chart">
+                <div
+                  className="metric-chart"
+                  role="slider"
+                  tabIndex={0}
+                  aria-label={title + " chart time"}
+                  aria-describedby="chart-keyboard-help"
+                  aria-valuemin={0}
+                  aria-valuemax={Math.floor(max * 60)}
+                  aria-valuenow={cursor}
+                  aria-valuetext={
+                    timeLabel(cursor) +
+                    ", " +
+                    fmt(
+                      key === "speed"
+                        ? mph(current?.speed_mps)
+                        : key === "hr"
+                          ? current?.heart_rate_bpm
+                          : current?.cadence_raw,
+                      key === "speed" ? 2 : 0,
+                    ) +
+                    " " +
+                    unit +
+                    (!current ? ", no sample" : "")
+                  }
+                  onKeyDown={keyboardCursor}
+                >
                   {key !== "cadence" && (
                     <div
                       className="chart-statistics"
@@ -661,10 +711,9 @@ export function Timeline({
                     <LineChart
                       data={rows}
                       margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
-                      onClick={(e) => {
-                        if (e?.activeLabel != null)
-                          setCursor(Number(e.activeLabel) * 60);
-                      }}
+                      accessibilityLayer={false}
+                      onMouseMove={moveCursor}
+                      onClick={annotatePoint}
                     >
                       <CartesianGrid vertical={false} stroke="#e8edf1" />
                       <XAxis
@@ -754,7 +803,7 @@ export function Timeline({
                         stroke="#354a60"
                         strokeWidth={1}
                       />
-                      <Tooltip content={<ChartTip unit={unit} />} />
+                      <Tooltip content={() => null} cursor={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -788,30 +837,6 @@ export function Timeline({
             </button>
           ))}
         </div>
-      </div>
-      <div className="scrubber">
-        <label htmlFor="session-cursor">
-          Explore track <strong>{timeLabel(cursor)}</strong>
-        </label>
-        <input
-          id="session-cursor"
-          aria-valuetext={timeLabel(cursor)}
-          type="range"
-          min="0"
-          max={Math.floor(max * 60)}
-          value={cursor}
-          onChange={(e) => setCursor(Number(e.target.value))}
-        />
-        <button className="text-button" onClick={() => onAnnotate(cursor)}>
-          <NotePencil size={16} /> Note here
-        </button>
-      </div>
-      <div className="cursor-values" aria-live="polite">
-        <span>At {timeLabel(cursor)}</span>
-        <strong>{fmt(mph(current?.speed_mps), 2)} mph</strong>
-        <strong>{fmt(current?.heart_rate_bpm)} bpm</strong>
-        <strong>{fmt(current?.cadence_raw)} spm</strong>
-        {!current && <span>No sample at this time</span>}
       </div>
     </section>
   );

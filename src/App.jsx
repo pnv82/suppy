@@ -12,7 +12,7 @@ import {
   WarningCircle,
   ArrowClockwise,
 } from "@phosphor-icons/react";
-import { timeLabel, durationLabel } from "./domain/metrics.mjs";
+import { timeLabel, durationLabel, validRuns } from "./domain/metrics.mjs";
 import { findSampleSession } from "./services/sample-import.mjs";
 import {
   connect,
@@ -104,17 +104,24 @@ export function App() {
   const session =
     data?.sessions.find((s) => s.id === sessionId) || data?.sessions[0];
   useEffect(() => {
-    setCursor(0);
+    setCursor(
+      session
+        ? (validRuns(session.records, session.pauses, true)[0]?.[0]
+            ?.elapsed_s ?? 0)
+        : 0,
+    );
     setSelected(null);
     setDraft(null);
     setPrepared("");
   }, [session?.id]);
   useEffect(() => {
-    if (draft)
+    if (draft) {
+      editorRef.current?.querySelector("input")?.focus({ preventScroll: true });
       editorRef.current?.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
       });
+    }
   }, [Boolean(draft)]);
   const perform = async (action) => {
     setBusy(true);
@@ -347,7 +354,6 @@ export function App() {
             <Timeline
               session={session}
               selected={selected}
-              onSelect={chooseWindow}
               cursor={cursor}
               setCursor={setCursor}
               onAnnotate={annotate}

@@ -24,7 +24,7 @@ The user selected concept 1's light/simple map-led direction, with concept 2's t
 | Key metrics | Distance; active and elapsed duration; speed; HR; cadence. Show current target only where comparable |
 | Map | Full route with start/finish, travel direction and selected interval. Wind arrow shows air motion **toward**, while label says **from NNE, 5.75 mph**. A legend explains both |
 | Best sections | 5/10/20-minute controls show speed, interval times and validity. Overlap is allowed; selected interval is visually dominant. A value without boundaries stays a readable value with “Location unavailable” |
-| Charts | Aligned speed, HR and cadence plots on elapsed time. Shared hover/focus cursor, linked map point, drag/keyboard interval selection. Preserve raw gaps and label any display smoothing |
+| Charts | Aligned speed, HR and cadence plots on elapsed time. Shared chart hover/keyboard cursor and labelled map point above route overlays. Click/tap a chart or press Enter to annotate; choose best intervals beside the map. Preserve raw gaps and label any display smoothing |
 | Conditions | Weather observations at their actual times; station and quality; shaded coverage only where supported. Falls, pauses or chop show only at known timestamps |
 | Technique | Selected issues with “Athlete reported”, “Hypothesis”, or “Video/coach observed”; evidence, alternative explanations and one cue. Empty is “No technique observations recorded” |
 | Actions | Contextual access to attach file, set target, select issue, copy external-analysis prompt, compare sessions and annotate. Prioritize one primary action per view; every action has a visible result |
@@ -47,11 +47,11 @@ Wind on the map is a nearby-station observation, not a spatially measured wind f
 
 **Ask again in ChatGPT:** save a note or extra context → prepare the current session context, revision and bounded telemetry → send the question to the host conversation. ChatGPT interprets the data; the local app never pretends that background analysis ran. The same action in standalone mode reveals copyable context. Account connection follows the root README.
 
-**Best-window emphasis:** always show all three labelled, colored map sections and separate 5/10/20-minute timeline lanes. Selection adds emphasis, start/end times and a linked cursor. Local FIT estimates and Sheet values have distinct source labels.
+**Best-window emphasis:** show the labelled, colored map sections with 5/10/20-minute controls beside the map and the selected interval shaded on all performance charts. Selection adds emphasis, start/end times and a linked cursor. Local FIT estimates and Sheet values have distinct source labels.
 
 Each best section has color-matched travel arrows with a duration badge. Selecting a window brings its line above overlapping tracks and dims the others; zoom reveals more separated arrows. Start/end labels and the selected button provide non-color cues. These arrows follow GPS travel order; the separate wind overlay describes airflow.
 
-The initial slice uses a keyboard time slider and explicit start/end fields; drag selection, timeline zoom, observation-by-observation weather, broad imports and full evidence editing are deferred in root `todo.md`.
+The charts are the time control; there is no separate Explore track slider or interval-lane control. Hover updates the shared cursor and map point. Click/tap opens a timestamp-prefilled annotation editor; explicit start/end fields allow interval notes. Focus any chart and use arrows for one second, Shift + arrows for ten seconds, Home/End for elapsed limits, and Enter/Space to annotate. Initial selection uses the first valid GPS point. Gaps and pauses show no map point and an explicit GPS-unavailable message. Summary-only sessions retain a manual annotation action. Drag selection, timeline zoom, observation-by-observation weather, broad imports and full evidence editing remain deferred in root `todo.md`.
 
 Discarded optional flows: outbound/return comparison, post-session check-in, next-outing focus pinning and video-link management. Evidence labels in the original technique workflow remain required.
 
