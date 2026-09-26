@@ -7,7 +7,9 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { createStore } from "./store.mjs";
 import { descriptions, toolSchemas, executeTool } from "./tools.mjs";
 
-const clientRoot = fileURLToPath(new URL("../dist/client/", import.meta.url));
+const clientRoot = resolve(
+  fileURLToPath(new URL("../dist/client/", import.meta.url)),
+);
 const resourceUri = "ui://sup-training/dashboard.html";
 const mimeType = "text/html;profile=mcp-app";
 
@@ -151,11 +153,7 @@ export function createHttpServer(store = createStore()) {
       if (req.method !== "GET" && req.method !== "HEAD")
         return json(res, 405, { error: "Method not allowed" });
       let file = resolve(clientRoot, "." + decodeURIComponent(path));
-      if (
-        !file.startsWith(
-          clientRoot.endsWith(sep) ? clientRoot : clientRoot + sep,
-        )
-      )
+      if (file !== clientRoot && !file.startsWith(clientRoot + sep))
         return json(res, 403, { error: "Invalid path" });
       if (!extname(file)) file = resolve(clientRoot, "index.html");
       if (!existsSync(file))

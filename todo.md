@@ -22,6 +22,7 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 
 ## Data, imports and richer display
 
+- [ ] On a specific session page, show similar sessions and allow comparison with the top five matches. Define similarity criteria (such as duration, distance, session type and available conditions), explain why each session matches, and handle missing context before implementing ranking. This session-specific feature is deferred; the global Compare screen continues to show automatic latest-10 trends.
 - [ ] Decode arbitrary valid Garmin FIT files / one-FIT ZIPs in the app, preview their identity, match by time/distance and reject malformed/ambiguous activities. Current Import FIT recognizes only the three supplied samples by hash.
 - [ ] Add read-only Google Sheets refresh and column/schema validation with missing-column errors. No OAuth or live sync is currently required.
 - [ ] Map timestamped weather observations onto the timeline with coverage/age and directional changes. Current map uses the sheet's session wind summary; manual timed conditions already render.

@@ -4,6 +4,31 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createHttpServer } from "../server/index.mjs";
 
+test("local app serves its home page, assets and routes within the build directory", async () => {
+  const server = createHttpServer();
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    const home = await fetch(base + "/");
+    assert.equal(home.status, 200);
+    assert.match(home.headers.get("content-type"), /text\/html/);
+    const html = await home.text();
+    assert.match(html, /<div id="root">/);
+    const assetPath = html.match(/<script\b[^>]*src="([^"]+)"/)[1];
+    const asset = await fetch(base + assetPath);
+    assert.equal(asset.status, 200);
+    assert.match(asset.headers.get("content-type"), /javascript/);
+    assert.equal((await fetch(base + "/sessions/latest")).status, 200);
+    assert.equal((await fetch(base + "/missing.js")).status, 404);
+    assert.equal((await fetch(base + "/..%2f..%2fpackage.json")).status, 403);
+    const head = await fetch(base + "/", { method: "HEAD" });
+    assert.equal(head.status, 200);
+    assert.equal(await head.text(), "");
+  } finally {
+    await new Promise((r) => server.close(r));
+  }
+});
+
 test("MCP handshake, UI resource, tool calls and REST share temporary state", async () => {
   const server = createHttpServer();
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
