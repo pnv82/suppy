@@ -4,6 +4,98 @@ export const WINDOW_COLORS = {
   1200: "#008b98",
 };
 export const mph = (value) => (value == null ? null : value / 0.44704);
+export const feet = (value) => (value == null ? null : value / 0.3048);
+export function durationLabel(minutes) {
+  if (!Number.isFinite(minutes) || minutes < 0) return "—";
+  const rounded = Math.round(minutes);
+  return rounded < 60
+    ? `${rounded} min`
+    : `${Math.floor(rounded / 60)} hr ${rounded % 60} min`;
+}
+
+// Hold each recorded value until the next valid sample, never across a pause/gap.
+export function telemetryStats(records, key, pauses = []) {
+  const valid = (value) =>
+    Number.isFinite(value) &&
+    (key === "heart_rate_bpm" ? value > 0 : value >= 0);
+  const values = records.map((p) => p[key]).filter(valid);
+  const weighted = [];
+  for (let i = 0; i < records.length - 1; i++) {
+    const a = records[i],
+      b = records[i + 1];
+    const seconds = b.elapsed_s - a.elapsed_s;
+    if (
+      Number.isFinite(a.elapsed_s) &&
+      Number.isFinite(b.elapsed_s) &&
+      seconds > 0 &&
+      seconds <= 15 &&
+      valid(a[key]) &&
+      valid(b[key]) &&
+      !pauses.some((p) => a.elapsed_s < p.end && b.elapsed_s > p.start)
+    )
+      weighted.push({ value: a[key], seconds });
+  }
+  weighted.sort((a, b) => a.value - b.value);
+  const covered_s = weighted.reduce((sum, p) => sum + p.seconds, 0);
+  let median = null,
+    cumulative = 0;
+  for (const p of weighted) {
+    cumulative += p.seconds;
+    if (cumulative >= covered_s / 2) {
+      median = p.value;
+      break;
+    }
+  }
+  return {
+    median,
+    max: values.length
+      ? values.reduce((max, value) => Math.max(max, value))
+      : null,
+    covered_s,
+    median_method: "time_weighted_step_lower_v1",
+    max_source: values.length ? "fit_records" : null,
+  };
+}
+
+export function sessionStatistics(
+  records,
+  pauses,
+  fit = null,
+  sheetMaxHr = null,
+) {
+  const speed = telemetryStats(records, "speed_mps", pauses);
+  const hr = telemetryStats(records, "heart_rate_bpm", pauses);
+  if (Number.isFinite(fit?.enhanced_max_speed) && fit.enhanced_max_speed >= 0) {
+    speed.max = fit.enhanced_max_speed;
+    speed.max_source = "fit_session";
+  }
+  if (Number.isFinite(fit?.max_heart_rate) && fit.max_heart_rate > 0) {
+    hr.max = fit.max_heart_rate;
+    hr.max_source = "fit_session";
+  } else if (hr.max == null && Number.isFinite(sheetMaxHr) && sheetMaxHr > 0) {
+    hr.max = sheetMaxHr;
+    hr.max_source = "sheet_summary";
+  }
+  const hasStrokes =
+    fit?.sport === "stand_up_paddleboarding" &&
+    Number.isFinite(fit.total_distance) &&
+    fit.total_distance >= 0 &&
+    Number.isInteger(fit.total_strokes) &&
+    fit.total_strokes > 0;
+  return {
+    speed_mps: speed,
+    heart_rate_bpm: hr,
+    distance_per_stroke: {
+      value_m: hasStrokes ? fit.total_distance / fit.total_strokes : null,
+      distance_m: hasStrokes ? fit.total_distance : null,
+      strokes: hasStrokes ? fit.total_strokes : null,
+      source: hasStrokes
+        ? "fit_session.total_distance / fit_session.total_strokes"
+        : null,
+      status: hasStrokes ? "watch_estimate" : "unavailable",
+    },
+  };
+}
 export const timeLabel = (seconds) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 export const numeric = (value) =>
@@ -161,6 +253,51 @@ export function segmentPoints(records, start, end) {
     (p) =>
       p && Number.isFinite(p.latitude_deg) && Number.isFinite(p.longitude_deg),
   );
+}
+
+// Course over ground over the next 10 seconds; omit stationary/unsupported geometry.
+export function segmentDirections(
+  records,
+  window,
+  pauses = [],
+  fractions = [0.2, 0.4, 0.6, 0.8],
+) {
+  if (
+    !Number.isFinite(window?.start) ||
+    !Number.isFinite(window?.end) ||
+    window.end <= window.start
+  )
+    return [];
+  const run = validRuns(records, pauses, true).find(
+    (r) => r[0].elapsed_s <= window.start && r.at(-1).elapsed_s >= window.end,
+  );
+  if (!run) return [];
+  const rad = Math.PI / 180;
+  return fractions.flatMap((fraction) => {
+    if (!Number.isFinite(fraction) || fraction < 0 || fraction >= 1) return [];
+    const t = window.start + fraction * (window.end - window.start);
+    const a = interpolate(run, t),
+      b = interpolate(run, Math.min(t + 10, window.end));
+    if (!a || !b) return [];
+    const lat1 = a.latitude_deg * rad,
+      lat2 = b.latitude_deg * rad;
+    const lon = (b.longitude_deg - a.longitude_deg) * rad;
+    const displacement =
+      6371000 * Math.hypot(lat2 - lat1, lon * Math.cos((lat1 + lat2) / 2));
+    if (displacement < 5) return [];
+    const y = Math.sin(lon) * Math.cos(lat2);
+    const x =
+      Math.cos(lat1) * Math.sin(lat2) -
+      Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon);
+    return [
+      {
+        latitude_deg: a.latitude_deg,
+        longitude_deg: a.longitude_deg,
+        elapsed_s: t,
+        bearing_deg: (Math.atan2(y, x) / rad + 360) % 360,
+      },
+    ];
+  });
 }
 
 export function chartRows(records) {

@@ -8,10 +8,10 @@ export function subscribe(callback) {
   listeners.add(callback);
   return () => listeners.delete(callback);
 }
-function publish(result) {
+function publish(result, fromHost = false) {
   if (result?._meta?.appData)
     for (const callback of listeners)
-      callback(result._meta.appData, result._meta.sessionId);
+      callback(result._meta.appData, result._meta.sessionId, fromHost);
 }
 export async function connect() {
   if (!embedded)
@@ -26,7 +26,7 @@ export async function connect() {
         {},
         { autoResize: true },
       );
-      bridge.ontoolresult = publish;
+      bridge.ontoolresult = (result) => publish(result, true);
       let timer;
       try {
         await Promise.race([

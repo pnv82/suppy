@@ -20,10 +20,14 @@ This workspace includes four spreadsheet summaries and three detailed Garmin tra
 
 ## What works now
 
+- **Home:** the previous Compare view is now the landing page. It lists the latest 10 sessions newest first (four currently available), with key metrics, board assignments and chronological parameter trends. Open any row to review that session; phone layouts show the rows as readable cards.
 - **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a keyboard-accessible time cursor.
-- **Best sections:** distinct 5/10/20-minute map highlights, labelled starts and selected end markers, matching timeline lanes, and exact elapsed boundaries. Local FIT estimates stay separate from sheet values.
+- **Metric details:** hours/minutes for duration, FIT maximum speed, estimated feet per stroke from recorded SUP totals, and median/max speed and HR reference lines. Methods and missing-data rules are in [metrics.md](docs/domain/metrics.md).
+- **Best sections:** distinct 5/10/20-minute map highlights, travel arrows, labelled starts and selected end markers, matching timeline lanes, and exact elapsed boundaries. Select a window to bring its route and arrows to the front. Local FIT estimates stay separate from sheet values.
 - **Timeline annotations:** add, edit or delete conditions, falls, interruptions and notes at a time or over an interval. Timing confidence is explicit.
-- **Compare:** automatically selects the most recent 10 sessions and charts key parameters chronologically. It currently shows the four available sessions, with no artificial rows. Switch among average speed, best 5/10/20, HR, cadence, distance and duration.
+- **Comparison on Home:** automatically selects the most recent 10 sessions and charts key parameters chronologically. Switch among average speed, best 5/10/20, HR, cadence, distance and duration.
+- **Boards:** add or rename boards, choose a default, and assign a board on each session. The default offers a one-click shortcut for unassigned sessions; it never backfills history. Delete unused boards; reassign sessions first if a board is in use. Board names and assignments are athlete reports and are included in ChatGPT context.
+- **Session naming:** names refer to the start/launch point. Source locations remain a fallback until the specific launch point is confirmed; see the [naming rule](docs/product/mvp.md#defaults-and-unresolved-decisions).
 - **Context and focus:** add observations, choose a duration-scoped speed goal, and select from the SUP technique dictionary. Technique selections are athlete reports, never watch-confirmed faults.
 - **ChatGPT:** a working local MCP server exposes session tools and an embeddable copy of the UI. Saved notes and context are included when requesting fresh analysis. Standalone mode produces a copyable prompt.
 - **Import preview:** recognizes the three supplied FIT/ZIP samples by SHA-256 and opens their session. New-file decoding is explicitly deferred.
@@ -59,12 +63,27 @@ tunnel-client run --profile sup-training
 
 Replace `YOUR_TUNNEL_ID`. Keep both terminals running. Tunnel creation needs the appropriate Platform permissions; use requires Tunnels Read + Use. Consult the [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) if your client requires an initial sample profile or credential configuration.
 
+#### If `doctor` fails at `oauth_metadata`
+
+This prototype does not implement OAuth. Its `/.well-known/*` discovery URLs must return **404**, indicating that metadata is absent. A `200` response containing the app's HTML causes `invalid character '<' looking for beginning of value`. The Node server now keeps discovery URLs out of its UI route fallback.
+
+After updating the server, restart `npm start` (or `npm run dev`) and rerun these commands in the terminal where you already configured `CONTROL_PLANE_API_KEY`:
+
+```powershell
+tunnel-client doctor --profile sup-training --explain
+tunnel-client run --profile sup-training
+```
+
+Expected discovery result: `oauth_metadata PASS OAuth metadata not advertised; all candidates returned HTTP 404`. `HTTP 405` for the `/mcp` reachability probe is normal: the endpoint accepts MCP POST requests. Do not add dummy OAuth metadata or an authorization server to address this route-fallback error. The tunnel's runtime credential remains separate from app OAuth.
+
+Environment variables set in one terminal may not be available in another process. If a different terminal reports the runtime key missing, use your existing configured terminal or configure its credential locally. Do not paste credentials into chat or repository files. The optional Codex tunnel plugin is not required for this app's ChatGPT connection.
+
 ### 3. Add it in ChatGPT
 
 1. Open **Settings → Security and login → Developer mode**.
 2. Open **Plugins**, select **+**, and name the connection **SUP Training**.
 3. Under **Connection**, choose **Tunnel**, then select your tunnel or enter its ID.
-4. Create the connection and review the seven discovered tools.
+4. Create the connection and review the eleven discovered tools.
 5. Start a conversation and add SUP Training from the tools menu.
 
 Account/workspace policy controls availability; labels may vary by client. If Developer mode is absent, first check your workspace access. These steps follow the [official connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt), checked 2026-09-26.
@@ -74,13 +93,14 @@ Account/workspace policy controls availability; labels may vary by client. If De
 - “Open my latest SUP session and show the best 5, 10 and 20 minutes.”
 - “Add an approximate condition note from minute 40 to 43: crosswind increased.”
 - “I used a narrower board today. Add that context, then reconsider your analysis.”
+- “Add my race board, make it the default, and assign it to the September 25 session.”
 - “Compare the last 10 sessions. What changed in average speed, cadence and heart rate?”
 
 You can also save a note in the embedded UI and choose **Save & ask ChatGPT about this interval**. The app provides updated context; ChatGPT answers in the conversation. In a normal browser, that action prepares text to copy instead.
 
 After changing server tools or rebuilding the UI, restart the server, refresh the connection metadata in ChatGPT and use a new conversation. Refresh the standalone page to see changes made from another client. The local MCP handshake/tool/resource flow is tested; your account's tunnel, embedding and actual model/tool selection still need a live account check.
 
-No OpenAI model API key is required by this app. A tunnel runtime credential is separate. No tunnel or public deployment has been created. Keep this unauthenticated prototype local/private.
+No OpenAI model API key is required by this app. A tunnel runtime credential is separate. This repository does not create or manage your tunnel automatically. Keep this unauthenticated prototype local/private.
 
 ## Structure for implementation agents
 

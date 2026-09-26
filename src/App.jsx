@@ -12,7 +12,7 @@ import {
   WarningCircle,
   ArrowClockwise,
 } from "@phosphor-icons/react";
-import { timeLabel } from "./domain/metrics.mjs";
+import { timeLabel, durationLabel } from "./domain/metrics.mjs";
 import { findSampleSession } from "./services/sample-import.mjs";
 import {
   connect,
@@ -23,6 +23,7 @@ import {
 import {
   shortDate,
   fullDate,
+  fmt,
   SessionMap,
   BestWindows,
   MetricStrip,
@@ -35,6 +36,7 @@ import {
 } from "./components/ReviewPanels.jsx";
 import { Compare } from "./components/Compare.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
+import { Boards, SessionBoard } from "./components/Boards.jsx";
 
 const parseTime = (value) =>
   /^\d{1,3}:[0-5]\d$/.test(value)
@@ -51,7 +53,7 @@ const defaultDraft = (t) => ({
 export function App() {
   const [data, setData] = useState(null),
     [sessionId, setSessionId] = useState(null),
-    [page, setPage] = useState("Sessions"),
+    [page, setPage] = useState("Home"),
     [connected, setConnected] = useState(false);
   const [error, setError] = useState(""),
     [toast, setToast] = useState(""),
@@ -72,14 +74,17 @@ export function App() {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(""), 5500);
   };
-  const accept = (next, id) => {
+  const accept = (next, id, fromHost) => {
     setData(next);
-    if (id) setSessionId(id);
+    if (id) {
+      setSessionId(id);
+      if (fromHost) setPage("Sessions");
+    }
   };
   useEffect(() => {
     let active = true;
-    const unsubscribe = subscribe((next, id) => {
-      if (active) accept(next, id);
+    const unsubscribe = subscribe((next, id, fromHost) => {
+      if (active) accept(next, id, fromHost);
     });
     connect()
       .then(({ data: next, connected }) => {
@@ -123,6 +128,12 @@ export function App() {
       setBusy(false);
     }
   };
+  const boardAction = (name, args, message) =>
+    perform(async () => {
+      await callTool(name, args);
+      notice(message);
+      return true;
+    });
   const chooseWindow = (w) => {
     if (w.start == null) return;
     setSelected(w.duration);
@@ -218,14 +229,14 @@ export function App() {
           href="#"
           onClick={(e) => {
             e.preventDefault();
-            setPage("Sessions");
+            setPage("Home");
           }}
         >
           <Waves size={32} weight="bold" />
           <span>SUP Training</span>
         </a>
         <nav aria-label="Main navigation">
-          {["Sessions", "Compare", "ChatGPT"].map((p) => (
+          {["Home", "Sessions", "Boards", "ChatGPT"].map((p) => (
             <button
               key={p}
               className={page === p ? "active" : ""}
@@ -279,7 +290,7 @@ export function App() {
             </button>
           </div>
         )}
-        {page === "Sessions" && (
+        {page === "Sessions" && session && (
           <>
             <div className="session-heading">
               <div>
@@ -296,7 +307,7 @@ export function App() {
                 </p>
               </div>
               <label className="session-select">
-                Session
+                Session · distance · active time
                 <select
                   aria-label="Choose session"
                   value={session.id}
@@ -304,13 +315,22 @@ export function App() {
                 >
                   {data.sessions.map((s) => (
                     <option value={s.id} key={s.id}>
-                      {shortDate(s.date)} · {s.title}
+                      {shortDate(s.date)} · {s.title} · {fmt(s.distance, 2)} mi
+                      · {durationLabel(s.active)}
                     </option>
                   ))}
                 </select>
               </label>
             </div>
             <MetricStrip session={session} />
+            <SessionBoard
+              session={session}
+              boards={data.boards || []}
+              defaultBoardId={data.defaultBoardId}
+              busy={busy}
+              onAction={boardAction}
+              onManage={() => setPage("Boards")}
+            />
             <div className="route-layout">
               <SessionMap
                 session={session}
@@ -439,10 +459,25 @@ export function App() {
             </div>
           </>
         )}
-        {page === "Compare" && (
-          <Compare sessions={data.sessions} onOpen={openSession} />
+        {page === "Home" && (
+          <Compare
+            sessions={data.sessions}
+            boards={data.boards || []}
+            onOpen={openSession}
+          />
         )}
-        {page === "ChatGPT" && (
+        {page === "Boards" && (
+          <Boards
+            boards={data.boards || []}
+            defaultBoardId={data.defaultBoardId}
+            busy={busy}
+            onAction={boardAction}
+          />
+        )}
+        {page === "Sessions" && !session && (
+          <p>No sessions available in this snapshot.</p>
+        )}
+        {page === "ChatGPT" && session && (
           <ChatGPTPage
             connected={connected}
             session={session}

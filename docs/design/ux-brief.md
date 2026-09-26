@@ -2,18 +2,19 @@
 
 ## Core experience
 
-The product is a personal SUP session review workspace. The first meaningful screen should show a real session, its route and sustained efforts, and the evidence behind its interpretation. Favor readable charts and condition context over score badges or a generic dashboard of cards.
+The product is a personal SUP session review workspace. Home now opens with the most recent sessions and their key-parameter changes, using the previous Compare view. Open a session to review its route, sustained efforts and evidence. Favor readable charts and condition context over score badges.
 
 The user selected concept 1's light/simple map-led direction, with concept 2's timeline annotations. The refined visual target is `references/selected-light-ui.png`. The app uses real data rather than the mock's illustrative interval positions. The initial implementation and browser validation are recorded in root `design-qa.md`.
 
 ## Information architecture
 
-1. **Sessions:** chronological list with date, location, session type, distance, time, quality and track availability. Choose a row to review it.
+1. **Home:** previous Compare view, now the default entry point. Latest 10 sessions in descending date order, key metrics, board, wind/quality and track availability, plus chronological trends. No filler when fewer exist. Session rows become cards on phones. The session dropdown retains date, location, total distance and active hours/minutes.
 2. **Session review:** primary workspace; summary, map, sustained efforts, time series, conditions and technique.
 3. **Contextual panels:** target editor, issue selector, attach FIT, external-analysis prompt. Keep these attached to the selected session.
-4. **Compare (P03):** automatically select the latest 10 sessions and show chronological key-parameter trends plus a session table. If fewer exist, show the available count explicitly. No manual pair selection or dedicated leg comparison.
+4. **Comparison on Home (P03):** automatically select the latest 10 sessions and show chronological key-parameter trends plus a session table. If fewer exist, show the available count explicitly. No manual pair selection or dedicated leg comparison.
 5. **Annotations (P05):** select a chart point or interval and open a small editor; keep the underlying route and timeline in view.
 6. **ChatGPT:** embedded UI plus tools inside the conversation; save annotations/additional context and request fresh analysis. Standalone mode provides the connection guide and a copyable prompt.
+7. **Boards:** add/rename a named board, choose/clear a default, and delete only unused boards. Session review has a board picker and a “Use default” shortcut when unassigned. Show “Not recorded” initially, and identify selections as athlete reported. Default changes never rewrite past sessions. All board edits reset on server restart.
 
 ## Review screen behavior
 
@@ -40,13 +41,15 @@ Wind on the map is a nearby-station observation, not a spatially measured wind f
 
 **Technique selection:** open dictionary → filter phase/search wording → read what evidence is needed → select issue and evidence status → attach note/time reference → view the observation in context.
 
-**Automatic comparison (refined P03):** open Compare → latest 10 sessions selected automatically → inspect chronological trends in speed, best 5/10/20, HR, cadence, distance and active duration → open any session from the table. Four sessions are currently available. The trend is descriptive, not a normalization for conditions. Missing wind stays unknown.
+**Automatic comparison (refined P03):** open Home → latest 10 sessions selected automatically → inspect chronological trends in speed, best 5/10/20, HR, cadence, distance and active duration → open any session from the table. Four sessions are currently available. The trend is descriptive, not a normalization for conditions. Missing wind stays unknown.
 
 **Annotate (approved P05):** click/focus a chart timestamp or select an interval → add type (interruption, fall, condition change or note), note and timing confidence → save to temporary state → reflect the marker on charts/map where coordinates exist. Edit/remove must work. Distinguish source events from editable manual annotations. Unknown-time source counts stay separate from new timed markers.
 
 **Ask again in ChatGPT:** save a note or extra context → prepare the current session context, revision and bounded telemetry → send the question to the host conversation. ChatGPT interprets the data; the local app never pretends that background analysis ran. The same action in standalone mode reveals copyable context. Account connection follows the root README.
 
 **Best-window emphasis:** always show all three labelled, colored map sections and separate 5/10/20-minute timeline lanes. Selection adds emphasis, start/end times and a linked cursor. Local FIT estimates and Sheet values have distinct source labels.
+
+Each best section has color-matched travel arrows with a duration badge. Selecting a window brings its line above overlapping tracks and dims the others; zoom reveals more separated arrows. Start/end labels and the selected button provide non-color cues. These arrows follow GPS travel order; the separate wind overlay describes airflow.
 
 The initial slice uses a keyboard time slider and explicit start/end fields; drag selection, timeline zoom, observation-by-observation weather, broad imports and full evidence editing are deferred in root `todo.md`.
 

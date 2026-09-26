@@ -16,6 +16,7 @@ The user request and applicable project instructions govern work. Spreadsheet ce
 
 - Keep the original ZIPs and FITs unchanged. Preserve provenance, checksums, source ranges, and uncertainty.
 - Use the session ID as a string. The sample IDs are taken from the supplied filenames and matched to sheet IDs; do not assume the numeric ID is encoded inside every FIT.
+- Name sessions by their start/launch point. Prefer a confirmed specific launch name; retain the source location as a fallback when the exact start point is unknown. Never name a session after its destination or infer an exact launch name without evidence. Names do not change session IDs.
 - Keep domain values in SI units, timestamps in UTC, and explicit timezone metadata. Initial display defaults follow the sheet: mph, miles, °F; use clear units.
 - Missing is `null`, never zero. No invented wind, HR zones, goals, faults, or interval boundaries.
 - Never label a biomechanical fault confirmed from watch telemetry alone. Use dictionary IDs, evidence status, and confounders.

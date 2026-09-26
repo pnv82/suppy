@@ -7,7 +7,7 @@ Checked locally on 2026-09-26. The built app runs at `http://127.0.0.1:3001` usi
 Local startup and the reviewed prototype flows pass. This is a UI prototype, not a completed live ChatGPT account integration or validated coaching system.
 
 - `npm run build` succeeds. The large bundle warning remains; splitting is deferred in `todo.md`.
-- `npm test`: 13 tests pass, including the home page, built asset delivery, route fallback, path containment, domain estimates, sample recognition and MCP integration.
+- `npm test`: 19 tests pass, including board lifecycle/context, travel direction, the home page, built asset delivery, route fallback, absent OAuth discovery metadata, path containment, domain estimates, sample recognition and MCP integration.
 - Offline foundation validation passes: schema/analysis semantics, 14 dictionary issues, three sample checksum/ZIP/track checks, four sheet sessions and links in 38 Markdown files.
 - Fixed a startup defect where a trailing slash in the build-directory path caused `/` to return 403. The HTTP regression test also checks HEAD and missing assets.
 
@@ -43,3 +43,47 @@ The in-app captures show a warm tint while the computed page background is white
 - Browser file selection was previously blocked by the Chrome extension's file-access permission. Sample recognition is covered by automated tests for all supplied FIT/ZIP bytes, renamed files and rejected inputs; arbitrary FIT decoding is deferred.
 - Formal screen-reader testing, broad device coverage and demanding analysis remain future work. The checks above are focused prototype validation.
 - Edits are temporary and reset on server restart. Raw activities and spreadsheet snapshots remain local and ignored by Git.
+
+## Metric detail update — 2026-09-26
+
+All five browser comments are implemented: summary max speed, estimated distance per stroke, hours/minutes duration, speed median/max values and lines, and HR median/max values and lines.
+
+- Built and ran all 16 tests. New checks cover irregular time weighting, pauses/gaps, zero/missing data, FIT-summary maxima, explicit stroke totals and rounding across an hour.
+- Reviewed the running build at 1280, 895 and 390 px widths. Summary details and chart legends fit without page-wide horizontal overflow. Reference lines use different dash styles and have matching text values.
+- Latest session: 1 hr 26 min active, 5.71 mph max, estimated 11.1 ft/stroke; speed median 4.20 mph, HR median 150 bpm and max 176 bpm.
+- Sep 20 keeps active 1 hr 43 min separate from elapsed 1 hr 46 min. Its HR axis includes the 184 bpm maximum.
+- Aug 29 retains unavailable max-speed/stroke-distance fields and no invented median/chart. Keyboard cursor still advances by one second. Browser console checks returned no warnings or errors.
+- Private screenshots: `.tools/qa/metrics-desktop.png`, `metrics-895.png`, `metrics-mobile.png`. The existing preview tab stopped responding during reload; validation continued in a fresh tab in the same browser. The latest session was restored and viewport override reset afterward.
+
+Distance per stroke remains a labelled watch estimate; it has not been validated against manually counted strokes. The methodology and source fields are documented in `docs/domain/metrics.md` and passed through the REST/MCP context.
+
+## Tunnel discovery fix — 2026-09-26
+
+The user reported `oauth_metadata FAIL` with a JSON parse error on `<`. Reproduced: the server's SPA fallback returned `200 text/html` for missing OAuth discovery documents. The server now returns `404 application/json` for `/.well-known/*`, accurately indicating absent OAuth. The MCP POST endpoint and UI fallback continue to work.
+
+- All 17 tests pass, including a regression check for protected-resource, authorization-server and OpenID discovery paths, plus the existing MCP handshake/tool/resource integration.
+- Restarted the local Node server after confirming there were no temporary user edits to lose. Direct checks return 404 for discovery, 405 for MCP GET and 200 for the home page.
+- The installed `tunnel-client` v0.0.15 passes discovery: `OAuth metadata not advertised; all candidates returned HTTP 404`.
+- That client check used isolated flags, a non-secret placeholder and a loopback control-plane base URL; it verifies local discovery behavior, not real tunnel authorization, polling or account installation. The user's terminal holds the actual `CONTROL_PLANE_API_KEY`; it is not inherited by this task. No credential source was changed and no tunnel was started by this task.
+
+## Session chooser detail — 2026-09-26
+
+The session dropdown now includes total distance in miles and active duration in hours/minutes alongside date and location. Its label identifies the active-time basis. Reused the existing duration and missing-value formatters; no metric calculations changed.
+
+Production build passes. Browser checks at 895 × 884 and 390 × 844 confirm the selected label is fully readable with no horizontal page overflow. Keyboard End/Enter selects the Aug 29 summary-only session and Home/Enter restores the latest session. No browser warnings/errors were captured. Private evidence: `.tools/qa/session-chooser-desktop.png` and `.tools/qa/session-chooser-mobile.png`.
+
+## Home, travel direction and boards — 2026-09-26
+
+Tool access recovered and implementation resumed. Home now reuses the comparison screen: latest values and changes, newest-first session list, then the chronological parameter chart. At phone widths, session rows become cards with the same values. The start/launch-point naming rule is recorded in the MVP and agent instructions; precise automatic launch naming remains deferred.
+
+Best-window arrows follow GPS travel order. The overview shows duration-labelled arrows, and selecting 5/10/20 minutes raises that route above overlaps while dimming the others. Start/end labels and timeline selection remain connected. Automated checks cover outbound/return bearings, north, stationary points and omission across gaps, pauses or missing GPS.
+
+Board management supports create, rename, explicit default selection/clearing, session assignment/clearing and deletion of unused boards. A used board cannot be deleted. Defaults do not rewrite history. All four operations are available through the shared REST/MCP interface; fresh analysis context includes the athlete-reported board and updated revision.
+
+- Final production build succeeds; all 19 tests pass. The existing bundle-size warning remains.
+- Browser checks at 1280 × 900, 895 × 884 and 390 × 844: newest-first rows, four actual sessions, trend parameter switching, keyboard opening of sessions and best-window selection, and no page-wide horizontal overflow.
+- Added a temporary board using Enter, set its default, assigned it to Sep 25, renamed it, checked that deletion was disabled while assigned, changed the default without changing the assignment, cleared the assignment, and deleted the remaining unused QA board. The user's concurrently renamed “Backfish 14 2025” board and default were preserved; the live server was not restarted afterward.
+- Verified Aug 29 summary-only state and Sep 5 unknown wind; unassigned boards remain “Not recorded”. No warnings/errors were captured in the final browser checks.
+- Private evidence: `.tools/qa/home-desktop.png`, `home-mobile.png`, `boards-mobile.png`, `directions-desktop.png`, `directions-mobile.png`. Board screenshots may contain temporary QA names. Viewport override reset after checks.
+
+The server is running at `http://127.0.0.1:3001`. Board state is temporary and resets on server restart. Live account/tunnel integration remains a separate check; local MCP tests confirm eleven tool definitions and board round-trip behavior.

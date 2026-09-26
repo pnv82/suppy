@@ -7,6 +7,10 @@
 - 5/10/20-minute map/timeline highlights with real local estimates and source values kept separate.
 - Linked time cursor, gap-aware charts and missing-track/wind states.
 - Automatic latest-10 trends; four current sessions, eight parameter choices.
+- Home now uses the comparison view, with newest-first session rows and phone cards.
+- Best-window travel arrows and selected-route emphasis make overlapping tracks readable.
+- Documented start/launch-point naming; automatic geographic naming remains deferred.
+- Temporary board list, default preference and per-session assignments, shared through REST/MCP and analysis context.
 - Timed note create/edit/delete, extra context, speed targets and technique dictionary selection.
 - Shared local REST/MCP operations and embedded ChatGPT UI resource.
 - Sample-only file recognition, copyable analysis context, README connection instructions.

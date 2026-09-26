@@ -62,6 +62,10 @@ export function createMcpServer(store) {
       "delete_annotation",
       "update_session_context",
       "update_training_focus",
+      "upsert_board",
+      "delete_board",
+      "set_default_board",
+      "assign_session_board",
     ].includes(name);
     server.registerTool(
       name,
@@ -74,8 +78,8 @@ export function createMcpServer(store) {
         inputSchema: toolSchemas[name],
         annotations: {
           readOnlyHint: readOnly,
-          destructiveHint: name === "delete_annotation",
-          idempotentHint: name !== "upsert_annotation",
+          destructiveHint: ["delete_annotation", "delete_board"].includes(name),
+          idempotentHint: !["upsert_annotation", "upsert_board"].includes(name),
           openWorldHint: false,
         },
         _meta: { ui: { resourceUri }, "openai/outputTemplate": resourceUri },
@@ -150,6 +154,12 @@ export function createHttpServer(store = createStore()) {
       }
       if (path.startsWith("/api/"))
         return json(res, 404, { error: "Unknown endpoint" });
+      // Discovery clients must see missing metadata, never the SPA's HTML fallback.
+      // This local/private prototype does not implement OAuth.
+      if (path === "/.well-known" || path.startsWith("/.well-known/"))
+        return json(res, 404, {
+          error: "Discovery metadata is not available.",
+        });
       if (req.method !== "GET" && req.method !== "HEAD")
         return json(res, 405, { error: "Method not allowed" });
       let file = resolve(clientRoot, "." + decodeURIComponent(path));

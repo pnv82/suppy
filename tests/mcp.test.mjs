@@ -39,7 +39,7 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
       new StreamableHTTPClientTransport(new URL(base + "/mcp")),
     );
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 7);
+    assert.equal(tools.length, 11);
     const read = tools.find((t) => t.name === "get_dashboard");
     assert.equal(read.annotations.readOnlyHint, true);
     assert.equal(
@@ -59,6 +59,29 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
     });
     assert.equal(dashboard.structuredContent.availableCount, 4);
     const id = dashboard.structuredContent.sessions[0].id;
+    assert.deepEqual(dashboard.structuredContent.boards, []);
+    assert.equal(
+      tools.find((t) => t.name === "assign_session_board").annotations
+        .readOnlyHint,
+      false,
+    );
+    assert.equal(
+      tools.find((t) => t.name === "delete_board").annotations.destructiveHint,
+      true,
+    );
+    const board = await client.callTool({
+      name: "upsert_board",
+      arguments: { name: "MCP test board" },
+    });
+    const boardId = board.structuredContent.id;
+    await client.callTool({
+      name: "set_default_board",
+      arguments: { board_id: boardId },
+    });
+    await client.callTool({
+      name: "assign_session_board",
+      arguments: { session_id: id, board_id: boardId },
+    });
     const note = await client.callTool({
       name: "upsert_annotation",
       arguments: {
@@ -74,6 +97,8 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
     assert.equal(note.structuredContent.note, "MCP test");
     const rest = await fetch(base + "/api/dashboard").then((r) => r.json());
     assert.equal(rest.sessions[0].annotations[0].note, "MCP test");
+    assert.equal(rest.sessions[0].boardId, boardId);
+    assert.equal(rest.defaultBoardId, boardId);
     const invalid = await client.callTool({
       name: "upsert_annotation",
       arguments: {
@@ -90,6 +115,10 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
       name: "prepare_analysis_context",
       arguments: { session_id: id, question: "Review the latest annotation" },
     });
+    assert.equal(
+      analysis.structuredContent.session.board.name,
+      "MCP test board",
+    );
     assert.equal(
       analysis.structuredContent.session.annotations[0].note,
       "MCP test",
@@ -109,6 +138,36 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
     );
   } finally {
     await client.close();
+    await new Promise((r) => server.close(r));
+  }
+});
+
+test("OAuth discovery is absent rather than a successful HTML app response", async () => {
+  const server = createHttpServer();
+  await new Promise((r) => server.listen(0, "127.0.0.1", r));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  try {
+    for (const path of [
+      "/.well-known/oauth-protected-resource/mcp",
+      "/.well-known/oauth-protected-resource",
+      "/.well-known/oauth-authorization-server",
+      "/.well-known/openid-configuration",
+      "/.well-known/unknown-discovery-document",
+    ]) {
+      const response = await fetch(base + path);
+      assert.equal(response.status, 404, path);
+      assert.match(response.headers.get("content-type"), /application\/json/);
+      assert.equal(response.headers.get("www-authenticate"), null);
+      assert.equal(
+        (await response.json()).error,
+        "Discovery metadata is not available.",
+      );
+    }
+    const mcp = await fetch(base + "/mcp");
+    assert.equal(mcp.status, 405);
+    assert.equal(mcp.headers.get("allow"), "POST");
+    assert.equal((await fetch(base + "/")).status, 200);
+  } finally {
     await new Promise((r) => server.close(r));
   }
 });

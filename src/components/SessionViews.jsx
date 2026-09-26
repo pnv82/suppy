@@ -15,7 +15,11 @@ import {
   Tooltip as MapTooltip,
   useMap,
   ScaleControl,
+  Marker,
+  Pane,
+  useMapEvents,
 } from "react-leaflet";
+import { divIcon } from "leaflet";
 import {
   ResponsiveContainer,
   LineChart,
@@ -31,9 +35,12 @@ import "leaflet/dist/leaflet.css";
 import {
   WINDOW_COLORS,
   mph,
+  feet,
+  durationLabel,
   timeLabel,
   validRuns,
   segmentPoints,
+  segmentDirections,
   interpolate,
   chartRows,
 } from "../domain/metrics.mjs";
@@ -140,11 +147,41 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
             pathOptions={{
               color: WINDOW_COLORS[w.duration],
               weight: w.duration === 1200 ? 13 : w.duration === 600 ? 8 : 4,
-              opacity: selected && selected !== w.duration ? 0.48 : 0.95,
+              opacity: selected && selected !== w.duration ? 0.25 : 0.95,
             }}
             eventHandlers={{ click: () => onSelect(w) }}
           />
         ))}
+        {selected &&
+          windows
+            .filter((w) => w.duration === selected)
+            .map((w) => (
+              <Pane
+                name={`selected-window-${session.id}-${selected}`}
+                key={`${session.id}-${selected}`}
+                style={{ zIndex: 410 }}
+              >
+                <Polyline
+                  positions={segmentPoints(session.records, w.start, w.end).map(
+                    (p) => [p.latitude_deg, p.longitude_deg],
+                  )}
+                  pathOptions={{ color: "#fff", weight: 11, opacity: 0.9 }}
+                  interactive={false}
+                />
+                <Polyline
+                  positions={segmentPoints(session.records, w.start, w.end).map(
+                    (p) => [p.latitude_deg, p.longitude_deg],
+                  )}
+                  pathOptions={{
+                    color: WINDOW_COLORS[w.duration],
+                    weight: 6,
+                    opacity: 1,
+                  }}
+                  interactive={false}
+                />
+              </Pane>
+            ))}
+        <TravelArrows session={session} selected={selected} />
         {windows.map((w) => {
           const p = interpolate(session.records, w.start);
           return (
@@ -173,7 +210,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
                   className={`interval-map-label interval-${w.duration}`}
                   offset={[0, w.duration === 1200 ? -8 : 0]}
                 >
-                  {w.duration / 60} min · {timeLabel(w.start)}
+                  {w.duration / 60} min start · {timeLabel(w.start)}
                 </MapTooltip>
               </CircleMarker>
             )
@@ -260,6 +297,11 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
           />
         )}
       </MapContainer>
+      <p className="map-direction-caption">
+        <ArrowUp size={16} />{" "}
+        {selected ? `${selected / 60} min arrows` : "5 / 10 / 20 min arrows"}:
+        direction of travel. Select a window to follow it.
+      </p>
       <div className="wind-overlay">
         {session.windFrom == null ? (
           <Wind size={27} />
@@ -294,6 +336,59 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
       )}
     </div>
   );
+}
+
+function TravelArrows({ session, selected }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
+  const arrows = useMemo(() => {
+    const candidates = session.windows.filter(
+      (w) => w.start != null && (!selected || selected === w.duration),
+    );
+    const accepted = [];
+    for (const w of candidates) {
+      const fractions = selected
+        ? [0.15, 0.32, 0.5, 0.68, 0.85]
+        : {
+            300: [0.55, 0.4, 0.7],
+            600: [0.95, 0.08, 0.75],
+            1200: [0.27, 0.1, 0.5],
+          }[w.duration];
+      for (const p of segmentDirections(
+        session.records,
+        w,
+        session.pauses,
+        fractions,
+      )) {
+        const pixel = map.project([p.latitude_deg, p.longitude_deg], zoom);
+        if (
+          accepted.some((a) => a.pixel.distanceTo(pixel) < (selected ? 38 : 24))
+        )
+          continue;
+        accepted.push({ ...p, duration: w.duration, pixel });
+        if (!selected) break;
+      }
+    }
+    return accepted;
+  }, [map, zoom, session.records, session.pauses, session.windows, selected]);
+  return arrows.map((p) => {
+    const label = `${p.duration / 60} min travel ${bearing(p.bearing_deg)} at ${timeLabel(p.elapsed_s)}`;
+    return (
+      <Marker
+        key={`${p.duration}-${p.elapsed_s}`}
+        position={[p.latitude_deg, p.longitude_deg]}
+        interactive={false}
+        keyboard={false}
+        icon={divIcon({
+          className: "travel-marker",
+          iconSize: [30, 42],
+          iconAnchor: [15, 15],
+          html: `<span class="travel-symbol" role="img" aria-label="${label}" style="color:${WINDOW_COLORS[p.duration]}"><svg viewBox="0 0 30 30" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M15 3 L25 24 L15 19 L5 24 Z" fill="currentColor" stroke="white" stroke-width="2.5" stroke-linejoin="round"/></svg><b>${p.duration / 60}m</b></span>`,
+        })}
+      />
+    );
+  });
 }
 
 export function BestWindows({ session, selected, onSelect }) {
@@ -345,28 +440,81 @@ export function BestWindows({ session, selected, onSelect }) {
         ))}
       </div>
       <p className="caption">
-        Tap a window to highlight it on the map and timeline. Local estimates
-        may differ from the sheet.
+        Tap a window to follow its arrows from start to finish on the map and
+        highlight its timeline. Local estimates may differ from the sheet.
       </p>
     </aside>
   );
 }
 
 export function MetricStrip({ session }) {
+  const stats = session.statistics;
+  const maxSpeed = stats?.speed_mps;
+  const stroke = stats?.distance_per_stroke;
+  const duration = durationLabel(session.active);
   return (
     <div className="metrics">
       {[
         ["Distance", fmt(session.distance, 2), "mi"],
-        ["Duration · active", fmt(session.active, 1), "min"],
-        ["Average speed", fmt(session.avgSpeed, 2), "mph"],
+        [
+          "Duration · active",
+          duration,
+          "",
+          Math.abs(session.elapsed - session.active) > 1 / 60
+            ? `Elapsed ${durationLabel(session.elapsed)}`
+            : null,
+          `Active: ${fmt(session.active, 2)} min. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`,
+        ],
+        [
+          "Average speed",
+          fmt(session.avgSpeed, 2),
+          "mph",
+          `Max ${fmt(mph(maxSpeed?.max), 2)} mph`,
+          maxSpeed?.max_source === "fit_session"
+            ? "Maximum speed from the FIT session summary; unfiltered watch value."
+            : maxSpeed?.max_source === "fit_records"
+              ? "Maximum recorded FIT speed; unfiltered watch value."
+              : "Maximum speed unavailable: no detailed FIT data.",
+        ],
         ["Average heart rate", fmt(session.avgHr), "bpm"],
-        ["Cadence", fmt(session.cadence), "spm"],
-      ].map(([label, value, unit]) => (
+        [
+          "Cadence",
+          fmt(session.cadence),
+          "spm",
+          `${fmt(feet(stroke?.value_m), 1)} ft/stroke${stroke?.value_m != null ? " · est." : ""}`,
+          stroke?.value_m != null
+            ? `Distance per stroke: ${fmt(stroke.value_m, 2)} m/stroke. FIT distance ${fmt(stroke.distance_m, 2)} m ÷ ${stroke.strokes} watch-counted strokes. Ground distance includes glide and conditions; not a measure of biomechanical efficiency.`
+            : "Distance per stroke unavailable: a SUP FIT session with recorded distance and total strokes is required.",
+        ],
+      ].map(([label, value, unit, secondary, detail]) => (
         <div className="metric" key={label}>
-          <div>
-            <strong>{value}</strong> <span>{unit}</span>
+          <div
+            className="metric-value"
+            title={label === "Duration · active" ? detail : undefined}
+          >
+            {label === "Duration · active" && value !== "—" ? (
+              value
+                .split(" ")
+                .map((part, i) =>
+                  i % 2 === 0 ? (
+                    <strong key={i}>{part}</strong>
+                  ) : (
+                    <span key={i}>{part}</span>
+                  ),
+                )
+            ) : (
+              <>
+                <strong>{value}</strong>
+                <span>{unit}</span>
+              </>
+            )}
           </div>
           <p>{label}</p>
+          {secondary && (
+            <small className="metric-secondary" title={detail}>
+              {secondary}
+            </small>
+          )}
         </div>
       ))}
     </div>
@@ -404,7 +552,7 @@ export function Timeline({
         <div>
           <h2 id="timeline-title">Interval windows & performance</h2>
           <p>
-            Elapsed time · {fmt(session.elapsed, 1)} min
+            Elapsed time · {durationLabel(session.elapsed)}
             <span className="quiet-divider">/</span>Tap a chart or scrub to
             explore the track
           </p>
@@ -457,102 +605,162 @@ export function Timeline({
             ["Speed", "mph", "speed", "#008996", [0, "auto"]],
             ["Heart rate", "bpm", "hr", "#d54d72", [60, 180]],
             ["Cadence", "spm", "cadence", "#6273c9", [0, "auto"]],
-          ].map(([title, unit, key, color, domain], i) => (
-            <div className="timeline-row chart-row" key={key}>
-              <div className="track-label" style={{ color }}>
-                {title}
-                <small>{unit}</small>
-              </div>
-              <div className="metric-chart">
-                <ResponsiveContainer
-                  width="100%"
-                  height={i === 2 ? 88 : 70}
-                  minWidth={0}
-                >
-                  <LineChart
-                    data={rows}
-                    margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
-                    onClick={(e) => {
-                      if (e?.activeLabel != null)
-                        setCursor(Number(e.activeLabel) * 60);
-                    }}
+          ].map(([title, unit, key, color, domain], i) => {
+            const stats =
+              key === "speed"
+                ? session.statistics?.speed_mps
+                : key === "hr"
+                  ? session.statistics?.heart_rate_bpm
+                  : null;
+            const convert = key === "speed" ? mph : (v) => v;
+            const median = convert(stats?.median),
+              peak = convert(stats?.max);
+            return (
+              <div className="timeline-row chart-row" key={key}>
+                <div className="track-label" style={{ color }}>
+                  {title}
+                  <small>{unit}</small>
+                </div>
+                <div className="metric-chart">
+                  {key !== "cadence" && (
+                    <div
+                      className="chart-statistics"
+                      aria-label={`${title} session statistics`}
+                      style={{ "--series-color": color }}
+                    >
+                      <span title="Time-weighted median over valid recorded intervals. Pauses and gaps over 15 seconds are excluded.">
+                        <i
+                          className="stat-line median-line"
+                          aria-hidden="true"
+                        />
+                        Median{" "}
+                        <b>
+                          {fmt(median, unit === "mph" ? 2 : 0)} {unit}
+                        </b>
+                      </span>
+                      <span
+                        title={
+                          stats?.max_source === "fit_session"
+                            ? "Maximum from the FIT session summary; may exceed the peak in sampled records."
+                            : "Maximum of available recorded values; no spike filtering."
+                        }
+                      >
+                        <i className="stat-line max-line" aria-hidden="true" />
+                        Max{" "}
+                        <b>
+                          {fmt(peak, unit === "mph" ? 2 : 0)} {unit}
+                        </b>
+                      </span>
+                    </div>
+                  )}
+                  <ResponsiveContainer
+                    width="100%"
+                    height={i === 2 ? 88 : 84}
+                    minWidth={0}
                   >
-                    <CartesianGrid vertical={false} stroke="#e8edf1" />
-                    <XAxis
-                      type="number"
-                      dataKey="t"
-                      domain={[0, max]}
-                      ticks={ticks}
-                      tickFormatter={(v) => `${v}m`}
-                      tick={{ fontSize: 11, fill: "#728397" }}
-                      height={i === 2 ? 25 : 0}
-                      hide={i !== 2}
-                      axisLine={{ stroke: "#dce4e9" }}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      width={36}
-                      domain={domain}
-                      tick={{ fontSize: 10, fill: "#8190a0" }}
-                      tickCount={3}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    {w?.start != null && (
-                      <ReferenceArea
-                        x1={w.start / 60}
-                        x2={w.end / 60}
-                        fill={WINDOW_COLORS[w.duration]}
-                        fillOpacity={0.07}
+                    <LineChart
+                      data={rows}
+                      margin={{ top: 8, right: 16, bottom: 0, left: 0 }}
+                      onClick={(e) => {
+                        if (e?.activeLabel != null)
+                          setCursor(Number(e.activeLabel) * 60);
+                      }}
+                    >
+                      <CartesianGrid vertical={false} stroke="#e8edf1" />
+                      <XAxis
+                        type="number"
+                        dataKey="t"
+                        domain={[0, max]}
+                        ticks={ticks}
+                        tickFormatter={(v) => `${v}m`}
+                        tick={{ fontSize: 11, fill: "#728397" }}
+                        height={i === 2 ? 25 : 0}
+                        hide={i !== 2}
+                        axisLine={{ stroke: "#dce4e9" }}
+                        tickLine={false}
                       />
-                    )}{" "}
-                    {session.pauses.map((p, n) => (
-                      <ReferenceArea
-                        key={`p${n}`}
-                        x1={p.start / 60}
-                        x2={p.end / 60}
-                        fill="#8290a1"
-                        fillOpacity={0.2}
+                      <YAxis
+                        width={36}
+                        domain={domain}
+                        tick={{ fontSize: 10, fill: "#8190a0" }}
+                        tickCount={3}
+                        axisLine={false}
+                        tickLine={false}
                       />
-                    ))}
-                    {session.annotations.map((a) =>
-                      a.end_s > a.start_s ? (
+                      {w?.start != null && (
                         <ReferenceArea
-                          key={a.id}
-                          x1={a.start_s / 60}
-                          x2={a.end_s / 60}
-                          fill="#ae4265"
-                          fillOpacity={0.12}
+                          x1={w.start / 60}
+                          x2={w.end / 60}
+                          fill={WINDOW_COLORS[w.duration]}
+                          fillOpacity={0.07}
                         />
-                      ) : (
+                      )}{" "}
+                      {session.pauses.map((p, n) => (
+                        <ReferenceArea
+                          key={`p${n}`}
+                          x1={p.start / 60}
+                          x2={p.end / 60}
+                          fill="#8290a1"
+                          fillOpacity={0.2}
+                        />
+                      ))}
+                      {session.annotations.map((a) =>
+                        a.end_s > a.start_s ? (
+                          <ReferenceArea
+                            key={a.id}
+                            x1={a.start_s / 60}
+                            x2={a.end_s / 60}
+                            fill="#ae4265"
+                            fillOpacity={0.12}
+                          />
+                        ) : (
+                          <ReferenceLine
+                            key={a.id}
+                            x={a.start_s / 60}
+                            stroke="#ae4265"
+                            strokeDasharray="3 3"
+                          />
+                        ),
+                      )}
+                      <Line
+                        type="linear"
+                        dataKey={key}
+                        stroke={color}
+                        strokeWidth={1.6}
+                        dot={false}
+                        isAnimationActive={false}
+                        connectNulls={false}
+                      />
+                      {Number.isFinite(median) && (
                         <ReferenceLine
-                          key={a.id}
-                          x={a.start_s / 60}
-                          stroke="#ae4265"
-                          strokeDasharray="3 3"
+                          y={median}
+                          stroke={color}
+                          strokeDasharray="6 4"
+                          strokeWidth={1.25}
+                          ifOverflow="extendDomain"
                         />
-                      ),
-                    )}
-                    <Line
-                      type="linear"
-                      dataKey={key}
-                      stroke={color}
-                      strokeWidth={1.6}
-                      dot={false}
-                      isAnimationActive={false}
-                      connectNulls={false}
-                    />
-                    <ReferenceLine
-                      x={cursor / 60}
-                      stroke="#354a60"
-                      strokeWidth={1}
-                    />
-                    <Tooltip content={<ChartTip unit={unit} />} />
-                  </LineChart>
-                </ResponsiveContainer>
+                      )}
+                      {Number.isFinite(peak) && (
+                        <ReferenceLine
+                          y={peak}
+                          stroke={color}
+                          strokeDasharray="2 3"
+                          strokeWidth={1.25}
+                          ifOverflow="extendDomain"
+                        />
+                      )}
+                      <ReferenceLine
+                        x={cursor / 60}
+                        stroke="#354a60"
+                        strokeWidth={1}
+                      />
+                      <Tooltip content={<ChartTip unit={unit} />} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="timeline-empty">

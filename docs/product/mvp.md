@@ -12,6 +12,8 @@ Initial data is a small personal history. The spreadsheet uses imperial display 
 |---|---|---|
 | Track map and wind | Route, direction of travel, observed wind legend, best 5/10/20-minute overlays | Selecting an available window highlights its exact interval on map and charts; missing boundaries are explicit |
 | Session overview | Distance, elapsed/active duration, average speed, HR, cadence, available quality flags | Every metric has a unit and source; missing values remain visible as unavailable |
+| Home / recent sessions | Landing page reuses automatic comparison, with latest 10 sessions ordered by date descending, key characteristics and chronological trends | Four current sessions are shown without filler; each opens its session review; phone cards retain the same values |
+| Session board and board list | Add/rename boards, set/clear a default, assign/clear a board on each session, delete unused boards | Default never rewrites historical sessions; assignments reach analysis context as athlete reports; all edits remain temporary |
 | Time-series dynamics | Linked speed, HR and cadence plots with weather and known event markers | One elapsed-time cursor and interval selection connect plots and map; gaps stay gaps |
 | Targets/goals | Display and edit prototype goal values, scope and optional deadline | A target can be evaluated only against a compatible metric/duration; unset remains unset |
 | Technique problems | Search/select a curated issue; attach evidence status and a practice cue | Watch-only hypotheses cannot appear as confirmed faults |
@@ -30,6 +32,7 @@ The initial build supports visual linking and lightweight local 5/10/20-minute d
 
 ## Defaults and unresolved decisions
 
+- Session names follow the **start/launch point**, not the destination, finish point or the whole route. Prefer a user-confirmed specific launch name; use a known start-point mapping when available. Until a launch point is confirmed, retain the source location as an explicitly unconfirmed fallback rather than inventing a more precise place. Display the date separately to distinguish repeat visits. Naming never changes the string session ID. Automatic reverse geocoding and remembered launch-point mappings are deferred.
 - Desktop-first session review, with usable phone layouts; no live-on-water navigation UI.
 - Main route: session list → session review. Goals, technique selection and the prompt are contextual panels.
 - Default best efforts: continuous elapsed-time 300/600/1200-second windows, specified in the metric contract. Historical sheet values have an unverified method and must retain that label.

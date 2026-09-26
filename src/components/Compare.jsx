@@ -14,10 +14,14 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import { WINDOW_COLORS, latestSessions } from "../domain/metrics.mjs";
+import {
+  WINDOW_COLORS,
+  latestSessions,
+  durationLabel,
+} from "../domain/metrics.mjs";
 import { fmt, shortDate, bearing } from "./SessionViews.jsx";
 
-export function Compare({ sessions, onOpen }) {
+export function Compare({ sessions, boards = [], onOpen }) {
   const [metric, setMetric] = useState("avgSpeed");
   const newest = latestSessions(sessions),
     rows = [...newest]
@@ -39,7 +43,7 @@ export function Compare({ sessions, onOpen }) {
       <div className="page-heading">
         <div>
           <p className="eyebrow">YOUR PROGRESS</p>
-          <h1>Every session, in perspective.</h1>
+          <h1>Recent sessions</h1>
           <p>
             Latest 10 sessions, compared automatically.{" "}
             <strong>{rows.length} available</strong> in your current data.
@@ -52,11 +56,15 @@ export function Compare({ sessions, onOpen }) {
           const [label, u, d] = options[key],
             first = rows[0]?.[key],
             last = rows.at(-1)?.[key],
-            delta = first == null || last == null ? null : last - first;
+            delta =
+              rows.length < 2 || first == null || last == null
+                ? null
+                : last - first;
           return (
             <button
               className={`trend-summary ${metric === key ? "selected" : ""}`}
               key={key}
+              aria-pressed={metric === key}
               onClick={() => setMetric(key)}
             >
               <span>{label}</span>
@@ -65,7 +73,7 @@ export function Compare({ sessions, onOpen }) {
               </strong>
               <span className="delta">
                 {delta == null ? (
-                  "No comparison"
+                  "No comparison available"
                 ) : (
                   <>
                     {delta === 0 ? (
@@ -84,6 +92,105 @@ export function Compare({ sessions, onOpen }) {
           );
         })}
       </div>
+      <section className="sessions-table-section">
+        <div className="section-heading">
+          <h2>Your latest sessions</h2>
+          <span className="caption">Most recent first</span>
+        </div>
+        <div className="table-scroll">
+          <table className="home-sessions-table">
+            <caption className="sr-only">
+              Latest sessions, most recent first. Source: captured Google Sheet.
+              Board assignments are athlete reported.
+            </caption>
+            <thead>
+              <tr>
+                {[
+                  "Session",
+                  "Distance",
+                  "Active",
+                  "Avg speed",
+                  "Best 5 / 10 / 20 min",
+                  "Heart rate",
+                  "Cadence",
+                  "Wind",
+                  "Board",
+                ].map((x) => (
+                  <th key={x}>{x}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {newest.map((s) => (
+                <tr key={s.id}>
+                  <td>
+                    <button
+                      className="session-link"
+                      aria-label={`Open ${shortDate(s.date)} · ${s.title}`}
+                      onClick={() => onOpen(s.id)}
+                    >
+                      <strong>{s.title}</strong>
+                      <span>
+                        {shortDate(s.date)} <ArrowUpRight size={13} />
+                      </span>
+                    </button>
+                    <small>
+                      {s.records?.length ? "FIT + sheet" : "Summary only"}
+                    </small>
+                  </td>
+                  <td data-label="Distance">{fmt(s.distance, 2)} mi</td>
+                  <td data-label="Active time">{durationLabel(s.active)}</td>
+                  <td data-label="Average speed">{fmt(s.avgSpeed, 2)} mph</td>
+                  <td data-label="Best 5 / 10 / 20 min">
+                    <span
+                      className="table-interval"
+                      style={{ color: WINDOW_COLORS[300] }}
+                    >
+                      {fmt(s.best5, 2)}
+                    </span>{" "}
+                    /{" "}
+                    <span
+                      className="table-interval"
+                      style={{ color: WINDOW_COLORS[600] }}
+                    >
+                      {fmt(s.best10, 2)}
+                    </span>{" "}
+                    /{" "}
+                    <span
+                      className="table-interval"
+                      style={{ color: WINDOW_COLORS[1200] }}
+                    >
+                      {fmt(s.best20, 2)}
+                    </span>{" "}
+                    mph
+                  </td>
+                  <td data-label="Heart rate">
+                    {fmt(s.avgHr)} bpm
+                    <small>
+                      {/suspect/i.test(s.hrQuality || "")
+                        ? "Early HR suspect"
+                        : ""}
+                    </small>
+                  </td>
+                  <td data-label="Cadence">{fmt(s.cadence)} spm</td>
+                  <td data-label="Wind">
+                    {s.wind == null
+                      ? "Unknown"
+                      : `${fmt(s.wind, 2)} mph ${bearing(s.windFrom)}`}
+                  </td>
+                  <td data-label="Board" className="board-cell">
+                    {boards.find((b) => b.id === s.boardId)?.name ||
+                      "Not recorded"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {!newest.length && (
+          <p className="board-empty">No sessions available in this snapshot.</p>
+        )}
+      </section>
       <section className="trend-panel">
         <div className="section-heading">
           <div>
@@ -147,89 +254,6 @@ export function Compare({ sessions, onOpen }) {
           trends; a change does not by itself establish improved fitness or
           technique.
         </p>
-      </section>
-      <section className="sessions-table-section">
-        <div className="section-heading">
-          <h2>The sessions behind the trend</h2>
-          <span className="caption">Most recent first</span>
-        </div>
-        <div className="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                {[
-                  "Session",
-                  "Distance",
-                  "Active",
-                  "Avg speed",
-                  "Best 5 / 10 / 20 min",
-                  "Heart rate",
-                  "Cadence",
-                  "Wind",
-                ].map((x) => (
-                  <th key={x}>{x}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {newest.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <button
-                      className="session-link"
-                      onClick={() => onOpen(s.id)}
-                    >
-                      <strong>{s.title}</strong>
-                      <span>
-                        {shortDate(s.date)} <ArrowUpRight size={13} />
-                      </span>
-                    </button>
-                  </td>
-                  <td>{fmt(s.distance, 2)} mi</td>
-                  <td>{fmt(s.active, 1)} min</td>
-                  <td>{fmt(s.avgSpeed, 2)} mph</td>
-                  <td>
-                    <span
-                      className="table-interval"
-                      style={{ color: WINDOW_COLORS[300] }}
-                    >
-                      {fmt(s.best5, 2)}
-                    </span>{" "}
-                    /{" "}
-                    <span
-                      className="table-interval"
-                      style={{ color: WINDOW_COLORS[600] }}
-                    >
-                      {fmt(s.best10, 2)}
-                    </span>{" "}
-                    /{" "}
-                    <span
-                      className="table-interval"
-                      style={{ color: WINDOW_COLORS[1200] }}
-                    >
-                      {fmt(s.best20, 2)}
-                    </span>{" "}
-                    mph
-                  </td>
-                  <td>
-                    {fmt(s.avgHr)} bpm
-                    <small>
-                      {/suspect/i.test(s.hrQuality || "")
-                        ? "Early HR suspect"
-                        : ""}
-                    </small>
-                  </td>
-                  <td>{fmt(s.cadence)} spm</td>
-                  <td>
-                    {s.wind == null
-                      ? "Unknown"
-                      : `${fmt(s.wind, 2)} mph ${bearing(s.windFrom)}`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
       </section>
     </>
   );

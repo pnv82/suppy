@@ -3,6 +3,16 @@ import { z } from "zod";
 export const toolSchemas = {
   get_dashboard: z.object({}),
   get_session_context: z.object({ session_id: z.string() }),
+  upsert_board: z.object({
+    board_id: z.string().optional(),
+    name: z.string().trim().min(1).max(100),
+  }),
+  delete_board: z.object({ board_id: z.string() }),
+  set_default_board: z.object({ board_id: z.string().nullable() }),
+  assign_session_board: z.object({
+    session_id: z.string(),
+    board_id: z.string().nullable(),
+  }),
   upsert_annotation: z.object({
     session_id: z.string(),
     annotation_id: z.string().optional(),
@@ -34,6 +44,14 @@ export const toolSchemas = {
   }),
 };
 export const descriptions = {
+  upsert_board:
+    "Create a user-named SUP board, or rename an existing board by ID. Temporary memory only.",
+  delete_board:
+    "Delete an unused board by ID at the user's request. Assigned boards must be reassigned or cleared first.",
+  set_default_board:
+    "Set the user's preferred board, or clear it with null. Suggests a board for unassigned sessions; never changes existing session assignments.",
+  assign_session_board:
+    "Record the user-reported board for a specific session, or clear it with null. Do not infer a historical board from the default.",
   get_dashboard:
     "Read the latest 10 SUP session summaries and the current dashboard state. Four sessions are currently available.",
   get_session_context:
@@ -57,7 +75,13 @@ export function executeTool(store, name, input) {
     result = {
       sessions: store.dashboard().sessions.map((s) => store.context(s.id)),
       availableCount: store.dashboard().sessions.length,
+      boards: store.dashboard().boards,
+      defaultBoardId: store.dashboard().defaultBoardId,
     };
+  if (name === "upsert_board") result = store.upsertBoard(args);
+  if (name === "delete_board") result = store.deleteBoard(args);
+  if (name === "set_default_board") result = store.setDefaultBoard(args);
+  if (name === "assign_session_board") result = store.assignBoard(args);
   if (name === "get_session_context") result = store.context(args.session_id);
   if (name === "upsert_annotation") result = store.addAnnotation(args);
   if (name === "delete_annotation") {

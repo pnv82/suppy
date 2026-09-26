@@ -6,6 +6,7 @@ import {
   numeric,
   timerPauses,
   latestSessions,
+  sessionStatistics,
 } from "../src/domain/metrics.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
@@ -62,9 +63,16 @@ export function createStore() {
         benchmarkQuality: source["Benchmark quality"],
         notes: source.Notes,
         paddle: source["Paddle model"],
+        boardId: null,
         records: track.records,
         pauses,
         windows: bestWindows(track.records, pauses),
+        statistics: sessionStatistics(
+          track.records,
+          pauses,
+          detail,
+          numeric(source["Max HR bpm"]),
+        ),
         annotations: [],
         additionalContext: "",
         technique: [],
@@ -76,6 +84,8 @@ export function createStore() {
       };
     });
   const issues = read("data/reference/technique-issues.json").issues;
+  const boards = [];
+  let defaultBoardId = null;
   function get(id) {
     const s = sessions.find((s) => s.id === id);
     if (!s) throw new Error("Session not found");
@@ -84,6 +94,11 @@ export function createStore() {
   function dashboard() {
     return {
       sessions: latestSessions(sessions),
+      boards: boards.map((b) => ({
+        ...b,
+        sessionCount: sessions.filter((s) => s.boardId === b.id).length,
+      })),
+      defaultBoardId,
       issues,
       snapshotAt: snapshot.captured_at,
       sourceUrl: snapshot.source_url,
@@ -145,6 +160,12 @@ export function createStore() {
     const { records, hashes, ...summary } = s;
     return {
       ...summary,
+      board: s.boardId
+        ? {
+            ...boards.find((b) => b.id === s.boardId),
+            source: "athlete_reported",
+          }
+        : null,
       units: {
         distance: "mi",
         active: "min",
@@ -158,6 +179,8 @@ export function createStore() {
         avgHr: "bpm",
         cadence: "spm",
         windows: "elapsed seconds and m/s",
+        statistics:
+          "speed_mps in m/s; heart_rate_bpm in bpm; distance_per_stroke.value_m in m/stroke; covered_s in seconds",
       },
       techniqueFocus: s.technique.map((id) => ({
         ...issues.find((i) => i.id === id),
@@ -166,11 +189,70 @@ export function createStore() {
       trackAvailable: records.length > 0,
       limitations: [
         "Local best windows are unreviewed estimates.",
+        "Medians are time-weighted display estimates over covered intervals; gaps and pauses are excluded. Maxima retain their stated source and may include sensor spikes.",
+        "Distance per stroke uses FIT session distance and watch-counted strokes; it is not validated biomechanical efficiency.",
         "Wind is nearby-station context, not an on-water measurement.",
         "Watch telemetry cannot diagnose stroke faults.",
         "Edits are held in this server process only.",
       ],
     };
+  }
+  function requireBoard(id) {
+    const board = boards.find((b) => b.id === id);
+    if (!board) throw new Error("Board not found.");
+    return board;
+  }
+  function upsertBoard({ board_id, name }) {
+    const clean = name.trim();
+    if (!clean || clean.length > 100)
+      throw new Error("Enter a board name of 1–100 characters.");
+    if (
+      boards.some(
+        (b) =>
+          b.id !== board_id && b.name.toLowerCase() === clean.toLowerCase(),
+      )
+    )
+      throw new Error("A board with this name already exists.");
+    if (board_id) {
+      const board = requireBoard(board_id);
+      if (board.name !== clean) {
+        board.name = clean;
+        sessions
+          .filter((s) => s.boardId === board_id)
+          .forEach((s) => s.revision++);
+      }
+      return board;
+    }
+    const board = { id: randomUUID(), name: clean };
+    boards.push(board);
+    return board;
+  }
+  function deleteBoard({ board_id }) {
+    requireBoard(board_id);
+    if (sessions.some((s) => s.boardId === board_id))
+      throw new Error(
+        "This board is assigned to a session. Change those assignments before deleting it.",
+      );
+    boards.splice(
+      boards.findIndex((b) => b.id === board_id),
+      1,
+    );
+    if (defaultBoardId === board_id) defaultBoardId = null;
+    return { deleted: board_id };
+  }
+  function setDefaultBoard({ board_id }) {
+    if (board_id !== null) requireBoard(board_id);
+    defaultBoardId = board_id;
+    return { defaultBoardId };
+  }
+  function assignBoard({ session_id, board_id }) {
+    const session = get(session_id);
+    if (board_id !== null) requireBoard(board_id);
+    if (session.boardId !== board_id) {
+      session.boardId = board_id;
+      session.revision++;
+    }
+    return context(session_id);
   }
   return {
     get,
@@ -180,6 +262,10 @@ export function createStore() {
     updateContext,
     updateFocus,
     context,
+    upsertBoard,
+    deleteBoard,
+    setDefaultBoard,
+    assignBoard,
     issues,
   };
 }

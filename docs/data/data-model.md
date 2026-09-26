@@ -11,6 +11,7 @@ Each imported/derived claim has source reference(s), method if calculated, and a
 | Entity | Required identity and fields | Optional/nullable fields |
 |---|---|---|
 | Session | session_id, local_date, timezone, source_refs | start_time_utc, elapsed_duration_s, active_duration_s, distance_m, summary speed/HR/cadence, location, type, gear, notes, quality |
+| Board (prototype) | id, name (trimmed, 1–100 characters) | Session assignment by nullable boardId; one nullable defaultBoardId in preferences |
 | TrackPoint | session_id, timestamp_utc, elapsed_s | lat/lon, distance_m, speed_mps, heart_rate_bpm, cadence_raw; per-channel availability |
 | TimerEvent | session_id, timestamp_utc, event_type, source_ref | trigger; do not infer the reason for a stop |
 | BestWindow | session_id, duration_s, status, basis, source_refs, mean_speed_mps | start_elapsed_s/end_elapsed_s absent as null for unlocated legacy values; reason |
@@ -42,3 +43,9 @@ Coordinates from FIT semicircles convert as `degrees = semicircles × 180 / 2^31
 Scope goals to `session`, `best_window`, or `selected_interval`. A 5 mph 20-minute goal does not become achieved because a 5-minute section exceeded 5 mph. Cadence and HR targets are unset without athlete/coach input. Support `at_least`, `at_most`, and (later) bounded ranges; more cadence is not inherently better.
 
 Issue IDs come from `data/reference/technique-issues.json`. Do not use free-form LLM issue names as new dictionary entries. A session may have no observations. Never assign a fault just because it exists in the dictionary.
+
+## Board state in the current prototype
+
+The REST/MCP dashboard adds `boards: [{id, name, sessionCount}]` and `defaultBoardId`. Each session has nullable `boardId`; model-visible session context resolves it to `board: {id, name, source: "athlete_reported"}` or `null`. No supplied source identifies a board, so all initial assignments are null and the board list starts empty.
+
+Board names are unique ignoring case. Renaming preserves the board ID and advances revisions of assigned sessions so subsequent analysis receives the updated name. Assignment changes also advance the session revision. Deleting an assigned board is rejected; deleting an unused default clears the default. A default is a shortcut for explicit assignment, never evidence that a historical session used that board. Board state shares the existing temporary server lifetime. Arbitrary new-session import and automatic default preselection for that future flow remain deferred.

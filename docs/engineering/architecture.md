@@ -17,6 +17,10 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 | update_session_context | Save athlete-provided additional context |
 | update_training_focus | Save a speed target and valid dictionary IDs as athlete reports |
 | prepare_analysis_context | Current context plus at most 120 telemetry records; no model call |
+| upsert_board | Add a named board or rename an existing ID; reject duplicate/empty names |
+| delete_board | Remove an unused board; reject deletion while assigned |
+| set_default_board | Set/clear preferred board without rewriting historical assignments |
+| assign_session_board | Set/clear a session's athlete-reported board and advance its revision |
 
 Tools declare read/write/destructive behavior. UI metadata names `ui://sup-training/dashboard.html`. The resource embeds the built JS/CSS, so it has no localhost asset dependency. Private records are sent in tool `_meta` for UI use; model-visible results contain summaries and bounded telemetry. The app bridge sends follow-up messages to the host conversation after context updates.
 
@@ -26,11 +30,15 @@ Tools declare read/write/destructive behavior. UI metadata names `ui://sup-train
 
 FIT owns records and timer events. Sheet values remain labelled source summaries. Three tracks and four summaries are available. Notes, goals and technique choices live in memory only; originals and Sheet are never modified. Restart discards edits. There is no authentication, persistence or sharing layer.
 
-`src/domain/metrics.mjs` implements lightweight deterministic display calculations: continuous elapsed windows, distance interpolation, a 15-second gap threshold, timer-pause exclusion and an 8 m/s distance-jump guard. Results are local estimates, not reviewed coaching outputs. All three intervals render independently and may overlap.
+Boards and their default/assignments also live in memory. The dashboard includes the board list and nullable default ID; session context includes the resolved athlete-reported board. Renaming a used board advances affected session revisions. No board is inferred from existing telemetry or from the default. See the runtime board contract in [data-model.md](../data/data-model.md).
+
+`src/domain/metrics.mjs` implements lightweight deterministic display calculations: continuous elapsed windows, distance interpolation, a 15-second gap threshold, timer-pause exclusion and an 8 m/s distance-jump guard. It also provides time-weighted speed/HR medians, source-labelled maxima and estimated distance per stroke from explicit SUP FIT totals. `server/store.mjs` includes their SI values, coverage, input totals and source metadata under the session DTO's `statistics` field for both REST and MCP. Results are local estimates, not reviewed coaching outputs. All three intervals render independently and may overlap.
 
 ## UI and folders
 
 `src/App.jsx` owns navigation and selected session/cursor/window. `src/components/` contains the present screen-level components. `src/services/` isolates host/HTTP operations. The previously reserved feature folders may be used when a feature grows; do not add abstractions solely to fill them.
+
+Home reuses `Compare.jsx`: latest-10 summary changes, newest-first session rows/cards and chronological charts. `Boards.jsx` contains the equipment list and session picker. Explicit session results from MCP open that session review. Direction arrows are deterministic GPS bearings in `metrics.mjs`; Leaflet handles selection emphasis and zoom-dependent marker spacing.
 
 The map requests standard OpenStreetMap tiles, preserves attribution and browser caching, and displays the recorded route independently. No map key is embedded. Wind labels use meteorological from; the arrow points toward from + 180°. Current wind is a sheet summary, not a spatial weather field.
 
