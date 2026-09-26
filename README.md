@@ -14,6 +14,8 @@ npm start
 
 Open **http://127.0.0.1:3001**. Keep that terminal open. Stop it with Ctrl+C.
 
+The address bar tracks the page and selected session. Copy it to bookmark a view, for example `http://127.0.0.1:3001/?page=sessions&session=24162211256`. Supported pages are `home`, `sessions`, `boards`, and `chatgpt`. A session-only link opens its review. Refresh and browser Back/Forward restore the view; unknown session IDs show an unavailable message. Links require this local app and its source data to be available; temporary edits still reset on server restart.
+
 For UI development, use `npm run dev` instead: Vite runs on port 5173, with the local API/MCP server on 3001. Do not run both start and dev at once. Rebuild before testing the embedded ChatGPT UI: it uses the built bundle.
 
 This workspace includes four spreadsheet summaries and three detailed Garmin tracks. Private source files are ignored by Git. A checkout on another machine needs the files described in [data/samples/garmin/README.md](data/samples/garmin/README.md), the sheet snapshot, and derived track JSON. Regenerate tracks using [scripts/inspect_samples.py](scripts/inspect_samples.py).

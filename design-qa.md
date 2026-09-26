@@ -97,3 +97,11 @@ Removed the separate Explore track slider and best-window timeline lanes. The ex
 - Confirmed Aug 29 summary-only state retains manual annotation, Sep 5 unknown wind, and the missing GPS at Sep 25 0:00 hides the point while 0:10 restores it.
 - Rapid session switching exposed a Leaflet zoom-transition teardown error. Session fitBounds now disables animation to avoid a pending transition after map removal; final build verified, this last change has not had a separate browser replay.
 - Private screenshot: `.tools/qa/chart-cursor-desktop.png`. Temporary QA annotation was deleted; existing board state was preserved. Live ChatGPT embedding and formal screen-reader testing remain unverified.
+
+## Page and session URLs — 2026-09-26
+
+The address bar now records page and string session ID. Direct links, refresh, and Back/Forward restore the selected view. Navigating among Home, Sessions, Boards and ChatGPT retains session context. Unknown session IDs show an unavailable state with a keyboard-accessible return to Home. README and architecture describe the URL contract and embedded-host limitations.
+
+- Production build and all 19 tests pass. Existing dependency-comment and bundle-size warnings remain. An initial test run overlapped the build and hit a missing packaging artifact; rerunning after build completion passed.
+- Browser verification at 1280 × 900 and 390 × 844: direct Aug 29 summary-only link, keyboard page/session selection, Back/Forward, Boards and session refresh, ChatGPT refresh retaining Sep 5 context, missing wind, and unknown-session recovery. No page-wide overflow or captured warnings/errors.
+- Existing server and temporary board state were preserved. Viewport override reset. Live ChatGPT embedding is still unverified; sandboxed hosts retain UI navigation if history updates are denied.

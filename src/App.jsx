@@ -37,6 +37,7 @@ import {
 import { Compare } from "./components/Compare.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
 import { Boards, SessionBoard } from "./components/Boards.jsx";
+import { useNavigation } from "./services/useNavigation.jsx";
 
 const parseTime = (value) =>
   /^\d{1,3}:[0-5]\d$/.test(value)
@@ -52,9 +53,9 @@ const defaultDraft = (t) => ({
 
 export function App() {
   const [data, setData] = useState(null),
-    [sessionId, setSessionId] = useState(null),
-    [page, setPage] = useState("Home"),
     [connected, setConnected] = useState(false);
+  const { page, sessionId, navigate } = useNavigation();
+  const setPage = (page) => navigate({ page });
   const [error, setError] = useState(""),
     [toast, setToast] = useState(""),
     [busy, setBusy] = useState(false),
@@ -77,8 +78,7 @@ export function App() {
   const accept = (next, id, fromHost) => {
     setData(next);
     if (id) {
-      setSessionId(id);
-      if (fromHost) setPage("Sessions");
+      navigate({ sessionId: id, ...(fromHost ? { page: "Sessions" } : {}) });
     }
   };
   useEffect(() => {
@@ -101,8 +101,13 @@ export function App() {
       unsubscribe();
     };
   }, []);
-  const session =
-    data?.sessions.find((s) => s.id === sessionId) || data?.sessions[0];
+  const session = sessionId
+    ? data?.sessions.find((s) => s.id === sessionId)
+    : data?.sessions[0];
+  useEffect(() => {
+    if (!sessionId && data?.sessions[0])
+      navigate({ sessionId: data.sessions[0].id }, true);
+  }, [data, sessionId, navigate]);
   useEffect(() => {
     setCursor(
       session
@@ -147,8 +152,7 @@ export function App() {
     setCursor(w.start);
   };
   const openSession = (id) => {
-    setSessionId(id);
-    setPage("Sessions");
+    navigate({ sessionId: id, page: "Sessions" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
   const annotate = (t) => setDraft(defaultDraft(t));
@@ -480,8 +484,20 @@ export function App() {
             onAction={boardAction}
           />
         )}
-        {page === "Sessions" && !session && (
-          <p>No sessions available in this snapshot.</p>
+        {(page === "Sessions" || page === "ChatGPT") && !session && (
+          <div role="status">
+            <p>
+              {sessionId
+                ? `Session ${sessionId} is unavailable in this snapshot.`
+                : "No sessions available in this snapshot."}
+            </p>
+            <button
+              className="button secondary"
+              onClick={() => navigate({ page: "Home", sessionId: null })}
+            >
+              Browse available sessions
+            </button>
+          </div>
         )}
         {page === "ChatGPT" && session && (
           <ChatGPTPage
