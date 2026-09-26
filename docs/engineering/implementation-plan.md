@@ -1,0 +1,22 @@
+# Implementation status and next slice
+
+## Initial version implemented
+
+- Selected light map-led direction, with timeline annotations from concept 2.
+- React/Vite UI using four actual sheet summaries and three detailed tracks.
+- 5/10/20-minute map/timeline highlights with real local estimates and source values kept separate.
+- Linked time cursor, gap-aware charts and missing-track/wind states.
+- Automatic latest-10 trends; four current sessions, eight parameter choices.
+- Timed note create/edit/delete, extra context, speed targets and technique dictionary selection.
+- Shared local REST/MCP operations and embedded ChatGPT UI resource.
+- Sample-only file recognition, copyable analysis context, README connection instructions.
+
+## Validation
+
+Run `npm test` and `npm run build`. Consult root `design-qa.md` for browser evidence and acceptance status. Validate live account connection separately; it requires the user's developer-mode/tunnel setup. Do not describe local protocol tests as a completed ChatGPT account connection.
+
+## Next work
+
+Use [todo.md](../../todo.md) as the deferred-work list. Start with live ChatGPT feedback and genuine user UI feedback before implementing costly analysis. New FIT decoding, reviewed analysis ingestion, timed weather and robust metric validation are explicit future work. Authentication, durable storage, sharing, broad imports and in-app model execution remain outside this slice.
+
+P03 is automatic latest-10 comparison, superseding the initial two-session selection idea. P05 is explicit timed annotations. P01/P02/P04/P06 remain discarded.

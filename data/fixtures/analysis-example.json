@@ -1,0 +1,159 @@
+{
+  "schema_version": "0.1.0",
+  "analysis_id": "fixture-24495535896-source-import-v1",
+  "session_id": "24495535896",
+  "generated_at_utc": "2026-09-26T03:26:01Z",
+  "analyst": "Foundation source-import example; not a new performance analysis",
+  "status": "provisional",
+  "source_refs": [
+    {
+      "id": "fit-1",
+      "kind": "fit",
+      "locator": "data/samples/garmin/fit/24495535896_ACTIVITY.fit",
+      "sha256": "26fb5398faa69322b769354e6ed3f04075fcc18e49510b2c98be29a66e03ad4a",
+      "note": "Garmin SDK decoded session summary; filename ID matched to source Sheet."
+    },
+    {
+      "id": "sheet-session",
+      "kind": "spreadsheet",
+      "locator": "https://docs.google.com/spreadsheets/d/1Hj6ef7uA-zpHMwvUCRXzpLBv_ty-uV-BX9iG945NEdE/edit#gid=2033518345&range=A5:AP5",
+      "sha256": null,
+      "note": "Read-only bounded snapshot. Legacy best speeds and HR quality retained; window method is unverified."
+    },
+    {
+      "id": "sheet-weather",
+      "kind": "spreadsheet",
+      "locator": "https://docs.google.com/spreadsheets/d/1Hj6ef7uA-zpHMwvUCRXzpLBv_ty-uV-BX9iG945NEdE/edit#gid=155843938&range=A7:M8",
+      "sha256": null,
+      "note": "Two source weather rows; underlying historical weather not independently reverified here."
+    }
+  ],
+  "summary": {
+    "elapsed_duration_s": {
+      "value": 5166.066,
+      "unit": "s",
+      "evidence_kind": "measured",
+      "source_refs": [
+        "fit-1"
+      ]
+    },
+    "active_duration_s": {
+      "value": 5166.066,
+      "unit": "s",
+      "evidence_kind": "measured",
+      "source_refs": [
+        "fit-1"
+      ]
+    },
+    "distance_m": {
+      "value": 9689.87,
+      "unit": "m",
+      "evidence_kind": "measured",
+      "source_refs": [
+        "fit-1"
+      ]
+    },
+    "avg_speed_mps": {
+      "value": 1.876,
+      "unit": "m/s",
+      "evidence_kind": "measured",
+      "source_refs": [
+        "fit-1"
+      ]
+    },
+    "avg_heart_rate_bpm": {
+      "value": 142,
+      "unit": "bpm",
+      "evidence_kind": "measured",
+      "source_refs": [
+        "fit-1"
+      ]
+    },
+    "avg_cadence_spm": {
+      "value": 33,
+      "unit": "spm",
+      "evidence_kind": "source_summary",
+      "source_refs": [
+        "sheet-session"
+      ]
+    }
+  },
+  "best_windows": [
+    {
+      "duration_s": 300,
+      "status": "value_only",
+      "basis": "legacy_unspecified",
+      "start_elapsed_s": null,
+      "end_elapsed_s": null,
+      "mean_speed_mps": 2.2754336,
+      "source_refs": [
+        "sheet-session"
+      ],
+      "reason": "Sheet supplies speed only. Exact window boundaries and calculation method are unavailable."
+    },
+    {
+      "duration_s": 600,
+      "status": "value_only",
+      "basis": "legacy_unspecified",
+      "start_elapsed_s": null,
+      "end_elapsed_s": null,
+      "mean_speed_mps": 2.1636736,
+      "source_refs": [
+        "sheet-session"
+      ],
+      "reason": "Sheet supplies speed only. Exact window boundaries and calculation method are unavailable."
+    },
+    {
+      "duration_s": 1200,
+      "status": "value_only",
+      "basis": "legacy_unspecified",
+      "start_elapsed_s": null,
+      "end_elapsed_s": null,
+      "mean_speed_mps": 2.078736,
+      "source_refs": [
+        "sheet-session"
+      ],
+      "reason": "Sheet supplies speed only. Exact window boundaries and calculation method are unavailable."
+    }
+  ],
+  "conditions": [
+    {
+      "observation_id": "weather-0751",
+      "kind": "timestamped",
+      "observed_at_utc": "2026-09-25T14:51:00Z",
+      "wind_mps": 2.57048,
+      "wind_from_deg": 20,
+      "station": "KSAN",
+      "quality": "Source says Observed METAR",
+      "note": "Nearby-station observation; not wind measured on the board.",
+      "source_refs": [
+        "sheet-weather"
+      ]
+    },
+    {
+      "observation_id": "weather-0851",
+      "kind": "timestamped",
+      "observed_at_utc": "2026-09-25T15:51:00Z",
+      "wind_mps": 2.57048,
+      "wind_from_deg": 50,
+      "station": "KSAN",
+      "quality": "Source says Observed METAR",
+      "note": "Source row retained; variable local shelter remains unknown.",
+      "source_refs": [
+        "sheet-weather"
+      ]
+    }
+  ],
+  "events": [],
+  "technique_observations": [],
+  "notes": [
+    "Example combines actual FIT summaries and source Sheet values for UI development.",
+    "Source Sheet marks early HR as suspect; no affected interval is supplied.",
+    "Cadence is source-labelled spm; device semantics have not been independently validated."
+  ],
+  "missing_inputs": [
+    "Best-window start/end elapsed timestamps and method",
+    "Timed condition and technique observations",
+    "Duration-specific target confirmation"
+  ]
+}

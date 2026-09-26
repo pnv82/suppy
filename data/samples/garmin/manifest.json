@@ -1,0 +1,33 @@
+{
+  "version": "0.1.0",
+  "origin": "Three user-supplied archives in Downloads, copied unchanged on 2026-09-25 America/Los_Angeles.",
+  "samples": [
+    {
+      "session_id": "24249467884",
+      "archive": "data/samples/garmin/archives/24249467884.zip",
+      "archive_bytes": 109798,
+      "archive_sha256": "0a7ed817d081386419ec16af2af3d8ec7d2a31cbb919530196062f715e43b6dd",
+      "fit": "data/samples/garmin/fit/24249467884_ACTIVITY.fit",
+      "fit_bytes": 225180,
+      "fit_sha256": "029c75da8793ceabb1cecf415dd90085ea1595bd5534b053a2f0115f5128d4fc"
+    },
+    {
+      "session_id": "24434833576",
+      "archive": "data/samples/garmin/archives/24434833576.zip",
+      "archive_bytes": 92925,
+      "archive_sha256": "9845e151231ae44ef5af99f1a0de513d7c7bd5d239d6bf967736751091230a5c",
+      "fit": "data/samples/garmin/fit/24434833576_ACTIVITY.fit",
+      "fit_bytes": 212896,
+      "fit_sha256": "d2b7a3b3c927cdbdbdefa40f181a58d600d58220eb438d032d5a0f24dab0f869"
+    },
+    {
+      "session_id": "24495535896",
+      "archive": "data/samples/garmin/archives/24495535896 (1).zip",
+      "archive_bytes": 77553,
+      "archive_sha256": "411acd7d5936a0f1904eb248f62bbc84fe000eafa21fa4147fbf16f39ffbe81c",
+      "fit": "data/samples/garmin/fit/24495535896_ACTIVITY.fit",
+      "fit_bytes": 175252,
+      "fit_sha256": "26fb5398faa69322b769354e6ed3f04075fcc18e49510b2c98be29a66e03ad4a"
+    }
+  ]
+}

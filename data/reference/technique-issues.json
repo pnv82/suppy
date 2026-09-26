@@ -1,0 +1,302 @@
+{
+  "version": "0.1.0",
+  "review_status": "editorial_draft_not_coach_validated",
+  "scope": "SUP racing; labels and practice suggestions are product synthesis, not diagnostic criteria or a prescribed training plan.",
+  "sources": [
+    {
+      "id": "S1",
+      "title": "Seychelle: The Catch — Fixing Your SUP Paddle Stroke",
+      "url": "https://blackprojectsup.com/2019/06/29/catch-sup-paddle-stroke-technique/",
+      "role": "Athlete-authored catch guidance on a commercial equipment site"
+    },
+    {
+      "id": "S2",
+      "title": "Larry Cain: Some Useful Technique Drills for SUP",
+      "url": "https://larrycain.blogspot.com/2013/07/some-useful-technique-drills-for-sup_20.html",
+      "role": "Coach-authored entry, connection and sequencing drills"
+    },
+    {
+      "id": "S3",
+      "title": "Larry Cain: Maintaining Positive Blade Angle as Long as Possible",
+      "url": "https://larrycain.blogspot.com/2015/11/big-picture-approach-to-technique-part_18.html",
+      "role": "Coach-authored explanation of reach, top-hand action and rotation"
+    },
+    {
+      "id": "S4",
+      "title": "Larry Cain: More Thoughts on SUP Technique — Part 2",
+      "url": "https://larrycain.blogspot.com/2015/01/more-thoughts-on-sup-technique-part-2.html",
+      "role": "Coach-authored discussion of individual variation and exit timing; small illustrative comparison, not universal validation"
+    },
+    {
+      "id": "S5",
+      "title": "PSUPA Fundamentals manual",
+      "url": "https://www.psupa.com/wp-content/uploads/2019/04/fundamentals-1-2019-V1.03.pdf",
+      "role": "Instructional association manual, pp. 17–18 PDF pages: tracking, recovery, switching and balance; not race-specific throughout"
+    },
+    {
+      "id": "S6",
+      "title": "Connor Baxter: Buoy Turn Tutorial",
+      "url": "https://www.supconnect.com/article/buoy-turn-tutorial-with-connor-baxter",
+      "role": "Athlete demonstration reported by Supconnect; race-turn guidance"
+    }
+  ],
+  "issues": [
+    {
+      "id": "SUP-ENTRY-01",
+      "phase": "entry",
+      "label": "Air catch",
+      "observation": "Blade retreats before contacting water.",
+      "evidence_required": "Side-view video showing entry relative to the board.",
+      "cue": "Enter before applying the pull.",
+      "practice": "Practice slow entries, then a few normal strokes.",
+      "source_ids": [
+        "S2"
+      ],
+      "confounders": [
+        "Camera angle",
+        "Waves",
+        "Deliberate sprint style"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-CATCH-01",
+      "phase": "catch",
+      "label": "Loading before the blade is buried",
+      "observation": "Pull begins with incomplete blade immersion or visible aeration.",
+      "evidence_required": "Side-view video and, where available, sound at entry.",
+      "cue": "Establish immersion before loading.",
+      "practice": "Alternate quiet placement strokes and normal paddling.",
+      "source_ids": [
+        "S1"
+      ],
+      "confounders": [
+        "Chop",
+        "Blade shape",
+        "Shallow water"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-SETUP-01",
+      "phase": "setup",
+      "label": "Overreaching that disrupts connection",
+      "observation": "Extra reach is followed by loss of balance or delayed engagement.",
+      "evidence_required": "Side/front video over several strokes; athlete report.",
+      "cue": "Use a controllable reach.",
+      "practice": "Compare comfortable reach with the usual setup at easy effort.",
+      "source_ids": [
+        "S2",
+        "S3"
+      ],
+      "confounders": [
+        "Body proportions",
+        "Paddle length",
+        "Board stability"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-PULL-01",
+      "phase": "pull",
+      "label": "Early arm-dominant pull",
+      "observation": "Elbow bends early while the body contributes little to moving past the blade.",
+      "evidence_required": "Side video and coach review of load sequence.",
+      "cue": "Let the body contribute to the loaded stroke.",
+      "practice": "Rehearse connected body movement at low effort.",
+      "source_ids": [
+        "S2"
+      ],
+      "confounders": [
+        "Intentional acceleration",
+        "Fatigue",
+        "Different effective stroke style"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-PULL-02",
+      "phase": "pull",
+      "label": "Top hand drives forward too early",
+      "observation": "Forward top-hand motion quickly removes the initial positive blade angle.",
+      "evidence_required": "Side video; watch data cannot measure blade angle.",
+      "cue": "Guide pressure down the shaft.",
+      "practice": "Observe top-hand path during a few controlled strokes.",
+      "source_ids": [
+        "S3"
+      ],
+      "confounders": [
+        "Paddle geometry",
+        "Camera perspective",
+        "Individual technique"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-PULL-03",
+      "phase": "pull",
+      "label": "Rotation finishes before useful loading",
+      "observation": "Hip/shoulder movement finishes early and leaves little coordinated drive.",
+      "evidence_required": "Side/front video with a coach or experienced observer.",
+      "cue": "Coordinate rotation with blade load.",
+      "practice": "Compare a controlled sequence with the habitual stroke.",
+      "source_ids": [
+        "S3"
+      ],
+      "confounders": [
+        "Sprint cadence",
+        "Anatomy",
+        "Fatigue"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-EXIT-01",
+      "phase": "exit",
+      "label": "Dragging or lifting water at exit",
+      "observation": "Release includes obvious unproductive drag or lifting water.",
+      "evidence_required": "Side video including blade and board response.",
+      "cue": "Unload and release smoothly.",
+      "practice": "Compare release timing at similar effort.",
+      "source_ids": [
+        "S4"
+      ],
+      "confounders": [
+        "Wave support",
+        "Effective later exit",
+        "Camera perspective"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-RECOVERY-01",
+      "phase": "recovery",
+      "label": "Tense recovery",
+      "observation": "Grip/shoulders remain visibly tense and preparation becomes hurried.",
+      "evidence_required": "Athlete report plus front/side video where available.",
+      "cue": "Soften the recovery while retaining control.",
+      "practice": "Use easy strokes to observe recovery tension.",
+      "source_ids": [
+        "S5"
+      ],
+      "confounders": [
+        "Wind",
+        "Balance demand",
+        "Equipment fit"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-TRACK-01",
+      "phase": "tracking",
+      "label": "Unintended sweeping on forward strokes",
+      "observation": "A repeated outward blade path accompanies unwanted yaw.",
+      "evidence_required": "Front/rear video; GPS can only suggest broad course variation.",
+      "cue": "Align the stroke with the intended course.",
+      "practice": "Practice a straight corridor and observe paddle path.",
+      "source_ids": [
+        "S5"
+      ],
+      "confounders": [
+        "Crosswind",
+        "Current",
+        "Fin or board shape",
+        "Intentional steering"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-BALANCE-01",
+      "phase": "balance",
+      "label": "Balance corrections interrupt propulsion",
+      "observation": "Repeated unplanned braces or foot adjustments interrupt forward strokes.",
+      "evidence_required": "Video or athlete report; timed events may corroborate.",
+      "cue": "Keep the stance adaptable to the water.",
+      "practice": "Practice controlled easy paddling in manageable conditions.",
+      "source_ids": [
+        "S5"
+      ],
+      "confounders": [
+        "Wakes",
+        "Narrow board",
+        "Deliberate footwork"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-SWITCH-01",
+      "phase": "switch",
+      "label": "Delayed connection after a side change",
+      "observation": "A side change repeatedly creates an extended gap before the next catch.",
+      "evidence_required": "Video with identifiable switches.",
+      "cue": "Connect the next side smoothly.",
+      "practice": "Rehearse hand exchanges slowly, then in normal strokes.",
+      "source_ids": [
+        "S5"
+      ],
+      "confounders": [
+        "Steering demand",
+        "Traffic",
+        "Intentional rest"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-TURN-01",
+      "phase": "turn",
+      "label": "Lost momentum through a buoy turn",
+      "observation": "Approach, footwork or delayed exit acceleration breaks the intended turn rhythm.",
+      "evidence_required": "Video and a known buoy/turn interval.",
+      "cue": "Link the approach, turn and exit.",
+      "practice": "Repeat a controlled turn and compare exit rhythm.",
+      "source_ids": [
+        "S6"
+      ],
+      "confounders": [
+        "Traffic",
+        "Turn radius",
+        "Wind or waves",
+        "Tactical choice"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-RHYTHM-01",
+      "phase": "rhythm",
+      "label": "Unsustainable rate–load combination",
+      "observation": "A chosen rhythm repeatedly loses quality before the intended effort ends.",
+      "evidence_required": "Athlete report and repeated comparable intervals; video for biomechanical attribution.",
+      "cue": "Find a repeatable race-specific rhythm.",
+      "practice": "Compare short, matched efforts without chasing cadence alone.",
+      "source_ids": [
+        "S4"
+      ],
+      "confounders": [
+        "Pacing",
+        "Fatigue",
+        "Conditions",
+        "Sensor error"
+      ],
+      "watch_only_confirmation": false
+    },
+    {
+      "id": "SUP-SIDE-01",
+      "phase": "symmetry",
+      "label": "Side-dependent loss of connection",
+      "observation": "One side repeatedly shows weaker connection or more disruption under comparable conditions.",
+      "evidence_required": "Side-labelled video/observations; watch cadence alone cannot label the paddling side.",
+      "cue": "Observe each side before prescribing a change.",
+      "practice": "Compare side-labelled efforts with course and conditions recorded.",
+      "source_ids": [
+        "S4"
+      ],
+      "confounders": [
+        "Crosswind",
+        "Route heading",
+        "Dominance",
+        "Gear"
+      ],
+      "watch_only_confirmation": false
+    }
+  ]
+}

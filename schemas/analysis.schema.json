@@ -1,0 +1,764 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "External SUP analysis envelope",
+  "description": "Draft v0.1.0. Cross-field integrity checks are also required; see docs/data/data-model.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "0.1.0"
+    },
+    "analysis_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "session_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$"
+    },
+    "generated_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$"
+    },
+    "analyst": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "provisional",
+        "reviewed"
+      ]
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "fit",
+              "spreadsheet",
+              "weather",
+              "athlete_report",
+              "video",
+              "coach_observation"
+            ]
+          },
+          "locator": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "locator",
+          "sha256",
+          "note"
+        ]
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "elapsed_duration_s": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "const": "s"
+            },
+            "evidence_kind": {
+              "enum": [
+                "measured",
+                "derived",
+                "source_summary"
+              ]
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "value",
+            "unit",
+            "evidence_kind",
+            "source_refs"
+          ]
+        },
+        "active_duration_s": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "const": "s"
+            },
+            "evidence_kind": {
+              "enum": [
+                "measured",
+                "derived",
+                "source_summary"
+              ]
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "value",
+            "unit",
+            "evidence_kind",
+            "source_refs"
+          ]
+        },
+        "distance_m": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "const": "m"
+            },
+            "evidence_kind": {
+              "enum": [
+                "measured",
+                "derived",
+                "source_summary"
+              ]
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "value",
+            "unit",
+            "evidence_kind",
+            "source_refs"
+          ]
+        },
+        "avg_speed_mps": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "const": "m/s"
+            },
+            "evidence_kind": {
+              "enum": [
+                "measured",
+                "derived",
+                "source_summary"
+              ]
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "value",
+            "unit",
+            "evidence_kind",
+            "source_refs"
+          ]
+        },
+        "avg_heart_rate_bpm": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "const": "bpm"
+            },
+            "evidence_kind": {
+              "enum": [
+                "measured",
+                "derived",
+                "source_summary"
+              ]
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "value",
+            "unit",
+            "evidence_kind",
+            "source_refs"
+          ]
+        },
+        "avg_cadence_spm": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "value": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "unit": {
+              "const": "spm"
+            },
+            "evidence_kind": {
+              "enum": [
+                "measured",
+                "derived",
+                "source_summary"
+              ]
+            },
+            "source_refs": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "value",
+            "unit",
+            "evidence_kind",
+            "source_refs"
+          ]
+        }
+      },
+      "required": [
+        "elapsed_duration_s",
+        "active_duration_s",
+        "distance_m",
+        "avg_speed_mps",
+        "avg_heart_rate_bpm",
+        "avg_cadence_spm"
+      ]
+    },
+    "best_windows": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "duration_s": {
+            "enum": [
+              300,
+              600,
+              1200
+            ]
+          },
+          "status": {
+            "enum": [
+              "located",
+              "value_only",
+              "unavailable"
+            ]
+          },
+          "basis": {
+            "enum": [
+              "elapsed_continuous_v1",
+              "legacy_unspecified"
+            ]
+          },
+          "start_elapsed_s": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "end_elapsed_s": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "mean_speed_mps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "source_refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "duration_s",
+          "status",
+          "basis",
+          "start_elapsed_s",
+          "end_elapsed_s",
+          "mean_speed_mps",
+          "source_refs",
+          "reason"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "located"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "start_elapsed_s": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "end_elapsed_s": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "mean_speed_mps": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "basis": {
+                  "const": "elapsed_continuous_v1"
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "value_only"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "start_elapsed_s": {
+                  "type": "null"
+                },
+                "end_elapsed_s": {
+                  "type": "null"
+                },
+                "mean_speed_mps": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "basis": {
+                  "const": "legacy_unspecified"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "status": {
+                  "const": "unavailable"
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "start_elapsed_s": {
+                  "type": "null"
+                },
+                "end_elapsed_s": {
+                  "type": "null"
+                },
+                "mean_speed_mps": {
+                  "type": "null"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "timestamped",
+              "daily_summary"
+            ]
+          },
+          "observed_at_utc": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "Z$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "wind_mps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "wind_from_deg": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "minimum": 0,
+            "exclusiveMaximum": 360
+          },
+          "station": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "quality": {
+            "type": "string",
+            "minLength": 1
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "observation_id",
+          "kind",
+          "observed_at_utc",
+          "wind_mps",
+          "wind_from_deg",
+          "station",
+          "quality",
+          "note",
+          "source_refs"
+        ]
+      }
+    },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "kind": {
+            "enum": [
+              "timer_pause",
+              "fall",
+              "interruption",
+              "effort",
+              "condition_change",
+              "note"
+            ]
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "start_elapsed_s": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "end_elapsed_s": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "start_elapsed_s",
+                  "end_elapsed_s"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "timing_quality": {
+            "enum": [
+              "exact",
+              "approximate",
+              "unknown"
+            ]
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "source_refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "event_id",
+          "kind",
+          "interval",
+          "timing_quality",
+          "note",
+          "source_refs"
+        ]
+      }
+    },
+    "technique_observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "issue_id": {
+            "enum": [
+              "SUP-ENTRY-01",
+              "SUP-CATCH-01",
+              "SUP-SETUP-01",
+              "SUP-PULL-01",
+              "SUP-PULL-02",
+              "SUP-PULL-03",
+              "SUP-EXIT-01",
+              "SUP-RECOVERY-01",
+              "SUP-TRACK-01",
+              "SUP-BALANCE-01",
+              "SUP-SWITCH-01",
+              "SUP-TURN-01",
+              "SUP-RHYTHM-01",
+              "SUP-SIDE-01"
+            ]
+          },
+          "status": {
+            "enum": [
+              "athlete_reported",
+              "hypothesis",
+              "observed"
+            ]
+          },
+          "interval": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "start_elapsed_s": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "end_elapsed_s": {
+                    "type": "number",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "start_elapsed_s",
+                  "end_elapsed_s"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "evidence_refs": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "note": {
+            "type": "string",
+            "minLength": 1
+          },
+          "alternative_explanations": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "required": [
+          "observation_id",
+          "issue_id",
+          "status",
+          "interval",
+          "evidence_refs",
+          "note",
+          "alternative_explanations"
+        ]
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "missing_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "analysis_id",
+    "session_id",
+    "generated_at_utc",
+    "analyst",
+    "status",
+    "source_refs",
+    "summary",
+    "best_windows",
+    "conditions",
+    "events",
+    "technique_observations",
+    "notes",
+    "missing_inputs"
+  ]
+}

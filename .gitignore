@@ -1,0 +1,21 @@
+# Local dependencies and generated outputs
+.venv/
+.tools/
+node_modules/
+dist/
+build/
+coverage/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+# Private activity and spreadsheet data stay local by default.
+data/samples/garmin/archives/*
+data/samples/garmin/fit/*
+data/snapshots/google-sheets/*.json
+data/derived/*
+!data/derived/README.md
+# Editor/OS files
+.DS_Store
+Thumbs.db
