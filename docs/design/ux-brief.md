@@ -88,7 +88,9 @@ The map spans the full content width, with 5/10/20-minute controls in one compac
 
 ## Compact metric panel
 
-Desktop session review places key metrics in a bordered panel to the right of the map and its best-window row. A semantic definition list aligns labels and values, with secondary elapsed/max/stroke values kept distinct. At 900 px and below the panel stacks after the map, using two columns. Removed chart pointer instructions and repeated context/focus help paragraphs; chart keyboard instructions remain available to assistive technology. Units, unavailable values, evidence labels and source-quality context remain.
+Desktop session review places key metrics in a bordered panel to the right of the map and its best-window row. The selected design combines option 2's General and Performance pairs with option 3's three-column Speed band. General shows distance and active duration above their labels; Speed shows maximum, average and median together with a shared visible mph unit; Performance pairs average heart rate and cadence above a full-width distance-per-stroke row. Semantic definition lists retain a unit for each speed value for assistive technology. Distance per stroke remains labelled “est.” and elapsed time appears separately when it differs from active time. Source/method descriptions accompany the values; missing metrics remain visible as an em dash with an accessible “Unavailable” label.
+
+At 900 px and below the panel stacks after the map, retaining the three topic groups and horizontal speed comparison. Text may wrap at the smallest widths. Removed chart pointer instructions and repeated context/focus help paragraphs; chart keyboard instructions remain available to assistive technology. Units, unavailable values, evidence labels and source-quality context remain.
 
 ## Session density refinements
 

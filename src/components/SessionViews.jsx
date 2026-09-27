@@ -444,82 +444,156 @@ export function BestWindows({ session, selected, onSelect }) {
   );
 }
 
+function SummaryValue({
+  value,
+  unit,
+  detail,
+  duration = false,
+  hideUnit = false,
+}) {
+  return (
+    <dd className="summary-value" title={detail} aria-description={detail}>
+      {value === "—" ? (
+        <strong>
+          <span aria-hidden="true">—</span>
+          <span className="sr-only">Unavailable</span>
+        </strong>
+      ) : duration ? (
+        value.split(" ").map((part, i, parts) =>
+          i % 2 === 0 ? (
+            <span className="summary-duration-part" key={i}>
+              <strong>{part}</strong> <span>{parts[i + 1]}</span>
+            </span>
+          ) : null,
+        )
+      ) : (
+        <strong>{value}</strong>
+      )}
+      {unit && <span className={hideUnit ? "sr-only" : undefined}>{unit}</span>}
+    </dd>
+  );
+}
+
 export function MetricStrip({ session }) {
-  const stats = session.statistics;
-  const maxSpeed = stats?.speed_mps;
-  const stroke = stats?.distance_per_stroke;
-  const duration = durationLabel(session.active);
+  const speed = session.statistics?.speed_mps;
+  const stroke = session.statistics?.distance_per_stroke;
+  const showElapsed =
+    Number.isFinite(session.elapsed) &&
+    (!Number.isFinite(session.active) ||
+      Math.abs(session.elapsed - session.active) > 1 / 60);
+  const maxDetail =
+    speed?.max_source === "fit_session"
+      ? "Maximum speed from the FIT session summary; unfiltered watch value."
+      : speed?.max_source === "fit_records"
+        ? "Maximum recorded FIT speed; unfiltered watch value."
+        : "Maximum speed unavailable: no detailed FIT data.";
   return (
     <section
       className="session-metrics"
       aria-labelledby="session-metrics-title"
     >
       <h2 id="session-metrics-title">Session overview</h2>
-      <dl className="summary-metrics">
-        {[
-          ["Distance", fmt(session.distance, 2), "mi"],
-          [
-            "Duration · active",
-            duration,
-            "",
-            Math.abs(session.elapsed - session.active) > 1 / 60
-              ? `Elapsed ${durationLabel(session.elapsed)}`
-              : null,
-            `Active: ${fmt(session.active, 2)} min. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`,
-          ],
-          [
-            "Average speed",
-            fmt(session.avgSpeed, 2),
-            "mph",
-            `Max ${fmt(mph(maxSpeed?.max), 2)} mph`,
-            maxSpeed?.max_source === "fit_session"
-              ? "Maximum speed from the FIT session summary; unfiltered watch value."
-              : maxSpeed?.max_source === "fit_records"
-                ? "Maximum recorded FIT speed; unfiltered watch value."
-                : "Maximum speed unavailable: no detailed FIT data.",
-          ],
-          ["Average heart rate", fmt(session.avgHr), "bpm"],
-          [
-            "Cadence",
-            fmt(session.cadence),
-            "spm",
-            `${fmt(feet(stroke?.value_m), 1)} ft/stroke${stroke?.value_m != null ? " · est." : ""}`,
-            stroke?.value_m != null
-              ? `Distance per stroke: ${fmt(stroke.value_m, 2)} m/stroke. FIT distance ${fmt(stroke.distance_m, 2)} m ÷ ${stroke.strokes} watch-counted strokes. Ground distance includes glide and conditions; not a measure of biomechanical efficiency.`
-              : "Distance per stroke unavailable: a SUP FIT session with recorded distance and total strokes is required.",
-          ],
-        ].map(([label, value, unit, secondary, detail]) => (
-          <div className="summary-metric" key={label}>
-            <dt>{label}</dt>
-            <dd
-              className="summary-value"
-              title={label === "Duration · active" ? detail : undefined}
-            >
-              {label === "Duration · active" && value !== "—" ? (
-                value
-                  .split(" ")
-                  .map((part, i) =>
-                    i % 2 === 0 ? (
-                      <strong key={i}>{part}</strong>
-                    ) : (
-                      <span key={i}>{part}</span>
-                    ),
-                  )
-              ) : (
-                <>
-                  <strong>{value}</strong>
-                  <span>{unit}</span>
-                </>
-              )}
-            </dd>
-            {secondary && (
-              <dd className="summary-secondary" title={detail}>
-                {secondary}
+      <section
+        className="summary-group"
+        aria-labelledby="summary-general-title"
+      >
+        <h3 id="summary-general-title">General</h3>
+        <dl className="summary-pair summary-general">
+          <div className="summary-metric">
+            <dt>Distance</dt>
+            <SummaryValue
+              value={fmt(session.distance, 2)}
+              unit="mi"
+              detail="Distance from the read-only Sheet snapshot."
+            />
+          </div>
+          <div className="summary-metric">
+            <dt>Duration · active</dt>
+            <SummaryValue
+              value={durationLabel(session.active)}
+              duration
+              detail={`Active: ${fmt(session.active, 2)} min from the Sheet. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`}
+            />
+            {showElapsed && (
+              <dd className="summary-secondary">
+                Elapsed {durationLabel(session.elapsed)}
               </dd>
             )}
           </div>
-        ))}
-      </dl>
+        </dl>
+      </section>
+      <section
+        className="summary-group summary-speed"
+        aria-labelledby="summary-speed-title"
+      >
+        <div className="summary-group-heading">
+          <h3 id="summary-speed-title">Speed</h3>
+          <span aria-hidden="true">mph</span>
+        </div>
+        <dl className="summary-speed-grid">
+          {[
+            ["Maximum", mph(speed?.max), maxDetail],
+            [
+              "Average",
+              session.avgSpeed,
+              "Average speed from the read-only Sheet snapshot.",
+            ],
+            [
+              "Median",
+              mph(speed?.median),
+              speed?.median != null
+                ? "Time-weighted median over valid recorded FIT intervals. Pauses and gaps over 15 seconds are excluded; a local display estimate."
+                : "Median speed unavailable: no supported recorded FIT intervals.",
+            ],
+          ].map(([label, value, detail]) => (
+            <div className="summary-metric" key={label}>
+              <dt>{label}</dt>
+              <SummaryValue
+                value={fmt(value, 2)}
+                unit="mph"
+                hideUnit
+                detail={detail}
+              />
+            </div>
+          ))}
+        </dl>
+      </section>
+      <section
+        className="summary-group"
+        aria-labelledby="summary-performance-title"
+      >
+        <h3 id="summary-performance-title">Performance</h3>
+        <dl className="summary-pair summary-performance">
+          <div className="summary-metric">
+            <dt>Avg. heart rate</dt>
+            <SummaryValue
+              value={fmt(session.avgHr)}
+              unit="bpm"
+              detail="Average heart rate from the read-only Sheet snapshot. Source quality is available in Wind and source details."
+            />
+          </div>
+          <div className="summary-metric">
+            <dt>Cadence</dt>
+            <SummaryValue
+              value={fmt(session.cadence)}
+              unit="spm"
+              detail="Average cadence from the read-only Sheet snapshot."
+            />
+          </div>
+          <div className="summary-metric summary-stroke">
+            <dt>Distance per stroke</dt>
+            <SummaryValue
+              value={fmt(feet(stroke?.value_m), 1)}
+              unit={`ft/stroke${stroke?.value_m != null ? " · est." : ""}`}
+              detail={
+                stroke?.value_m != null
+                  ? `Watch estimate: ${fmt(stroke.value_m, 2)} m/stroke. FIT distance ${fmt(stroke.distance_m, 2)} m ÷ ${stroke.strokes} watch-counted strokes. Ground distance includes glide and conditions; not a measure of biomechanical efficiency.`
+                  : "Distance per stroke unavailable: a SUP FIT session with recorded distance and total strokes is required."
+              }
+            />
+          </div>
+        </dl>
+      </section>
     </section>
   );
 }

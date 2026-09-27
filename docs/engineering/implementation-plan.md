@@ -30,3 +30,4 @@ P03 is automatic latest-10 comparison, superseding the initial two-session selec
 - Best-window controls now form one compact horizontal row under the full-width map; removed section help text and map-direction caption.
 - Summary metrics now occupy a compact panel right of the map on desktop, stacking below on narrow screens. Repeated instructional copy removed from session review.
 - Session density refinement: pointer chart values, heading-level Annotate, wind/source disclosure, inline session date disclosure, and removal of repeated captions/footer.
+- Grouped session overview: General distance/duration pair, three-column maximum/average/median Speed band, and Performance heart-rate/cadence pair with a separate estimated distance-per-stroke row. Uses existing summary/statistics values; no metric calculations or API contracts change.

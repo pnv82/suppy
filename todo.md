@@ -7,6 +7,7 @@
 - [ ] allow to delete sessions, so i can test the uploads
 - [ ] review docs\product\llm vs app.md and add it to the documentation, architecture and principles of the app. Analyse if any adjustment of the current app need to be made. If yes - document them in todo.md.
 - [ ] if we have sufficient horizontal space - show the names of the sections in the left toolbar
+- [ ] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
 
 
 # Deferred work
