@@ -153,3 +153,18 @@ Moved summary metrics into a compact right-side panel with aligned labels/values
 Implemented all six browser comments: floating chart telemetry, heading-level Annotate, removed repeated elapsed caption, wind/source disclosure, removed footer, and inline date disclosure beside the title. Source metadata remains reachable without a track. Chart values remain available on keyboard focus and in slider ARIA values.
 
 Build and all 20 tests pass. Browser verification at 981 × 884, 390 × 844 and 320 × 720 covered pointer/keyboard values, annotation prefill/cancel, date disclosure, source link, summary-only state and no horizontal overflow. No captured warnings/errors. Private screenshot: `.tools/qa/session-density-final.png`. Viewport reset; no server restart or saved-data edits in this change. Live ChatGPT embedding remains unverified.
+
+## SQLite persistence and tenant boundaries — 2026-09-26
+
+Replaced temporary/snapshot labels with saved app data and removed the source-sheet link. Desktop 1440 × 1000 and phone 390 × 844 / 320 × 720 checks used a separate backup database. Verified board creation/default, keyboard session editing (Enter/save and Escape/cancel), assignment, context save, chart ArrowRight movement, summary-only/missing-wind states, and no horizontal overflow. Stopped and restarted the server and verified name/board/default/assignment/context persisted. A separate empty tenant showed no sessions, with working navigation and unavailable metrics. Browser captured no warnings/errors.
+
+All 24 Node tests and the production build pass. SQLite integrity/foreign-key checks pass, and backup/reopen tests pass. Migrated summaries/records/windows/pauses and archived source payloads were compared to the pre-migration data; original FIT/ZIP hashes are unchanged. A recovery snapshot restored the user's existing board/default and two timed annotations, including IDs/revisions. The final production backup is data/storage/backups/post-migration.sqlite (private, ignored).
+
+The optional Python foundation audit could not load jsonschema from the pre-existing local Python environment (access/import failure). Original-file checksums and Markdown links were checked separately with Node. Live ChatGPT account embedding remains unverified; MCP transport and tenant isolation are tested locally. Authentication/public multi-user hosting and arbitrary new FIT/result ingestion remain deferred.
+Final production UI evidence: `.tools/qa/sqlite-persistence.png`. The app is running against the production database on port 3001; QA database servers were stopped. Temporary viewport overrides were reset.
+
+## Remaining audit completed — 2026-09-27
+
+Resolved the Python dependency blocker with a project-local `.venv` and the existing pinned requirements. Both offline utilities now use the selected interpreter's packages; they no longer inject the inaccessible `.tools/python` directory. Markdown validation excludes dependency/generated directories before descending into them.
+
+The full foundation audit passes: external JSON schema and analysis semantics, 14 technique dictionary entries, three original archive/FIT checksum and ZIP/derived-track checks, and local links in 39 Markdown files. Standalone analysis JSON validation also passes. All 24 Node tests and SQLite integrity/foreign-key checks pass again. This completes the previously blocked audit; production session content and original files were not modified. No UI change required another browser pass. Authentication/public hosting and live ChatGPT account verification remain outside this validation follow-up.

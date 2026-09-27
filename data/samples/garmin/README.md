@@ -1,6 +1,6 @@
 # Supplied Garmin samples
 
-| Supplied archive | Extracted FIT | Sheet match |
+| Supplied archive | Extracted FIT | Historical session match |
 |---|---|---|
 | `archives/24495535896 (1).zip` | `fit/24495535896_ACTIVITY.fit` | 2026-09-25 |
 | `archives/24434833576.zip` | `fit/24434833576_ACTIVITY.fit` | 2026-09-20 |

@@ -1,11 +1,12 @@
+import { testStore } from "./fixtures.mjs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createHttpServer } from "../server/index.mjs";
 
-test("local app serves its home page, assets and routes within the build directory", async () => {
-  const server = createHttpServer();
+test("local app serves its home page, assets and routes within the build directory", async (t) => {
+  const server = createHttpServer(testStore(t));
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {
@@ -29,8 +30,8 @@ test("local app serves its home page, assets and routes within the build directo
   }
 });
 
-test("MCP handshake, UI resource, tool calls and REST share temporary state", async () => {
-  const server = createHttpServer();
+test("MCP handshake, UI resource, tool calls and REST share persistent tenant state", async (t) => {
+  const server = createHttpServer(testStore(t));
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;
   const client = new Client({ name: "sup-contract-test", version: "1.0.0" });
@@ -142,8 +143,8 @@ test("MCP handshake, UI resource, tool calls and REST share temporary state", as
   }
 });
 
-test("OAuth discovery is absent rather than a successful HTML app response", async () => {
-  const server = createHttpServer();
+test("OAuth discovery is absent rather than a successful HTML app response", async (t) => {
+  const server = createHttpServer(testStore(t));
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;
   try {

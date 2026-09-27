@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { latestSessions } from "../src/domain/metrics.mjs";
 
 export const toolSchemas = {
   get_dashboard: z.object({}),
@@ -48,11 +49,14 @@ export const toolSchemas = {
     end_s: z.number().min(0).optional(),
   }),
 };
+for (const name of Object.keys(toolSchemas))
+  toolSchemas[name] = toolSchemas[name].strict();
+
 export const descriptions = {
   update_session_details:
-    "Save the user-confirmed launch/start-point name and athlete-reported board together for a session. Never infer a launch name or use the destination. Keeps source location and ID unchanged; temporary memory only.",
+    "Save the user-confirmed launch/start-point name and athlete-reported board together for a session. Never infer a launch name or use the destination. Keeps source location and ID unchanged. Saved in the tenant’s persistent app storage.",
   upsert_board:
-    "Create a user-named SUP board, or rename an existing board by ID. Temporary memory only.",
+    "Create a user-named SUP board, or rename an existing board by ID. Saved in the tenant’s persistent app storage.",
   delete_board:
     "Delete an unused board by ID at the user's request. Assigned boards must be reassigned or cleared first.",
   set_default_board:
@@ -60,17 +64,17 @@ export const descriptions = {
   assign_session_board:
     "Record the user-reported board for a specific session, or clear it with null. Do not infer a historical board from the default.",
   get_dashboard:
-    "Read the latest 10 SUP session summaries and the current dashboard state. Four sessions are currently available.",
+    "Read the latest 10 SUP session summaries and the current dashboard state. Only sessions belonging to the current tenant are returned.",
   get_session_context:
     "Read a SUP session, its source metrics, local best-window estimates, annotations and user context before discussing it.",
   upsert_annotation:
-    "Add or edit a user-requested timed SUP note, condition, interruption or fall. Use elapsed seconds and the known session ID. Saves in temporary server memory.",
+    "Add or edit a user-requested timed SUP note, condition, interruption or fall. Use elapsed seconds and the known session ID. Saves persistently for the current tenant.",
   delete_annotation:
-    "Delete a user-selected temporary annotation by ID. Does not change the original Garmin file or Google Sheet.",
+    "Delete a user-selected annotation by ID. Does not change the original Garmin file.",
   update_session_context:
-    "Replace the additional context for one session with the user-provided text. Keep observations distinct from measurements; temporary memory only.",
+    "Replace the additional context for one session with the user-provided text. Keep observations distinct from measurements. Saved in the tenant’s persistent app storage.",
   update_training_focus:
-    "Save a user-chosen speed target and dictionary IDs for self-reported technique focus. These are not confirmed faults. Temporary memory only.",
+    "Save a user-chosen speed target and dictionary IDs for self-reported technique focus. These are not confirmed faults. Saved in the tenant’s persistent app storage.",
   prepare_analysis_context:
     "Prepare current context and a bounded telemetry sample for ChatGPT to analyze. Does not run a model, queue a job, or claim analysis is complete. Use after notes or extra data change.",
 };
@@ -79,13 +83,19 @@ export function executeTool(store, name, input) {
   const args = toolSchemas[name].parse(input);
   let result;
   if (name === "update_session_details") result = store.updateDetails(args);
-  if (name === "get_dashboard")
+  if (name === "get_dashboard") {
+    const dashboard = store.dashboard();
     result = {
-      sessions: store.dashboard().sessions.map((s) => store.context(s.id)),
-      availableCount: store.dashboard().sessions.length,
-      boards: store.dashboard().boards,
-      defaultBoardId: store.dashboard().defaultBoardId,
+      sessions: latestSessions(dashboard.sessions).map((s) =>
+        store.context(s.id),
+      ),
+      availableCount: dashboard.sessions.length,
+      boards: dashboard.boards,
+      defaultBoardId: dashboard.defaultBoardId,
+      storage: dashboard.storage,
+      tenantId: dashboard.tenantId,
     };
+  }
   if (name === "upsert_board") result = store.upsertBoard(args);
   if (name === "delete_board") result = store.deleteBoard(args);
   if (name === "set_default_board") result = store.setDefaultBoard(args);
@@ -131,7 +141,7 @@ export function executeTool(store, name, input) {
     content: [
       {
         type: "text",
-        text: `SUP Training: ${name} completed. Current data is in structuredContent. Edits are temporary; no background analysis was run.`,
+        text: `SUP Training: ${name} completed. Current data is in structuredContent. Changes are saved in the app; no background analysis was run.`,
       },
     ],
     structuredContent: result,

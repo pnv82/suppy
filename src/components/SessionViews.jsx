@@ -134,9 +134,10 @@ function WindDigest({ session }) {
       <div className="wind-source-popover">
         <p>HR: {session.hrQuality || "quality unknown"}</p>
         <p>Wind: {session.weatherQuality || "quality unknown"}</p>
-        <a href={session.sourceRef} target="_blank" rel="noreferrer">
-          View source sheet
-        </a>
+        <p>
+          Source: stored session summary. Original provenance is retained in the
+          app.
+        </p>
       </div>
     </details>
   );
@@ -163,7 +164,8 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
         <MapPin size={32} />
         <h3>No track for this session</h3>
         <p>
-          The sheet has a summary. Add its Garmin FIT file to locate intervals.
+          Only a session summary is stored. Add its Garmin FIT file to locate
+          intervals.
         </p>
       </div>
     );
@@ -504,7 +506,7 @@ export function MetricStrip({ session }) {
             <SummaryValue
               value={fmt(session.distance, 2)}
               unit="mi"
-              detail="Distance from the read-only Sheet snapshot."
+              detail="Distance from the stored session summary."
             />
           </div>
           <div className="summary-metric">
@@ -512,7 +514,7 @@ export function MetricStrip({ session }) {
             <SummaryValue
               value={durationLabel(session.active)}
               duration
-              detail={`Active: ${fmt(session.active, 2)} min from the Sheet. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`}
+              detail={`Active: ${fmt(session.active, 2)} min from the stored summary. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`}
             />
             {showElapsed && (
               <dd className="summary-secondary">
@@ -536,7 +538,7 @@ export function MetricStrip({ session }) {
             [
               "Average",
               session.avgSpeed,
-              "Average speed from the read-only Sheet snapshot.",
+              "Average speed from the stored session summary.",
             ],
             [
               "Median",
@@ -569,7 +571,7 @@ export function MetricStrip({ session }) {
             <SummaryValue
               value={fmt(session.avgHr)}
               unit="bpm"
-              detail="Average heart rate from the read-only Sheet snapshot. Source quality is available in Wind and source details."
+              detail="Average heart rate from the stored session summary. Source quality is available in Wind and source details."
             />
           </div>
           <div className="summary-metric">
@@ -577,7 +579,7 @@ export function MetricStrip({ session }) {
             <SummaryValue
               value={fmt(session.cadence)}
               unit="spm"
-              detail="Average cadence from the read-only Sheet snapshot."
+              detail="Average cadence from the stored session summary."
             />
           </div>
           <div className="summary-metric summary-stroke">
@@ -887,7 +889,7 @@ export function Timeline({
         </div>
       ) : (
         <div className="timeline-empty">
-          No time-series data available. Sheet summaries are shown above.
+          No time-series data available. Stored summaries are shown above.
         </div>
       )}
       <div className="timeline-row annotation-track">

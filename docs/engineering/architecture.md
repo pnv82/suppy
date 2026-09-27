@@ -1,10 +1,10 @@
 # Prototype architecture
 
-React 19 + Vite, Leaflet for actual route geometry, Recharts for telemetry/trends, and Phosphor icons. A small Node server owns the read-only source adapter, temporary edits and MCP interface. This local service is needed for the user's ChatGPT-native requirement; there is no database or model runtime.
+React 19 + Vite, Leaflet for actual route geometry, Recharts for telemetry/trends, and Phosphor icons. A small Node 24+ server owns SQLite persistence and the MCP interface. Analysis stays in the conversation. See [storage and tenant boundaries](storage.md) for schema, configuration, migration, backup and deployment details.
 
 ## Shared operations
 
-The standalone UI reads `/api/dashboard` and posts named operations to `/api/tools`. In a ChatGPT iframe, `src/services/client.mjs` uses the MCP Apps bridge instead. Both paths call `server/tools.mjs` against the same in-memory store. Browser refresh reads current state; tool results refresh the active embedded UI. Cross-client live push is deferred.
+The standalone UI reads `/api/dashboard` and posts named operations to `/api/tools`. In a ChatGPT iframe, `src/services/client.mjs` uses the MCP Apps bridge instead. Both paths call `server/tools.mjs` against the same tenant-scoped SQLite store. Browser refresh reads current state; tool results refresh the active embedded UI. Cross-client live push is deferred.
 
 `server/index.mjs` exposes a stateless Streamable HTTP endpoint at `/mcp`, using the MCP SDK v1 server. It registers standard MCP Apps metadata directly. The browser uses `@modelcontextprotocol/ext-apps` v2's protocol bridge; it does not import the v2 server helpers. The exact package versions are locked.
 
@@ -26,11 +26,11 @@ Tools declare read/write/destructive behavior. UI metadata names `ui://sup-train
 
 ## Source and state
 
-`server/store.mjs` maps sheet headers to a small display DTO and joins derived tracks by string session ID. Sheet summary fields keep their explicit display units (mph/mi/min); raw records and window calculations remain SI/UTC. This DTO does not replace the versioned external-analysis schema.
+`server/database.mjs` stores canonical SI summaries and complete session aggregates in SQLite. `server/store.mjs` maps them to the existing display DTO (mph/mi/min); raw records and window calculations remain SI/UTC. This DTO does not replace the versioned external-analysis schema.
 
-FIT owns records and timer events. Sheet values remain labelled source summaries. Three tracks and four summaries are available. Notes, goals and technique choices live in memory only; originals and Sheet are never modified. Restart discards edits. There is no authentication, persistence or sharing layer.
+FIT owns records and timer events. Imported historical values remain labelled source summaries, with provenance archived in SQLite. Three tracks and four summaries were migrated to the local production tenant. Notes, goals, technique choices and revisions persist across restarts. New installations and new tenants start empty. No source snapshot, derived file or external service is required at runtime. Authentication and sharing remain deferred.
 
-Boards and their default/assignments also live in memory. The dashboard includes the board list and nullable default ID; session context includes the resolved athlete-reported board. Renaming a used board advances affected session revisions. No board is inferred from existing telemetry or from the default. See the runtime board contract in [data-model.md](../data/data-model.md).
+Boards, defaults and assignments persist in tenant-scoped tables with composite foreign keys. The dashboard includes the board list and nullable default ID; session context includes the resolved athlete-reported board. Renaming a used board advances affected session revisions. No board is inferred from existing telemetry or from the default. See the runtime board contract in [data-model.md](../data/data-model.md).
 
 `src/domain/metrics.mjs` implements lightweight deterministic display calculations: continuous elapsed windows, distance interpolation, a 15-second gap threshold, timer-pause exclusion and an 8 m/s distance-jump guard. It also provides time-weighted speed/HR medians, source-labelled maxima and estimated distance per stroke from explicit SUP FIT totals. `server/store.mjs` includes their SI values, coverage, input totals and source metadata under the session DTO's `statistics` field for both REST and MCP. Results are local estimates, not reviewed coaching outputs. All three intervals render independently and may overlap.
 
@@ -38,11 +38,11 @@ Boards and their default/assignments also live in memory. The dashboard includes
 
 `src/App.jsx` owns navigation and selected session/cursor/window. `src/components/` contains the present screen-level components. `src/services/` isolates host/HTTP operations. The previously reserved feature folders may be used when a feature grows; do not add abstractions solely to fill them.
 
-`src/services/useNavigation.jsx` synchronizes the page and string session ID with `?page=home|sessions|boards|chatgpt&session=<id>`. Initial load and browser history restore those values. Navigation pushes history entries; initial default-session resolution replaces the entry. A session without a page opens Sessions; unrecognized pages fall back to Sessions when a session is supplied, otherwise Home. Unknown session IDs remain explicit unavailable states on session-dependent pages. Other query parameters and hashes are preserved. Explicit MCP session results use the same navigation path; sandboxed hosts that deny history changes retain in-memory navigation. This does not change the parent ChatGPT conversation URL or persist temporary edits.
+`src/services/useNavigation.jsx` synchronizes the page and string session ID with `?page=home|sessions|boards|chatgpt&session=<id>`. Initial load and browser history restore those values. Navigation pushes history entries; initial default-session resolution replaces the entry. A session without a page opens Sessions; unrecognized pages fall back to Sessions when a session is supplied, otherwise Home. Unknown session IDs remain explicit unavailable states on session-dependent pages. Other query parameters and hashes are preserved. Explicit MCP session results use the same navigation path; sandboxed hosts that deny history changes retain in-memory navigation. This does not change the parent ChatGPT conversation URL or select a tenant.
 
 Home reuses `Compare.jsx`: latest-10 summary changes, newest-first session rows/cards and chronological charts. `Boards.jsx` contains the equipment list and session picker. Explicit session results from MCP open that session review. Direction arrows are deterministic GPS bearings in `metrics.mjs`; Leaflet handles selection emphasis and zoom-dependent marker spacing.
 
-The map requests standard OpenStreetMap tiles, preserves attribution and browser caching, and displays the recorded route independently. No map key is embedded. Wind labels use meteorological from; the arrow points toward from + 180°. Current wind is a sheet summary, not a spatial weather field.
+The map requests standard OpenStreetMap tiles, preserves attribution and browser caching, and displays the recorded route independently. No map key is embedded. Wind labels use meteorological from; the arrow points toward from + 180°. Current wind is a stored session summary, not a spatial weather field.
 
 ## Running and testing
 

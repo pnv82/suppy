@@ -28,7 +28,6 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 - [ ] Complete a live account test: Secure MCP Tunnel connection, ChatGPT tool discovery/selection, iframe rendering, notes/context round-trip, and fresh analysis after an edit. Local MCP transport tests are already implemented.
 - [ ] Refine bounded telemetry retrieval for multi-session questions, pagination and token budgets. Current analysis context is one session plus at most 120 records, without coordinates in model-visible telemetry.
 - [ ] Add versioned analysis output ingestion with schema validation, provenance, review status and stale-result invalidation after annotations/context change.
-- [ ] Implement human-reviewed analysis writeback to a sheet only when specifically authorized. The app currently reads the captured snapshot only.
 - [ ] Design empty/error/retry behavior for model answers and host-dependent UI permissions using real ChatGPT testing.
 - [ ] Optional later, only with new scope: model execution, queues, long-running analysis, caching and evaluation of analysis quality. ChatGPT currently performs interpretation in the conversation.
 
@@ -38,7 +37,7 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 - [ ] When arbitrary new-session imports are implemented, preselect the default board for user review. Existing sample recognition only opens a known session and must not overwrite its board.
 - [ ] On a specific session page, show similar sessions and allow comparison with the top five matches. Define similarity criteria (such as duration, distance, session type and available conditions), explain why each session matches, and handle missing context before implementing ranking. This session-specific feature is deferred; the global Compare screen continues to show automatic latest-10 trends.
 - [ ] Decode arbitrary valid Garmin FIT files / one-FIT ZIPs in the app, preview their identity, match by time/distance and reject malformed/ambiguous activities. Current Import FIT recognizes only the three supplied samples by hash.
-- [ ] Map timestamped weather observations onto the timeline with coverage/age and directional changes. Current map uses the sheet's session wind summary; manual timed conditions already render.
+- [ ] Map timestamped weather observations onto the timeline with coverage/age and directional changes. Current map uses the stored session wind summary; manual timed conditions already render.
 - [ ] Support precise technique evidence timing and more source-event detail when timestamps exist. Unknown-time falls/interruptions must remain untimed.
 - [ ] Expand comparison history after more sessions arrive; explicitly validate partial/null metrics and dates across locales.
 - [ ] Broader metric null-state and large-data performance checks, timeline zoom and drag-to-select. Best-window travel arrows are implemented; richer direction controls remain optional future work.
@@ -46,9 +45,10 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 - [ ] add integration with Garmin, so i can load sessions data directly from there, omitting export/import step fo the fit files.
 
 ## Infrustructure
-- [ ] Move from the Google Sheet as a storage to SQL Lite. Separate the production data from the test development
+- [x] Replace Google Sheets with SQLite persistence and separate production/development/test data; add tenant isolation and backup/restore support.
+- [ ] Before public multi-user hosting, implement authentication and bind validated identities to the existing tenant resolver; add user-facing concurrent-edit conflict handling.
 - [ ] let's deploy the app to @Sites, so i can use it
 
 ## Intentionally outside this prototype
 
-Authentication, durable storage, sharing/multi-user support, public deployment, automatic Garmin sync, extra import formats, weather services, video-link management and training-plan generation. Public distribution also requires a hosted/authenticated MCP design and account-level review. None is implemented or implied by local connection instructions.
+Authentication, user sharing, public deployment, automatic Garmin sync, extra import formats, weather services, video-link management and training-plan generation. Public distribution also requires a hosted/authenticated MCP design and account-level review. None is implemented or implied by local connection instructions.

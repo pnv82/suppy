@@ -4,7 +4,7 @@ A light, map-first prototype for reviewing Garmin SUP sessions, following perfor
 
 ## Run the app
 
-Requires Node.js 20.19+ (or 22.12+) and npm. From this folder:
+Requires Node.js 24+ and npm (SQLite is bundled with Node). From this folder:
 
 ```powershell
 npm install
@@ -14,18 +14,18 @@ npm start
 
 Open **http://127.0.0.1:3001**. Keep that terminal open. Stop it with Ctrl+C.
 
-The address bar tracks the page and selected session. Copy it to bookmark a view, for example `http://127.0.0.1:3001/?page=sessions&session=24162211256`. Supported pages are `home`, `sessions`, `boards`, and `chatgpt`. A session-only link opens its review. Refresh and browser Back/Forward restore the view; unknown session IDs show an unavailable message. Links require this local app and its source data to be available; temporary edits still reset on server restart.
+The address bar tracks the page and selected session. Copy it to bookmark a view, for example `http://127.0.0.1:3001/?page=sessions&session=24162211256`. Supported pages are `home`, `sessions`, `boards`, and `chatgpt`. A session-only link opens its review. Refresh and browser Back/Forward restore the view; unknown session IDs show an unavailable message. Links require this local app and its source data to be available; saved edits survive server restarts.
 
 For UI development, use `npm run dev` instead: Vite runs on port 5173, with the local API/MCP server on 3001. Do not run both start and dev at once. Rebuild before testing the embedded ChatGPT UI: it uses the built bundle.
 
-This workspace includes four spreadsheet summaries and three detailed Garmin tracks. Private source files are ignored by Git. A checkout on another machine needs the files described in [data/samples/garmin/README.md](data/samples/garmin/README.md), the sheet snapshot, and derived track JSON. Regenerate tracks using [scripts/inspect_samples.py](scripts/inspect_samples.py).
+This workspace’s four historical summaries and three Garmin tracks have been migrated to `data/storage/production.sqlite` under tenant `local`. A fresh checkout starts empty and runs without private files. Restore a SQLite backup to move personal data between machines; use synthetic development fixtures for UI work. See [storage, multitenancy and backup instructions](docs/engineering/storage.md).
 
 ## What works now
 
 - **Home:** the previous Compare view is now the landing page. It lists the latest 10 sessions newest first (four currently available), with key metrics, board assignments and chronological parameter trends. Open any row to review that session; phone layouts show the rows as readable cards.
 - **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a labelled current map point. Hover a chart to explore; click/tap or press Enter to annotate. Arrow keys move the shared cursor.
 - **Metric details:** grouped General, Speed and Performance overview with hours/minutes for active duration, maximum/average/median speed, average HR, cadence and estimated feet per stroke from recorded SUP totals. Median/max speed and HR reference lines remain on the charts. Methods and missing-data rules are in [metrics.md](docs/domain/metrics.md).
-- **Best sections:** select one 5/10/20-minute window to display its map highlight, travel arrows and start/end labels, with matching chart highlights and exact elapsed boundaries. Unselected windows are hidden; the full route, current point and annotation markers remain visible. Local FIT estimates stay separate from sheet values.
+- **Best sections:** select one 5/10/20-minute window to display its map highlight, travel arrows and start/end labels, with matching chart highlights and exact elapsed boundaries. Unselected windows are hidden; the full route, current point and annotation markers remain visible. Local FIT estimates stay separate from stored historical values.
 - **Timeline annotations:** add, edit or delete conditions, falls, interruptions and notes at a time or over an interval. Timing confidence is explicit.
 - **Comparison on Home:** automatically selects the most recent 10 sessions and charts key parameters chronologically. Switch among average speed, best 5/10/20, HR, cadence, distance and duration.
 - **Boards:** add or rename boards, choose a default, and assign a board on each session. The default offers a one-click shortcut for unassigned sessions; it never backfills history. Delete unused boards; reassign sessions first if a board is in use. Board names and assignments are athlete reports and are included in ChatGPT context.
@@ -34,7 +34,7 @@ This workspace includes four spreadsheet summaries and three detailed Garmin tra
 - **ChatGPT:** a working local MCP server exposes session tools and an embeddable copy of the UI. Saved notes and context are included when requesting fresh analysis. Standalone mode produces a copyable prompt.
 - **Import preview:** recognizes the three supplied FIT/ZIP samples by SHA-256 and opens their session. New-file decoding is explicitly deferred.
 
-Edits live in server memory and reset on restart. The Sheet is a captured, read-only snapshot, not live synchronization. The app makes no model calls and does not run background analysis. See [todo.md](todo.md) for deferred work and [design-qa.md](design-qa.md) for validation.
+SQLite now stores sessions, tracks, annotations, boards/defaults, names, goals and context. Google Sheets has no runtime, test, or ongoing workflow role. Production and development use separate database files; all private data is tenant-scoped. The app makes no model calls and does not run background analysis. See [todo.md](todo.md) for deferred work and [design-qa.md](design-qa.md) for validation.
 
 ## Connect to ChatGPT
 
@@ -111,7 +111,8 @@ src/App.jsx                 Navigation, selected session and action orchestratio
 src/components/             Review, timeline, compare and ChatGPT screens
 src/domain/metrics.mjs       Pure selectors, interpolation and display estimates
 src/services/client.mjs     REST / MCP Apps bridge
-server/store.mjs            Snapshot/track adapter and temporary session state
+server/database.mjs         SQLite schema, transactions and tenant repositories
+server/store.mjs            Persistent domain operations and presentation adapter
 server/tools.mjs            Validated, shared tool operations
 server/index.mjs            Local HTTP server, MCP tools and embedded UI resource
 scripts/                    Dev runner, build packaging and offline FIT utilities
@@ -121,7 +122,8 @@ prompts/                    External analysis and implementation handoff templat
 schemas/                    Versioned external-analysis contract
 data/reference/             SUP technique dictionary with research sources
 data/samples/garmin/         Original ZIPs/FITs and checksum manifest
-data/snapshots/              Captured Google Sheet data
+data/storage/                Private SQLite databases (ignored by Git)
+data/snapshots/              Retired historical archives; never loaded by the app
 data/derived/                Regenerable detailed tracks
 ```
 
@@ -134,11 +136,11 @@ npm test
 npm run build
 ```
 
-The tests cover best-window timing and gaps, latest-10 ordering, annotations/context, dictionary validation, MCP discovery/resource/tool calls and starter packaging. The static Sites worker is retained from the design starter; it is not a replacement for this app's Node API/MCP server.
+Tests use synthetic fixtures and isolated databases, covering restart persistence, backup/restore, tenant isolation, transaction rollback, plus best-window timing and gaps, latest-10 ordering, annotations/context, dictionary validation, MCP discovery/resource/tool calls and starter packaging. The static Sites worker is retained from the design starter; it is not a replacement for this app's Node API/MCP server.
 
-For offline data verification, install `scripts/requirements.txt` into `.tools/python`, then run `scripts/inspect_samples.py` and `scripts/validate_foundation.py` with Python.
+For offline data verification, use the project-local Python virtual environment described in [scripts/README.md](scripts/README.md) and run `scripts/validate_foundation.py`. Run `scripts/inspect_samples.py` only when regenerating derived telemetry; the app does not require Python.
 
-Source: [SUP Training Progress Tracker](https://docs.google.com/spreadsheets/d/1Hj6ef7uA-zpHMwvUCRXzpLBv_ty-uV-BX9iG945NEdE/edit), snapshot captured 2026-09-26 03:24:26 UTC. All supplied archives are preserved unchanged. Missing data and limitations are recorded in [data-audit.md](docs/data/data-audit.md).
+Historical import capture: 2026-09-26 03:24:26 UTC. Original source ranges, references, and checksums are retained inside SQLite for provenance. All supplied archives are preserved unchanged. Missing data and limitations are recorded in [data-audit.md](docs/data/data-audit.md).
 
 The map uses OpenStreetMap with visible attribution and normal browser tile caching. Only the visible map area is requested; no offline tile download. See the [tile policy](https://operations.osmfoundation.org/policies/tiles/). A production map service decision is deferred.
 

@@ -12,7 +12,7 @@ import {
   feet,
   segmentDirections,
 } from "../src/domain/metrics.mjs";
-import { createStore } from "../server/store.mjs";
+import { testStore } from "./fixtures.mjs";
 import { executeTool } from "../server/tools.mjs";
 
 const track = Array.from({ length: 1301 }, (_, t) => ({
@@ -25,13 +25,10 @@ const track = Array.from({ length: 1301 }, (_, t) => ({
   cadence_raw: 32,
 }));
 test("window arrows follow travel order on overlapping outbound and return tracks", () => {
-  const route = track
-    .slice(0, 1201)
-    .map((p) => ({
-      ...p,
-      longitude_deg:
-        -117.2 + Math.min(p.elapsed_s, 1200 - p.elapsed_s) * 0.00002,
-    }));
+  const route = track.slice(0, 1201).map((p) => ({
+    ...p,
+    longitude_deg: -117.2 + Math.min(p.elapsed_s, 1200 - p.elapsed_s) * 0.00002,
+  }));
   const outward = segmentDirections(route, { start: 0, end: 600 });
   const returning = segmentDirections(route, { start: 600, end: 1200 });
   assert.equal(outward.length, 4);
@@ -70,8 +67,8 @@ test("window arrows follow travel order on overlapping outbound and return track
   assert.deepEqual(segmentDirections(route, { start: null, end: null }), []);
 });
 
-test("board defaults never backfill history, assignments enter analysis and in-use boards are protected", () => {
-  const store = createStore();
+test("board defaults never backfill history, assignments enter analysis and in-use boards are protected", (t) => {
+  const store = testStore(t);
   const session_id = store.dashboard().sessions[0].id;
   const call = (name, args) => executeTool(store, name, args).structuredContent;
   assert.equal(store.context(session_id).board, null);
@@ -151,7 +148,7 @@ test("median weights covered time rather than record counts and excludes pauses/
   assert.equal(telemetryStats(stationary, "heart_rate_bpm").max, null);
   assert.equal(telemetryStats([], "speed_mps").median, null);
 });
-test("session references retain FIT maxima and only derive stroke distance from explicit SUP totals", () => {
+test("session references retain FIT maxima and only derive stroke distance from explicit SUP totals", (t) => {
   const fit = {
     sport: "stand_up_paddleboarding",
     enhanced_max_speed: 3,
@@ -182,8 +179,8 @@ test("session references retain FIT maxima and only derive stroke distance from 
   assert.equal(missing.speed_mps.max, null);
   assert.equal(missing.heart_rate_bpm.median, null);
   assert.equal(missing.heart_rate_bpm.max, 175);
-  assert.equal(missing.heart_rate_bpm.max_source, "sheet_summary");
-  const context = createStore().context("24495535896");
+  assert.equal(missing.heart_rate_bpm.max_source, "stored_summary");
+  const context = testStore(t).context("24495535896");
   assert.equal(context.statistics.speed_mps.max, 2.552);
   assert.equal(context.statistics.distance_per_stroke.strokes, 2860);
 });
@@ -238,8 +235,8 @@ test("latest ten automatically excludes older sessions without inventing missing
   assert.equal(result.at(-1).id, "2");
   assert.equal(latestSessions(sessions.slice(0, 4)).length, 4);
 });
-test("annotations validate boundaries, survive edits, and enter fresh bounded analysis context", () => {
-  const store = createStore(),
+test("annotations validate boundaries, survive edits, and enter fresh bounded analysis context", (t) => {
+  const store = testStore(t),
     id = store.dashboard().sessions[0].id;
   const args = {
     session_id: id,
@@ -287,8 +284,8 @@ test("annotations validate boundaries, survive edits, and enter fresh bounded an
     /not found/,
   );
 });
-test("technique focus uses dictionary IDs and is never a confirmed diagnosis", () => {
-  const store = createStore(),
+test("technique focus uses dictionary IDs and is never a confirmed diagnosis", (t) => {
+  const store = testStore(t),
     id = store.dashboard().sessions[0].id;
   const args = {
     session_id: id,

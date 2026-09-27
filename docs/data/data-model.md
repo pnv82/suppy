@@ -1,10 +1,10 @@
 # Canonical data model — draft 0.1.0
 
-Use small typed objects at the UI boundary, independent of sheet column order and FIT field encoding. Raw source values remain available in the adapters. The machine-readable external-analysis envelope is [analysis.schema.json](../../schemas/analysis.schema.json); this document also specifies the display entities that are not yet implemented.
+Use small typed objects at the UI boundary, independent of historical source column order and FIT field encoding. Raw source values remain available in the adapters. The machine-readable external-analysis envelope is [analysis.schema.json](../../schemas/analysis.schema.json); this document also specifies the display entities that are not yet implemented.
 
 ## Conventions
 
-IDs are strings. Domain distances are metres, speeds m/s, durations seconds, temperature °C, wind bearing degrees clockwise from true north. Use UTC ISO-8601 timestamps and an IANA display timezone. Initial presentation uses mph, miles, °F and minutes to match the source Sheet. `null` means unavailable; `0` means a measured/entered zero. Preserve the difference between missing direction and 0° north.
+IDs are strings. Domain distances are metres, speeds m/s, durations seconds, temperature °C, wind bearing degrees clockwise from true north. Use UTC ISO-8601 timestamps and an IANA display timezone. Initial presentation uses mph, miles, °F and minutes to retain the athlete’s display defaults. `null` means unavailable; `0` means a measured/entered zero. Preserve the difference between missing direction and 0° north.
 
 Each imported/derived claim has source reference(s), method if calculated, and a status. Keep conflicts visible; do not silently overwrite a reviewed analysis with a new file.
 
@@ -34,7 +34,7 @@ Analysis status is `provisional` or `reviewed`; these are workflow states, not s
 
 ## Time and join rules
 
-`elapsed_s = timestamp_utc - session.start_time_utc`, without deleting pauses. Active time comes from timer events/FIT summary; store separately. Source sheet times are minute-level local strings; use FIT start time where present and retain sheet originals. Date/time must agree within their documented precision before matching files automatically. Filename ID is a join hint, not sufficient proof for an unrelated upload. Never guess a timezone from longitude.
+`elapsed_s = timestamp_utc - session.start_time_utc`, without deleting pauses. Active time comes from timer events/FIT summary; store separately. Historical source times are minute-level local strings; use FIT start time where present and retain original source strings. Date/time must agree within their documented precision before matching files automatically. Filename ID is a join hint, not sufficient proof for an unrelated upload. Never guess a timezone from longitude.
 
 Coordinates from FIT semicircles convert as `degrees = semicircles × 180 / 2^31`. GeoJSON coordinates, when introduced, are `[longitude, latitude]`. Reject invalid ranges; do not replace missing points with `(0,0)`.
 
@@ -48,8 +48,12 @@ Issue IDs come from `data/reference/technique-issues.json`. Do not use free-form
 
 The REST/MCP dashboard adds `boards: [{id, name, sessionCount}]` and `defaultBoardId`. Each session has nullable `boardId`; model-visible session context resolves it to `board: {id, name, source: "athlete_reported"}` or `null`. No supplied source identifies a board, so all initial assignments are null and the board list starts empty.
 
-Board names are unique ignoring case. Renaming preserves the board ID and advances revisions of assigned sessions so subsequent analysis receives the updated name. Assignment changes also advance the session revision. Deleting an assigned board is rejected; deleting an unused default clears the default. A default is a shortcut for explicit assignment, never evidence that a historical session used that board. Board state shares the existing temporary server lifetime. Arbitrary new-session import and automatic default preselection for that future flow remain deferred.
+Board names are unique ignoring case. Renaming preserves the board ID and advances revisions of assigned sessions so subsequent analysis receives the updated name. Assignment changes also advance the session revision. Deleting an assigned board is rejected; deleting an unused default clears the default. A default is a shortcut for explicit assignment, never evidence that a historical session used that board. Board state persists in tenant-scoped SQLite tables; foreign keys include tenant ownership. Arbitrary new-session import and automatic default preselection for that future flow remain deferred.
 
 ## Session detail edits
 
-`update_session_details` takes `session_id` (string), `name` (trimmed, 1–100 characters) and nullable `board_id`. It validates both edits before applying either, then increments the session revision once if anything changed. Name edits set `titleSource` to `athlete_reported`; initial titles use `source_location`. The original `location`, source references and session ID remain unchanged. The dashboard and analysis context include the edited title and its provenance. Changes remain in server memory only.
+`update_session_details` takes `session_id` (string), `name` (trimmed, 1–100 characters) and nullable `board_id`. It validates both edits before applying either, then increments the session revision once if anything changed. Name edits set `titleSource` to `athlete_reported`; initial titles use `source_location`. The original `location`, source references and session ID remain unchanged. The dashboard and analysis context include the edited title and its provenance. Changes commit atomically to SQLite and survive restart.
+
+## Persistence contract (schema version 1)
+
+Private entities are owned by a tenant, with composite session/board identities and foreign keys. SQLite stores SI summary and goal fields plus telemetry, annotations, evidence metadata and context; the existing REST/MCP DTO converts summary values to imperial display units. Dashboard metadata now includes storage: sqlite and tenantId; snapshotAt/sourceUrl are removed. get_dashboard returns the latest ten model-visible summaries, while UI metadata contains the tenant's history. Raw source archives stay server-side. Historical spreadsheet source kinds remain accepted in external JSON solely to preserve old provenance; new app references use app_storage. See [storage.md](../engineering/storage.md).

@@ -49,7 +49,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
             <strong>{rows.length} available</strong> in your current data.
           </p>
         </div>
-        <span className="quiet-badge">Google Sheet snapshot</span>
+        <span className="quiet-badge">Saved in your app</span>
       </div>
       <div className="compare-summary">
         {["avgSpeed", "best20", "avgHr", "cadence"].map((key) => {
@@ -100,8 +100,8 @@ export function Compare({ sessions, boards = [], onOpen }) {
         <div className="table-scroll">
           <table className="home-sessions-table">
             <caption className="sr-only">
-              Latest sessions, most recent first. Source: captured Google Sheet.
-              Board assignments are athlete reported.
+              Latest sessions, most recent first. Source: stored session
+              summaries. Board assignments are athlete reported.
             </caption>
             <thead>
               <tr>
@@ -135,7 +135,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
                       </span>
                     </button>
                     <small>
-                      {s.records?.length ? "FIT + sheet" : "Summary only"}
+                      {s.records?.length ? "FIT + summary" : "Summary only"}
                     </small>
                   </td>
                   <td data-label="Distance">{fmt(s.distance, 2)} mi</td>
@@ -188,14 +188,16 @@ export function Compare({ sessions, boards = [], onOpen }) {
           </table>
         </div>
         {!newest.length && (
-          <p className="board-empty">No sessions available in this snapshot.</p>
+          <p className="board-empty">
+            No sessions available in your stored data.
+          </p>
         )}
       </section>
       <section className="trend-panel">
         <div className="section-heading">
           <div>
             <h2>{title} over time</h2>
-            <p>Chronological order · sheet values</p>
+            <p>Chronological order · stored summaries</p>
           </div>
           <label className="inline-label">
             Parameter

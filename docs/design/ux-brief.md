@@ -14,13 +14,13 @@ The user selected concept 1's light/simple map-led direction, with concept 2's t
 4. **Comparison on Home (P03):** automatically select the latest 10 sessions and show chronological key-parameter trends plus a session table. If fewer exist, show the available count explicitly. No manual pair selection or dedicated leg comparison.
 5. **Annotations (P05):** select a chart point or interval and open a small editor; keep the underlying route and timeline in view.
 6. **ChatGPT:** embedded UI plus tools inside the conversation; save annotations/additional context and request fresh analysis. Standalone mode provides the connection guide and a copyable prompt.
-7. **Boards:** add/rename a named board, choose/clear a default, and delete only unused boards. The session Edit dialog has a board picker and a “Use default” shortcut when unassigned. Show “Not recorded” initially, and identify selections as athlete reported. Default changes never rewrite past sessions. All board edits reset on server restart.
+7. **Boards:** add/rename a named board, choose/clear a default, and delete only unused boards. The session Edit dialog has a board picker and a “Use default” shortcut when unassigned. Show “Not recorded” initially, and identify selections as athlete reported. Default changes never rewrite past sessions. All board edits persist across server restarts.
 
 ## Review screen behavior
 
 | Region | Content and interaction |
 |---|---|
-| Header | Date/time with timezone, location, session type, previous/next session, source/snapshot state |
+| Header | Date/time with timezone, location, session type, previous/next session, source/storage state |
 | Key metrics | Distance; active and elapsed duration; speed; HR; cadence. Show current target only where comparable |
 | Map | Full route with start/finish, travel direction and selected interval. Wind arrow shows air motion **toward**, while label says **from NNE, 5.75 mph**. A legend explains both |
 | Best sections | 5/10/20-minute controls show speed, interval times and validity. Only the selected interval is drawn on the map, including its arrows and boundary labels; annotation markers remain visible. A value without boundaries stays a readable value with “Location unavailable” |
@@ -35,21 +35,21 @@ Wind on the map is a nearby-station observation, not a spatially measured wind f
 
 **Review:** select session → inspect summary/conditions → choose best 10 min → locate its route and charts → review evidence → inspect goal gap.
 
-**Attach detailed data:** choose FIT/ZIP → validate → preview date/time/distance and candidate session → confirm match if ambiguous → attach in memory → show route/chart availability. A file may have summary data without GPS; retain the useful part.
+**Attach detailed data:** choose FIT/ZIP → validate → preview date/time/distance and candidate session → confirm match if ambiguous → persist after validated import (new-file decoding remains deferred) → show route/chart availability. A file may have summary data without GPS; retain the useful part.
 
-**Use external analysis:** select session → show available inputs and unresolved gaps → copy the prompt → analyze externally → review result → manually update a sheet copy/new analysis rows when authorized → refresh the local snapshot. This foundation does not write to the user's Sheet.
+**Use external analysis:** select session → show available inputs and unresolved gaps → copy the prompt → analyze externally → review result. Future versioned result ingestion will write to SQLite; no spreadsheet transfer or refresh is part of the workflow.
 
 **Technique selection:** open dictionary → filter phase/search wording → read what evidence is needed → select issue and evidence status → attach note/time reference → view the observation in context.
 
 **Automatic comparison (refined P03):** open Home → latest 10 sessions selected automatically → inspect chronological trends in speed, best 5/10/20, HR, cadence, distance and active duration → open any session from the table. Four sessions are currently available. The trend is descriptive, not a normalization for conditions. Missing wind stays unknown.
 
-**Annotate (approved P05):** click/focus a chart timestamp or select an interval → add type (interruption, fall, condition change or note), note and timing confidence → save to temporary state → reflect the marker on charts/map where coordinates exist. Edit/remove must work. Distinguish source events from editable manual annotations. Unknown-time source counts stay separate from new timed markers.
+**Annotate (approved P05):** click/focus a chart timestamp or select an interval → add type (interruption, fall, condition change or note), note and timing confidence → save to SQLite → reflect the marker on charts/map where coordinates exist. Edit/remove must work. Distinguish source events from editable manual annotations. Unknown-time source counts stay separate from new timed markers.
 
 **Ask again in ChatGPT:** save a note or extra context → prepare the current session context, revision and bounded telemetry → send the question to the host conversation. ChatGPT interprets the data; the local app never pretends that background analysis ran. The same action in standalone mode reveals copyable context. Account connection follows the root README.
 
 Map point hints (current point, interval boundaries, session endpoints and annotations) appear only on marker hover. Keep markers visible without persistent tooltip boxes; times remain available in the sidebar and chart readout.
 
-**Best-window emphasis:** show only the selected map section with its travel arrows and start/end labels, using the 5/10/20-minute controls beside the map. Before selection, show the full route without best-window overlays. Preserve all annotation markers and the current point regardless of selection. The selected interval remains shaded on all performance charts. Local FIT estimates and Sheet values have distinct source labels.
+**Best-window emphasis:** show only the selected map section with its travel arrows and start/end labels, using the 5/10/20-minute controls beside the map. Before selection, show the full route without best-window overlays. Preserve all annotation markers and the current point regardless of selection. The selected interval remains shaded on all performance charts. Local FIT estimates and stored historical values have distinct source labels.
 
 Each best section has color-matched travel arrows with a duration badge. Selecting a window replaces the previous interval completely; zoom reveals more separated arrows. Start/end labels and the selected button provide non-color cues. These arrows follow GPS travel order; the separate wind overlay describes airflow.
 
@@ -59,12 +59,12 @@ Discarded optional flows: outbound/return comparison, post-session check-in, nex
 
 ## States required for the prototype
 
-- Summary only: Aug 29 is present in the Sheet but no supplied FIT.
+- Summary only: Aug 29 is present in storage but no supplied FIT.
 - Unknown wind: Sep 5 has a daily summary, no session-time wind observations.
 - Suspect early HR: Sep 5 and Sep 25 are flagged; exact affected intervals are unknown.
 - Paused recording: Sep 20; show breaks without joining the route across missing telemetry.
-- Best value without location: current Sheet has speeds but no window boundaries.
-- Empty goals or technique observations, loading, malformed file, unsupported file, duplicate file, ambiguous match, and stale snapshot.
+- Best value without location: stored historical summary has speeds but no window boundaries.
+- Empty goals or technique observations, loading, malformed file, unsupported file, duplicate file, ambiguous match, and storage errors.
 
 ## Accessibility and responsive behavior
 
@@ -76,7 +76,7 @@ Use the real Sep 25 summary and track for the main state; also inspect Sep 5 mis
 
 ## Minimal session header refinement
 
-The title has a small chevron for session selection, retaining date, launch name, distance and active duration in the native picker. A small Edit icon opens a modal dialog containing the launch-point name and board selection, with an explicit Save/Cancel. Board defaults are optional shortcuts inside the dialog; board management remains on Boards. Escape/Cancel discard drafts and restore focus to Edit. The duplicated Sheet summary block is removed from Best windows; source values remain on Home and in analysis context. Summary-only sessions still explicitly show unavailable local windows.
+The title has a small chevron for session selection, retaining date, launch name, distance and active duration in the native picker. A small Edit icon opens a modal dialog containing the launch-point name and board selection, with an explicit Save/Cancel. Board defaults are optional shortcuts inside the dialog; board management remains on Boards. Escape/Cancel discard drafts and restore focus to Edit. The duplicated stored summary block is removed from Best windows; source values remain on Home and in analysis context. Summary-only sessions still explicitly show unavailable local windows.
 
 ## Compact left navigation
 

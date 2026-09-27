@@ -179,8 +179,8 @@ export function FocusPanel({ session, issues, onSave, busy }) {
       </div>
       {goal !== "" && (
         <p className="caption">
-          Sheet best {duration} min: {fmt(session[`best${duration}`], 2)} mph ·
-          target is your choice.
+          Recorded best {duration} min: {fmt(session[`best${duration}`], 2)} mph
+          · target is your choice.
         </p>
       )}
       <label htmlFor="technique-choice">Technique dictionary</label>

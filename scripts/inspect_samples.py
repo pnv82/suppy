@@ -8,12 +8,11 @@ from datetime import datetime, timezone
 from hashlib import sha256
 from pathlib import Path
 import json
-import sys
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / '.tools/python'))
 from garmin_fit_sdk import Decoder, Stream
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def iso(value):

@@ -137,7 +137,7 @@ function SessionEditDialog({
           </button>
         </div>
         <p className="caption">
-          Changes are athlete reported and reset on server restart.
+          Changes are athlete reported and saved in your app.
         </p>
         {error && (
           <p className="dialog-error" role="alert">
@@ -215,8 +215,8 @@ export function SessionHeader({
                 </div>
                 <div>
                   {session.records.length
-                    ? "Garmin FIT + sheet snapshot"
-                    : "Sheet summary only"}
+                    ? "Garmin FIT + stored summary"
+                    : "Stored summary only"}
                 </div>
               </div>
             </details>

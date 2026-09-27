@@ -1,5 +1,3 @@
-# Read-only Sheet snapshot
+# Retired source archive
 
-`source-snapshot.json` stores the observed workbook metadata, bounded ranges, source URL and UTC capture time. It is an input fixture, not a live connection. It was captured through the Google Drive/Sheets connector without source writes.
-
-Snapshot ranges: Sessions A1:AP8; Dashboard A1:T25; Weather Observations A1:T10; Data Dictionary A1:J60. See [data audit](../../../docs/data/data-audit.md). Trailing allocated rows were not exhaustively scanned. Refresh deliberately and preserve the source timestamp; do not silently label these values current.
+The original source-snapshot.json is retained unchanged and ignored by Git for historical provenance. Its values, ranges and capture metadata were migrated into SQLite. The app, tests, validation scripts and ongoing workflows do not read this file or contact Google Sheets. It is not required on a new machine; use a SQLite backup to move stored data.

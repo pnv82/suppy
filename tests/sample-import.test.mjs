@@ -1,15 +1,17 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
-import { createStore } from "../server/store.mjs";
+import { createHash } from "node:crypto";
 import { findSampleSession } from "../src/services/sample-import.mjs";
-test("sample import recognizes all original FIT/ZIP bytes, even when renamed", async () => {
-  const sessions = createStore().dashboard().sessions;
+test("sample recognition matches stored checksums even when files are renamed", async () => {
+  const bytes = Buffer.from(
+    "Synthetic recognition fixture; decoding is not part of this operation.",
+  );
+  const hash = createHash("sha256").update(bytes).digest("hex");
+  const sessions = [
+    { id: "synthetic", hashes: { fit_sha256: hash, archive_sha256: hash } },
+  ];
   for (const session of sessions.filter((s) => s.hashes)) {
     for (const type of ["fit", "archive"]) {
-      const bytes = readFileSync(
-        new URL("../" + session.hashes[type], import.meta.url),
-      );
       const file = new File(
         [bytes],
         type === "fit" ? "renamed.fit" : "renamed.zip",

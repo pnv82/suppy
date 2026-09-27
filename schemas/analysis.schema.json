@@ -49,7 +49,8 @@
               "weather",
               "athlete_report",
               "video",
-              "coach_observation"
+              "coach_observation",
+              "app_storage"
             ]
           },
           "locator": {

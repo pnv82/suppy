@@ -24,3 +24,7 @@ Update this file when a consequential choice is made. Do not interpret a draft t
 - Best-window map/timeline locations use labelled local display estimates from actual FIT distance/time. Sheet values stay separate. Robust validation and costly analysis are deferred.
 - The first file picker recognizes supplied samples by hash; decoding arbitrary new FITs remains explicit in `todo.md`.
 - Secure MCP Tunnel is the documented private account-connection path. No account connection, public deployment or tunnel has been created by this build.
+
+## SQLite and tenant isolation — 2026-09-26
+
+The user explicitly requested durable app-owned storage, removal of all Google Sheets work, and provision for multiple users. This supersedes the earlier snapshot-first, temporary-state and no-database decisions. Node 24+ bundled SQLite, transactional schema versioning, SI session aggregates, composite tenant foreign keys and a trusted per-request tenant resolver implement this scope. Existing history was migrated once; original files and provenance remain unchanged. Production/development/test databases are separate. Authentication and public deployment remain future work. See [storage.md](storage.md).

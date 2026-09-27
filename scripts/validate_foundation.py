@@ -8,13 +8,13 @@ from datetime import datetime
 import argparse
 import json
 import math
+import os
 import re
-import sys
 import zipfile
 
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / '.tools/python'))
 from jsonschema import Draft202012Validator, FormatChecker
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def read(path):
@@ -142,26 +142,26 @@ def main():
             require(lat is None or -90 <= lat <= 90, 'Latitude out of range')
             require(lon is None or -180 <= lon <= 180, 'Longitude out of range')
 
-    snapshot = read(ROOT / 'data/snapshots/google-sheets/source-snapshot.json')
-    session_rows = next(r['values'] for r in snapshot['ranges'] if r['range'].startswith('Sessions!'))
-    session_ids = {r[0] for r in session_rows[1:] if r}
-    require({s['session_id'] for s in manifest['samples']} <= session_ids, 'Sample/session join missing')
-    require(example['session_id'] in session_ids, 'Example is not in the source Sheet snapshot')
-    require(all(len(r) <= len(session_rows[0]) for r in session_rows), 'Snapshot row exceeds header width')
+    session_ids = {s['session_id'] for s in manifest['samples']}
+    require(example['session_id'] in session_ids, 'Example does not match a supplied activity')
 
     checked = 0
-    for path in ROOT.rglob('*.md'):
-        if any(part in {'.tools', '.git', 'node_modules', '.venv'} for part in path.parts):
-            continue
-        checked += 1
-        for target in re.findall(r'\[[^\]]+\]\(([^)]+)\)', path.read_text(encoding='utf-8')):
-            if re.match(r'^[a-z]+://', target) or target.startswith('#'):
+    excluded = {'.tools', '.git', 'node_modules', '.venv', 'dist', 'build'}
+    for directory, subdirs, files in os.walk(ROOT):
+        subdirs[:] = [name for name in subdirs if name not in excluded]
+        for name in files:
+            if not name.endswith('.md'):
                 continue
-            destination = target.split('#')[0].strip('<>')
-            require((path.parent / destination).exists(), f'Broken local link in {path}: {target}')
+            path = Path(directory) / name
+            checked += 1
+            for target in re.findall(r'\[[^\]]+\]\(([^)]+)\)', path.read_text(encoding='utf-8')):
+                if re.match(r'^[a-z]+://', target) or target.startswith('#'):
+                    continue
+                destination = target.split('#')[0].strip('<>')
+                require((path.parent / destination).exists(), f'Broken local link in {path}: {target}')
     print(f'PASS: schema + analysis semantics; {len(dictionary["issues"])} issues; '
           f'{len(manifest["samples"])} sample hash/ZIP/track checks; '
-          f'{len(session_ids)} sheet sessions; local links in {checked} Markdown files.')
+          f'{len(session_ids)} activity sessions; local links in {checked} Markdown files.')
 
 
 if __name__ == '__main__':

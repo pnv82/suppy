@@ -1,10 +1,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createStore } from "../server/store.mjs";
+import { testStore } from "./fixtures.mjs";
 import { executeTool } from "../server/tools.mjs";
 
-test("session details save atomically, retain provenance and reach analysis context", () => {
-  const store = createStore();
+test("session details save atomically, retain provenance and reach analysis context", (t) => {
+  const store = testStore(t);
   const original = structuredClone(store.dashboard().sessions[0]);
   const board = store.upsertBoard({ name: "Test board" });
   const args = {

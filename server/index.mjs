@@ -5,6 +5,7 @@ import { resolve, extname, sep } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createStore } from "./store.mjs";
+import { openDatabase, validateTenantId } from "./database.mjs";
 import { descriptions, toolSchemas, executeTool } from "./tools.mjs";
 
 const clientRoot = resolve(
@@ -116,8 +117,20 @@ function json(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
-export function createHttpServer(store = createStore()) {
-  return http.createServer(async (req, res) => {
+export function createHttpServer(store, options = {}) {
+  if (store && options.resolveTenant)
+    throw new Error(
+      "A fixed store cannot be combined with a request tenant resolver.",
+    );
+  // A supplied resolver must authenticate the request and fail closed. Never use
+  // tenant IDs from tool arguments, query strings, or unverified client headers.
+  const owned = !store && !options.database;
+  const database = store
+    ? null
+    : (options.database ?? openDatabase(options.dbPath));
+  const tenantId = options.tenantId ?? process.env.SUP_TENANT_ID ?? "local";
+  if (database && !options.resolveTenant) database.createTenant(tenantId);
+  const server = http.createServer(async (req, res) => {
     try {
       const path = new URL(req.url, "http://localhost").pathname;
       // Local prototype: refuse cross-site browser writes. Secure Tunnel forwards server-side MCP.
@@ -128,6 +141,20 @@ export function createHttpServer(store = createStore()) {
         return json(res, 403, {
           error: "Use the local app or the ChatGPT MCP connection.",
         });
+      let requestStore = store;
+      if (path === "/mcp" || path.startsWith("/api/")) {
+        if (!requestStore) {
+          try {
+            const identity = options.resolveTenant
+              ? await options.resolveTenant(req)
+              : tenantId;
+            validateTenantId(identity);
+            requestStore = createStore({ database, tenantId: identity });
+          } catch {
+            return json(res, 403, { error: "Tenant access denied." });
+          }
+        }
+      }
       if (path === "/mcp") {
         if (req.method !== "POST") {
           res.setHeader("Allow", "POST");
@@ -135,7 +162,7 @@ export function createHttpServer(store = createStore()) {
             error: "This stateless MCP endpoint accepts POST requests.",
           });
         }
-        const mcp = createMcpServer(store);
+        const mcp = createMcpServer(requestStore);
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,
@@ -148,10 +175,10 @@ export function createHttpServer(store = createStore()) {
         return await transport.handleRequest(req, res, await readJson(req));
       }
       if (path === "/api/dashboard" && req.method === "GET")
-        return json(res, 200, store.dashboard());
+        return json(res, 200, requestStore.dashboard());
       if (path === "/api/tools" && req.method === "POST") {
         const { name, arguments: args } = await readJson(req);
-        return json(res, 200, executeTool(store, name, args));
+        return json(res, 200, executeTool(requestStore, name, args));
       }
       if (path.startsWith("/api/"))
         return json(res, 404, { error: "Unknown endpoint" });
@@ -187,6 +214,8 @@ export function createHttpServer(store = createStore()) {
       else res.end();
     }
   });
+  if (owned) server.on("close", () => database.close());
+  return server;
 }
 
 if (
@@ -194,9 +223,12 @@ if (
   fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
   const port = Number(process.env.SUP_PORT || 3001);
-  createHttpServer().listen(port, "127.0.0.1", () =>
+  const server = createHttpServer();
+  server.listen(port, "127.0.0.1", () =>
     console.log(
-      `SUP Training: http://127.0.0.1:${port} | MCP: /mcp | temporary memory`,
+      `SUP Training: http://127.0.0.1:${port} | MCP: /mcp | SQLite | tenant: ${process.env.SUP_TENANT_ID || "local"}`,
     ),
   );
+  for (const signal of ["SIGINT", "SIGTERM"])
+    process.once(signal, () => server.close());
 }

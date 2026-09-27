@@ -10,7 +10,8 @@
     "format": "prettier --write src server tests/*.test.mjs scripts/dev.mjs vite.config.mjs",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
-    "test:sites": "node --test tests/sites-worker.test.mjs"
+    "test:sites": "node --test tests/sites-worker.test.mjs",
+    "db": "node scripts/database.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "^2.0.0",
@@ -27,5 +28,8 @@
   },
   "devDependencies": {
     "prettier": "3.9.6"
+  },
+  "engines": {
+    "node": ">=24.0.0"
   }
 }

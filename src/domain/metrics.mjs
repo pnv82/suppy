@@ -61,7 +61,7 @@ export function sessionStatistics(
   records,
   pauses,
   fit = null,
-  sheetMaxHr = null,
+  summaryMaxHr = null,
 ) {
   const speed = telemetryStats(records, "speed_mps", pauses);
   const hr = telemetryStats(records, "heart_rate_bpm", pauses);
@@ -72,9 +72,13 @@ export function sessionStatistics(
   if (Number.isFinite(fit?.max_heart_rate) && fit.max_heart_rate > 0) {
     hr.max = fit.max_heart_rate;
     hr.max_source = "fit_session";
-  } else if (hr.max == null && Number.isFinite(sheetMaxHr) && sheetMaxHr > 0) {
-    hr.max = sheetMaxHr;
-    hr.max_source = "sheet_summary";
+  } else if (
+    hr.max == null &&
+    Number.isFinite(summaryMaxHr) &&
+    summaryMaxHr > 0
+  ) {
+    hr.max = summaryMaxHr;
+    hr.max_source = "stored_summary";
   }
   const hasStrokes =
     fit?.sport === "stand_up_paddleboarding" &&

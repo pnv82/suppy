@@ -16,6 +16,11 @@ data/samples/garmin/fit/*
 data/snapshots/google-sheets/*.json
 data/derived/*
 !data/derived/README.md
+data/storage/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
 # Editor/OS files
 .DS_Store
 Thumbs.db

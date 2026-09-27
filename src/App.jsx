@@ -417,8 +417,8 @@ export function App() {
             <div role="status">
               <p>
                 {sessionId
-                  ? `Session ${sessionId} is unavailable in this snapshot.`
-                  : "No sessions available in this snapshot."}
+                  ? `Session ${sessionId} is unavailable in your stored data.`
+                  : "No sessions available in your stored data."}
               </p>
               <button
                 className="button secondary"

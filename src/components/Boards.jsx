@@ -111,7 +111,7 @@ export function Boards({ boards, defaultBoardId, busy, onAction }) {
           <h1>Boards</h1>
           <p>Keep the board you used alongside each session.</p>
         </div>
-        <span className="quiet-badge">Temporary prototype data</span>
+        <span className="quiet-badge">Saved in your app</span>
       </div>
       <section className="board-settings" aria-labelledby="default-board-title">
         <div>
@@ -202,8 +202,8 @@ export function Boards({ boards, defaultBoardId, busy, onAction }) {
           </button>
         </form>
         <p className="caption">
-          Boards, the default and session assignments are saved in server memory
-          and reset on restart.
+          Boards, the default and session assignments are saved in your app and
+          retained after restart.
         </p>
       </section>
     </>
