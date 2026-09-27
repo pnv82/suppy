@@ -1,6 +1,6 @@
 # Persistent storage and tenant boundaries
 
-SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 1 is created transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`.
+SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 2 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage; existing sessions and edits are preserved.
 
 ## Files and environments
 
@@ -28,6 +28,7 @@ Seeding refuses a populated tenant. Tests use isolated in-memory or temporary fi
 | sessions | Composite `(tenant_id, id)` key; local date index; board FK; revision; versioned-by-schema JSON aggregate |
 | preferences | One row per tenant with a nullable default board FK |
 | session_sources | Immutable import provenance/raw payload per tenant and session |
+| fit_imports | Tenant-scoped immutable original upload/FIT blobs, checksums and decoder/source provenance; FK to the owning session |
 
 Session aggregates contain summaries, records, pauses, display estimates, annotations, additional context, goals and technique selections. SI summary and goal fields are stored in `data_si`; the presentation adapter converts them to the existing mph/miles/minutes DTO. Telemetry stays SI/UTC, with explicit IANA session timezone and original local time strings. Nulls and elapsed/active time remain distinct. Raw historical payloads retain their original units. Keeping complex track/annotation payloads together is deliberate for this small app; relational ownership and board references are enforced by SQLite.
 
@@ -59,4 +60,4 @@ npm run db -- backup C:\backups\sup-2026-09-27.sqlite
 
 Backup uses SQLite's online backup API, includes all tenants and provenance, and refuses an existing destination. Treat the result as private user data. Do not copy only the main file while the app is running: committed pages may still be in the WAL. For restore, stop every process using the database, keep the old database/sidecars as a separate recovery copy, and point `SUP_DB_PATH` to a fresh copy of the backup. Run `check`, then start the app. Do not restore over live sidecars. No schema reset or destructive reset command is provided.
 
-`openDatabase().importState()` is an internal operator/bootstrap helper used by synthetic fixtures and the completed local migration; it is not a public arbitrary-result ingestion contract. It inserts only into an empty tenant within one transaction. Arbitrary FIT decoding and reviewed analysis ingestion with full schema validation/versioning remain deferred in `todo.md`. All future ingestion writes target the app database, never a spreadsheet.
+`openDatabase().importState()` is an internal operator/bootstrap helper used by synthetic fixtures and the completed local migration; it is not a public arbitrary-result ingestion contract. It inserts only into an empty tenant within one transaction. Validated FIT uploads use [preview/commit import tools](fit-import.md) and store source blobs in the same database, so normal backup includes them. Reviewed LLM-result ingestion with full schema validation/versioning remains deferred. All ingestion writes target the app database, never a spreadsheet.

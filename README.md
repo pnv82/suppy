@@ -32,9 +32,9 @@ This workspace’s four historical summaries and three Garmin tracks have been m
 - **Session editing:** use the pencil beside the title to edit the launch-point name and board together. Use the nearby chevron to select another session. Names refer to the start/launch point. Source locations remain a fallback until the specific launch point is confirmed; see the [naming rule](docs/product/mvp.md#defaults-and-unresolved-decisions).
 - **Context and focus:** add observations, choose a duration-scoped speed goal, and select from the SUP technique dictionary. Technique selections are athlete reports, never watch-confirmed faults.
 - **ChatGPT:** a working local MCP server exposes session tools and an embeddable copy of the UI. Saved notes and context are included when requesting fresh analysis. Standalone mode produces a copyable prompt.
-- **Import preview:** recognizes the three supplied FIT/ZIP samples by SHA-256 and opens their session. New-file decoding is explicitly deferred.
+- **FIT import:** preview and save a SUP FIT or one-FIT ZIP (up to 30 MB), with Garmin integrity checks, route/metric preview, duplicate recognition, explicit matching to existing summaries, and original-byte preservation. Missing GPS or sensors remain unavailable. See [import and calculation contracts](docs/engineering/fit-import.md).
 
-SQLite now stores sessions, tracks, annotations, boards/defaults, names, goals and context. Google Sheets has no runtime, test, or ongoing workflow role. Production and development use separate database files; all private data is tenant-scoped. The app makes no model calls and does not run background analysis. See [todo.md](todo.md) for deferred work and [design-qa.md](design-qa.md) for validation.
+SQLite stores sessions, tracks, original uploads, annotations, boards/defaults, names, goals and context. Google Sheets has no runtime, test, or ongoing workflow role. Production and development use separate database files; all private data is tenant-scoped. The app owns deterministic analysis: time-weighted metrics, coverage and exact continuous best windows. ChatGPT owns interpretation and coaching, following [LLM versus app responsibilities](docs/product/llm%20vs%20app.md). The app makes no model calls. See [todo.md](todo.md) for deferred work and [design-qa.md](design-qa.md) for validation.
 
 ## Connect to ChatGPT
 
@@ -85,7 +85,7 @@ Environment variables set in one terminal may not be available in another proces
 1. Open **Settings → Security and login → Developer mode**.
 2. Open **Plugins**, select **+**, and name the connection **SUP Training**.
 3. Under **Connection**, choose **Tunnel**, then select your tunnel or enter its ID.
-4. Create the connection and review the twelve discovered tools.
+4. Create the connection and review the fourteen discovered tools.
 5. Start a conversation and add SUP Training from the tools menu.
 
 Account/workspace policy controls availability; labels may vary by client. If Developer mode is absent, first check your workspace access. These steps follow the [official connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt), checked 2026-09-26.

@@ -120,7 +120,7 @@ export function timerPauses(events, startUtc, end) {
     .filter((e) => e.event === "timer")
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp))) {
     const t = (Date.parse(event.timestamp) - Date.parse(startUtc)) / 1000;
-    if (event.event_type.startsWith("stop")) stopped = t;
+    if (event.event_type.startsWith("stop")) stopped ??= Math.max(0, t);
     else if (event.event_type === "start" && stopped != null) {
       if (t > stopped)
         intervals.push({ start: stopped, end: Math.min(t, end) });
@@ -131,16 +131,25 @@ export function timerPauses(events, startUtc, end) {
   return intervals;
 }
 
-export function validRuns(records, pauses = [], gps = false) {
+export function validRuns(
+  records,
+  pauses = [],
+  gps = false,
+  requireDistance = true,
+) {
   const runs = [];
   let run = [];
   for (const p of records) {
     const prev = run.at(-1);
     const valid =
       Number.isFinite(p.elapsed_s) &&
-      Number.isFinite(p.distance_m) &&
+      (!requireDistance ||
+        (Number.isFinite(p.distance_m) && p.distance_m >= 0)) &&
       (!gps ||
-        (Number.isFinite(p.latitude_deg) && Number.isFinite(p.longitude_deg)));
+        (Number.isFinite(p.latitude_deg) &&
+          Math.abs(p.latitude_deg) <= 90 &&
+          Number.isFinite(p.longitude_deg) &&
+          Math.abs(p.longitude_deg) <= 180));
     const crossingPause =
       prev &&
       pauses.some((g) => prev.elapsed_s < g.end && p.elapsed_s > g.start);
@@ -149,9 +158,12 @@ export function validRuns(records, pauses = [], gps = false) {
       (prev &&
         (p.elapsed_s <= prev.elapsed_s ||
           p.elapsed_s - prev.elapsed_s > 15 ||
-          p.distance_m < prev.distance_m ||
-          (p.distance_m - prev.distance_m) / (p.elapsed_s - prev.elapsed_s) >
-            8 ||
+          (Number.isFinite(p.distance_m) &&
+            Number.isFinite(prev.distance_m) &&
+            (p.distance_m < prev.distance_m ||
+              (p.distance_m - prev.distance_m) /
+                (p.elapsed_s - prev.elapsed_s) >
+                8)) ||
           crossingPause));
     if (broken && run.length) {
       runs.push(run);
@@ -203,8 +215,8 @@ export function interpolate(records, t) {
 }
 
 // Small deterministic display estimate. No coaching inference or LLM calls.
-export function bestWindows(records, pauses = []) {
-  const runs = validRuns(records, pauses, true);
+export function bestWindows(records, pauses = [], requireGps = true) {
+  const runs = validRuns(records, pauses, requireGps);
   return [300, 600, 1200].map((duration) => {
     let best = null;
     for (const run of runs) {

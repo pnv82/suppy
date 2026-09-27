@@ -1,6 +1,6 @@
 # Metric definitions and analysis policy
 
-This is the proposed **v1 policy for future external analysis**, not a claim that existing historical values were calculated this way.
+This is the **v1 deterministic app calculation policy**, not a claim that existing historical values were calculated this way. App code supplies numerical evidence; the LLM interprets it. See [import and evidence methods](../engineering/fit-import.md) and [responsibility boundary](../product/llm%20vs%20app.md).
 
 ## Basic measurements
 
@@ -41,7 +41,7 @@ The historical 5 mph reference is 2.2352 m/s (8.04672 km/h). Duration and condit
 
 ## Current local display implementation
 
-`src/domain/metrics.mjs` implements a limited version of the continuous-window policy to locate real 5/10/20-minute sections for the initial UI. It also requires usable coordinates, uses an 8 m/s distance-jump guard, and labels every result `local_estimate`. It does not certify GPS accuracy, perform wind correction, or overwrite imported historical summaries. More complete validation remains in root `todo.md`.
+`src/domain/metrics.mjs` implements continuous-window calculations with an 8 m/s distance-jump guard. Historical display estimates required GPS. New imports and `src/domain/analysis.mjs` calculate distance-based windows independently of GPS, with `source: derived`, `method: elapsed_continuous_v1` and the existing `local_estimate` review status. Each window includes channel-weighted interval statistics or an unavailable reason. Map overlays preserve GPS gaps. Neither path certifies GPS accuracy, performs wind correction or overwrites historical summaries. Exact interval evidence is computed before telemetry downsampling; the detailed weighting/coverage contract is in [fit-import.md](../engineering/fit-import.md).
 
 The map's current wind legend uses the session-level stored summary. The nearest-observation coverage policy above is a future display rule; timestamped station changes are not yet drawn on the timeline.
 

@@ -13,7 +13,7 @@
 - Persistent board list, default preference and per-session assignments, shared through REST/MCP and analysis context.
 - Timed note create/edit/delete, extra context, speed targets and technique dictionary selection.
 - Shared local REST/MCP operations and embedded ChatGPT UI resource.
-- Sample-only file recognition, copyable analysis context, README connection instructions.
+- Validated SUP FIT/one-FIT ZIP preview and import, immutable source bytes, duplicate recognition and explicit candidate matching; copyable calculated evidence and README connection instructions.
 
 ## Validation
 
@@ -21,7 +21,7 @@ Run `npm test` and `npm run build`. Consult root `design-qa.md` for browser evid
 
 ## Next work
 
-Use [todo.md](../../todo.md) as the deferred-work list. Start with live ChatGPT feedback and genuine user UI feedback before implementing costly analysis. New FIT decoding, reviewed analysis ingestion, timed weather and robust metric validation are explicit future work. Authentication, sharing, broad imports and in-app model execution remain outside this slice.
+Use [todo.md](../../todo.md) as the deferred-work list. SUP FIT decoding and deterministic evidence are implemented under [LLM versus app responsibilities](../product/llm%20vs%20app.md). Reviewed LLM-result ingestion, timed weather, advanced metric validation and multi-session feature requests remain future work. Authentication, sharing, broader activity formats and in-app model execution remain outside this slice.
 
 P03 is automatic latest-10 comparison, superseding the initial two-session selection idea. P05 is explicit timed annotations. P01/P02/P04/P06 remain discarded.
 

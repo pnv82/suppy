@@ -4,7 +4,7 @@
 
 Read `README.md`, `docs/product/mvp.md`, `docs/design/ux-brief.md`, and `docs/engineering/implementation-plan.md` first. Read the relevant data/domain documents before implementing metrics, imports, or technique UI.
 
-This is a local UI/UX app with SQLite persistence and tenant-scoped storage, explicitly requested by the user. Analysis runs outside the app. Google Sheets is retired: no reads, writes, refresh or dependency. Keep infrastructure minimal. Authentication, sharing, automatic Garmin synchronization, a weather service, and an in-app LLM still need new user scope.
+This is a local UI/UX app with SQLite persistence and tenant-scoped storage, explicitly requested by the user. Read `docs/product/llm vs app.md`: deterministic ingestion, normalization, calculations and evidence retrieval belong in app code; interpretation and coaching belong in the external LLM. See `docs/engineering/fit-import.md` for the implemented import/evidence boundary. Google Sheets is retired: no reads, writes, refresh or dependency. Keep infrastructure minimal. Authentication, sharing, automatic Garmin synchronization, a weather service, and an in-app LLM still need new user scope.
 
 The user selected concept 1's light map-led style and concept 2's timeline annotations, then requested the initial app. React/Vite, Leaflet and Recharts now implement that UI. Compare automatically selects the latest 10 sessions. The app must work inside ChatGPT using MCP Apps UI/tools; a small local Node server owns persistent SQLite state. Keep demanding analysis in `todo.md`. See `docs/design/references/selected-light-ui.png` and root `design-qa.md`.
 

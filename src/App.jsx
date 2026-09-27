@@ -9,7 +9,7 @@ import {
   ArrowClockwise,
 } from "@phosphor-icons/react";
 import { timeLabel, validRuns } from "./domain/metrics.mjs";
-import { findSampleSession } from "./services/sample-import.mjs";
+import { ImportDialog } from "./components/ImportDialog.jsx";
 import {
   connect,
   subscribe,
@@ -59,8 +59,8 @@ export function App() {
     [cursor, setCursor] = useState(0),
     [draft, setDraft] = useState(null),
     [prepared, setPrepared] = useState("");
-  const fileInput = useRef(null),
-    toastTimer = useRef(null),
+  const [importOpen, setImportOpen] = useState(false);
+  const toastTimer = useRef(null),
     editorRef = useRef(null),
     errorRef = useRef(null);
   useEffect(() => {
@@ -107,7 +107,7 @@ export function App() {
   useEffect(() => {
     setCursor(
       session
-        ? (validRuns(session.records, session.pauses, true)[0]?.[0]
+        ? (validRuns(session.records, session.pauses, true, false)[0]?.[0]
             ?.elapsed_s ?? 0)
         : 0,
     );
@@ -201,14 +201,6 @@ export function App() {
       notice("Prompt prepared. Connect the app or copy it into ChatGPT.");
     } else notice("Question sent to your ChatGPT conversation.");
   }
-  async function importSample(file) {
-    if (!file) return;
-    const match = await findSampleSession(file, data.sessions);
-    openSession(match.id);
-    notice(
-      `Opened ${match.title}, ${shortDate(match.date)}. This sample is already loaded.`,
-    );
-  }
   if (!data)
     return (
       <main className="loading-state">
@@ -233,19 +225,23 @@ export function App() {
       <NavigationRail
         page={page}
         onNavigate={setPage}
-        onImport={() => fileInput.current?.click()}
+        onImport={() => setImportOpen(true)}
       />
-      <input
-        ref={fileInput}
-        aria-label="Import Garmin sample"
-        type="file"
-        accept=".fit,.zip"
-        hidden
-        onChange={(e) => {
-          perform(() => importSample(e.target.files?.[0]));
-          e.target.value = "";
-        }}
-      />
+      {importOpen && (
+        <ImportDialog
+          boards={data.boards || []}
+          defaultBoardId={data.defaultBoardId}
+          onClose={() => setImportOpen(false)}
+          onImported={(id, status) => {
+            openSession(id);
+            notice(
+              status === "duplicate"
+                ? "Opened existing session."
+                : "FIT saved. Deterministic metrics are ready.",
+            );
+          }}
+        />
+      )}
       <div className="app-workspace">
         <main id="main" className="app-main" tabIndex={-1}>
           {error && (

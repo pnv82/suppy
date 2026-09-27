@@ -1,0 +1,345 @@
+import React, { useEffect, useRef, useState } from "react";
+import { callTool } from "../services/client.mjs";
+import { uploadArguments } from "../services/fit-import.mjs";
+import { fmt } from "./SessionViews.jsx";
+import { durationLabel, mph } from "../domain/metrics.mjs";
+
+function RoutePreview({ runs }) {
+  const points = runs.flat();
+  if (!points.length)
+    return (
+      <p>
+        No continuous GPS route available. Recorded telemetry and summary
+        metrics can still be imported.
+      </p>
+    );
+  const lat = points.map((p) => p[0]),
+    lon = points.map((p) => p[1]);
+  const minLat = Math.min(...lat),
+    minLon = Math.min(...lon),
+    midLat = (Math.max(...lat) + minLat) / 2;
+  const xScale = Math.cos((midLat * Math.PI) / 180);
+  const width = (Math.max(...lon) - minLon) * xScale,
+    height = Math.max(...lat) - minLat;
+  const scale = Math.min(280 / (width || 1e-8), 130 / (height || 1e-8));
+  return (
+    <svg
+      className="import-route"
+      viewBox="0 0 320 170"
+      role="img"
+      aria-label="Recorded route preview; gaps remain separate"
+    >
+      {runs.map((run, i) => (
+        <polyline
+          key={i}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          points={run
+            .map(
+              ([a, b]) =>
+                `${20 + (b - minLon) * xScale * scale},${150 - (a - minLat) * scale}`,
+            )
+            .join(" ")}
+        />
+      ))}
+    </svg>
+  );
+}
+
+export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
+  const dialog = useRef(null),
+    opener = useRef(document.activeElement);
+  const [file, setFile] = useState(null),
+    [timezone, setTimezone] = useState(
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+    );
+  const [preview, setPreview] = useState(null),
+    [args, setArgs] = useState(null),
+    [runs, setRuns] = useState([]);
+  const [target, setTarget] = useState(""),
+    [name, setName] = useState(""),
+    [board, setBoard] = useState(defaultBoardId || "");
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState("");
+  useEffect(() => {
+    const el = dialog.current;
+    el.showModal();
+    return () => {
+      el.close();
+      opener.current?.focus();
+    };
+  }, []);
+  useEffect(() => {
+    if (!busy) dialog.current?.querySelector(preview ? "h2" : "input")?.focus();
+  }, [preview, busy]);
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      if (!preview) {
+        const input = await uploadArguments(file, timezone);
+        const result = await callTool("preview_fit_import", input);
+        setArgs(input);
+        setPreview(result.structuredContent);
+        setRuns(result._meta.importRoute || []);
+        setTarget(
+          result.structuredContent.candidates.length &&
+            !result.structuredContent.duplicate_session_id
+            ? "choose"
+            : "",
+        );
+      } else {
+        const result = await callTool("commit_fit_import", {
+          ...args,
+          expected_sha256: preview.sha256,
+          target_session_id: target || null,
+          board_id: board || null,
+          launch_name: name,
+        });
+        onImported(
+          result.structuredContent.session_id,
+          result.structuredContent.status,
+        );
+        onClose();
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  const s = preview?.summary;
+  return (
+    <dialog
+      ref={dialog}
+      className="session-edit-dialog import-dialog"
+      aria-labelledby="import-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!busy) onClose();
+      }}
+    >
+      <form onSubmit={submit}>
+        <div className="dialog-heading">
+          <h2 id="import-title" tabIndex={-1}>
+            Import FIT
+          </h2>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close import"
+            disabled={busy}
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        {!preview ? (
+          <>
+            <p>
+              Choose a SUP activity to preview its route and metrics before
+              saving.
+            </p>
+            <label>
+              Garmin activity
+              <input
+                autoFocus
+                type="file"
+                accept=".fit,.zip"
+                required
+                disabled={busy}
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+            </label>
+            <label>
+              Display timezone
+              <input
+                value={timezone}
+                required
+                maxLength={100}
+                disabled={busy}
+                onChange={(e) => setTimezone(e.target.value)}
+                list="import-timezones"
+              />
+            </label>
+            <datalist id="import-timezones">
+              <option value="UTC" />
+              <option value="America/Los_Angeles" />
+            </datalist>
+            <p className="caption">
+              FIT timestamps stay in UTC. The display timezone is your choice;
+              the file may not identify it. FIT or single-FIT ZIP, up to 30 MB.
+            </p>
+          </>
+        ) : (
+          <>
+            <p>
+              <strong>
+                {s.date} · {s.start}
+              </strong>{" "}
+              · {s.timezone}
+            </p>
+            <p>
+              {fmt(s.distance, 2)} mi · {durationLabel(s.active)} active ·{" "}
+              {durationLabel(s.elapsed)} elapsed
+            </p>
+            <RoutePreview runs={runs} />
+            <p>
+              {preview.record_count.toLocaleString()} records ·{" "}
+              {preview.gps_count.toLocaleString()} GPS points
+            </p>
+            <p>
+              FIT averages: {fmt(s.avgSpeed, 2)} mph · {fmt(s.avgHr)} bpm ·{" "}
+              {fmt(s.cadence)} raw cadence
+            </p>
+            <p>
+              Calculated best 5 / 10 / 20 min:{" "}
+              {s.windows.map((w) => fmt(mph(w.speed_mps), 2)).join(" / ")} mph
+            </p>
+            {s.quality.length > 0 && (
+              <details>
+                <summary>Data quality ({s.quality.length})</summary>
+                <ul>
+                  {s.quality.map((q) => (
+                    <li key={q.code}>
+                      {q.code.replaceAll("_", " ")}: {q.count}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            {preview.duplicate_session_id ? (
+              <p role="status">
+                This FIT is already stored. Open the existing session; its edits
+                stay intact.
+              </p>
+            ) : (
+              <>
+                {preview.candidates.length > 0 && (
+                  <label>
+                    Possible existing session
+                    <select
+                      value={target}
+                      onChange={(e) => setTarget(e.target.value)}
+                      disabled={busy}
+                    >
+                      <option value="choose" disabled>
+                        Choose how to import
+                      </option>
+                      <option value="">Create a separate session</option>
+                      {preview.candidates.map((c) => (
+                        <option key={c.id} value={c.id} disabled={c.has_track}>
+                          {c.date} · {c.title}
+                          {c.has_track
+                            ? " (already has a FIT)"
+                            : " — attach FIT"}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {preview.candidates.length > 0 && (
+                  <p className="caption">
+                    Similar start time and distance. Attaching keeps existing
+                    summaries, notes, name and board. Existing FIT tracks cannot
+                    be replaced.
+                  </p>
+                )}
+                {!target && (
+                  <>
+                    <label>
+                      Launch name (optional)
+                      <input
+                        value={name}
+                        maxLength={100}
+                        placeholder={s.title}
+                        onChange={(e) => setName(e.target.value)}
+                        disabled={busy}
+                      />
+                    </label>
+                    <label>
+                      Board
+                      <select
+                        value={board}
+                        onChange={(e) => setBoard(e.target.value)}
+                        disabled={busy}
+                      >
+                        <option value="">Not recorded</option>
+                        {boards.map((b) => (
+                          <option value={b.id} key={b.id}>
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {defaultBoardId && (
+                      <p className="caption">
+                        Your default board is preselected for review.
+                      </p>
+                    )}
+                  </>
+                )}
+              </>
+            )}
+            <p className="caption">
+              Calculated from recorded data with pause and gap checks. Missing
+              values are shown as —. Original files are preserved when saved.
+            </p>
+          </>
+        )}
+        {error && (
+          <p role="alert" className="dialog-error">
+            {error}
+          </p>
+        )}
+        {busy && (
+          <p role="status">
+            {preview
+              ? "Saving import…"
+              : "Validating file and calculating metrics…"}
+          </p>
+        )}
+        <div className="dialog-actions">
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          {preview && (
+            <button
+              type="button"
+              className="button secondary"
+              disabled={busy}
+              onClick={() => {
+                setPreview(null);
+                setArgs(null);
+                setFile(null);
+                setTarget("");
+                setError("");
+              }}
+            >
+              Choose another file
+            </button>
+          )}
+          <button
+            className="button primary"
+            disabled={busy || target === "choose"}
+          >
+            {preview
+              ? preview.duplicate_session_id
+                ? "Open existing session"
+                : target
+                  ? "Attach FIT"
+                  : "Import session"
+              : "Preview file"}
+          </button>
+        </div>
+      </form>
+    </dialog>
+  );
+}

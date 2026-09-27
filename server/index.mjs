@@ -68,6 +68,7 @@ export function createMcpServer(store) {
       "delete_board",
       "set_default_board",
       "assign_session_board",
+      "commit_fit_import",
     ].includes(name);
     server.registerTool(
       name,
@@ -105,7 +106,8 @@ async function readJson(req) {
   let body = "";
   for await (const chunk of req) {
     body += chunk;
-    if (body.length > 1_000_000) throw new Error("Request too large");
+    if (body.length > 40_010_000)
+      throw new Error("Request too large (30 MB file limit)");
   }
   return body ? JSON.parse(body) : {};
 }

@@ -1,11 +1,6 @@
 # next improvements
-
-- [ ] move board selection and session name adjustment to the separate dialog, that will be called via small Edit icon near the session name - we need to keep the UI light and minimalistic.
-- [ ] no need for the "Sheet summary" section - it seem to be a duplicate.
-- [ ] make a session selector a small chevron near the name of the session - this will allow the UI to remain tidy and light. It is overloaded right now.
-
 - [ ] allow to delete sessions, so i can test the uploads
-- [ ] review docs\product\llm vs app.md and add it to the documentation, architecture and principles of the app. Analyse if any adjustment of the current app need to be made. If yes - document them in todo.md.
+- [x] Integrate `docs/product/llm vs app.md` into architecture and agent principles. App-owned FIT import and deterministic interval evidence are implemented; remaining multi-session evidence, advanced features and reviewed LLM-result persistence are listed below.
 - [ ] if we have sufficient horizontal space - show the names of the sections in the left toolbar
 - [ ] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
 
@@ -18,7 +13,8 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 
 - [ ] Validate Garmin cadence/fractional cadence/stroke-count semantics across devices and against manually counted strokes before efficiency claims. The summary now shows a labelled distance-per-stroke estimate from explicit SUP FIT distance/total-stroke fields only; cadence-derived stroke counts remain deferred.
 - [ ] Validate the local 5/10/20-minute display estimates against reviewed external results; add robust GPS/spike handling, coverage reasons and source-method reconciliation. Current estimates split at pauses, invalid GPS/distance and gaps over 15 seconds.
-- [ ] Add detailed interval analytics: time-weighted HR/cadence, drift, pacing consistency, boundary confidence and methodology provenance.
+- [x] Add exact interval time-weighted speed/HR/raw cadence means and medians, coverage, distance and methodology provenance before model-visible downsampling.
+- [ ] Extend deterministic interval analytics with drift, pacing consistency and boundary confidence after defining/test-validating each method. Interval stroke distance needs a validated interval stroke counter.
 - [ ] Add condition-aware comparison only after validated wind/current/wave/board context exists. Raw last-10 trends already work; no normalization or causal fitness claim is implemented.
 - [ ] Review the SUP technique dictionary with a qualified coach. Preserve evidence requirements and confounders; do not turn watch patterns into confirmed biomechanical faults.
 - [ ] Extend goal types beyond duration-scoped speed; define evaluation windows and compatible units before adding automatic goal assessment.
@@ -34,9 +30,10 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 ## Data, imports and richer display
 
 - [ ] Add confirmed launch-point mappings and optional geographic lookup for session names. Keep source locations as unconfirmed fallbacks until specific start names are known; never change stable session IDs.
-- [ ] When arbitrary new-session imports are implemented, preselect the default board for user review. Existing sample recognition only opens a known session and must not overwrite its board.
+- [x] Preselect the default board for review in new-session imports; duplicate/attached sessions retain their existing board.
 - [ ] On a specific session page, show similar sessions and allow comparison with the top five matches. Define similarity criteria (such as duration, distance, session type and available conditions), explain why each session matches, and handle missing context before implementing ranking. This session-specific feature is deferred; the global Compare screen continues to show automatic latest-10 trends.
-- [ ] Decode arbitrary valid Garmin FIT files / one-FIT ZIPs in the app, preview their identity, match by time/distance and reject malformed/ambiguous activities. Current Import FIT recognizes only the three supplied samples by hash.
+- [x] Decode valid single-session SUP FIT / one-FIT ZIP uploads, preview identity/route/metrics, explicitly match by time/distance, retain originals and reject malformed/unsupported activities. See `docs/engineering/fit-import.md`.
+- [ ] Profile large-import decoding and histories before adding worker scheduling, streaming/chunked uploads or lazy telemetry loading; verify actual ChatGPT host file-selection/payload limits. Current limits: 30 MB and 100,000 FIT messages.
 - [ ] Map timestamped weather observations onto the timeline with coverage/age and directional changes. Current map uses the stored session wind summary; manual timed conditions already render.
 - [ ] Support precise technique evidence timing and more source-event detail when timestamps exist. Unknown-time falls/interruptions must remain untimed.
 - [ ] Expand comparison history after more sessions arrive; explicitly validate partial/null metrics and dates across locales.

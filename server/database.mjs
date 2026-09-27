@@ -83,7 +83,7 @@ export function openDatabase(path = databasePath()) {
     );
     transaction(() => {
       const version = db.prepare("PRAGMA user_version").get().user_version;
-      if (version > 1)
+      if (version > 2)
         throw new Error(
           "Database schema is newer than this app. Upgrade the app before opening it.",
         );
@@ -115,6 +115,18 @@ export function openDatabase(path = databasePath()) {
         ) STRICT;
         PRAGMA user_version = 1;
       `);
+      if (version < 2)
+        db.exec(`
+        CREATE TABLE fit_imports (
+          tenant_id TEXT NOT NULL, original_sha256 TEXT NOT NULL, fit_sha256 TEXT NOT NULL,
+          session_id TEXT NOT NULL, provenance_json TEXT NOT NULL CHECK (json_valid(provenance_json)),
+          original_bytes BLOB NOT NULL, fit_bytes BLOB NOT NULL,
+          PRIMARY KEY (tenant_id, original_sha256),
+          FOREIGN KEY (tenant_id, session_id) REFERENCES sessions(tenant_id, id)
+        ) STRICT;
+        CREATE INDEX fit_import_identity ON fit_imports(tenant_id, fit_sha256);
+        PRAGMA user_version = 2;
+      `);
     });
   } catch (error) {
     db.close();
@@ -138,6 +150,41 @@ export function openDatabase(path = databasePath()) {
     return {
       tenantId: id,
       transaction,
+      insertSession: (s, source) => {
+        db.prepare("INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?)").run(
+          id,
+          s.id,
+          s.date,
+          s.boardId,
+          s.revision,
+          encodeSession(s),
+        );
+        db.prepare("INSERT INTO session_sources VALUES (?, ?, ?)").run(
+          id,
+          s.id,
+          JSON.stringify(source),
+        );
+      },
+      saveImport: (upload, sessionId) =>
+        db
+          .prepare(
+            "INSERT OR IGNORE INTO fit_imports VALUES (?, ?, ?, ?, ?, ?, ?)",
+          )
+          .run(
+            id,
+            upload.provenance.original_sha256,
+            upload.provenance.fit_sha256,
+            sessionId,
+            JSON.stringify(upload.provenance),
+            upload.original,
+            upload.fit,
+          ),
+      findImport: (fitHash) =>
+        db
+          .prepare(
+            "SELECT session_id FROM fit_imports WHERE tenant_id = ? AND fit_sha256 = ? LIMIT 1",
+          )
+          .get(id, fitHash)?.session_id ?? null,
       get: (sessionId) =>
         decodeSession(
           db

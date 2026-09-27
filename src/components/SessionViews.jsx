@@ -146,7 +146,7 @@ function WindDigest({ session }) {
 export function SessionMap({ session, selected, onSelect, cursor }) {
   const [tileError, setTileError] = useState(false);
   const runs = useMemo(
-    () => validRuns(session.records, session.pauses, true),
+    () => validRuns(session.records, session.pauses, true, false),
     [session.records, session.pauses],
   );
   const all = runs.flat();
@@ -164,8 +164,9 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
         <MapPin size={32} />
         <h3>No track for this session</h3>
         <p>
-          Only a session summary is stored. Add its Garmin FIT file to locate
-          intervals.
+          {session.records.length
+            ? "GPS is unavailable. Recorded telemetry and calculated intervals remain available below."
+            : "Only a session summary is stored. Add its Garmin FIT file to locate intervals."}
         </p>
       </div>
     );
@@ -204,16 +205,36 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
                 style={{ zIndex: 410 }}
               >
                 <Polyline
-                  positions={segmentPoints(session.records, w.start, w.end).map(
-                    (p) => [p.latitude_deg, p.longitude_deg],
-                  )}
+                  positions={runs
+                    .filter(
+                      (r) =>
+                        r.at(-1).elapsed_s >= w.start &&
+                        r[0].elapsed_s <= w.end,
+                    )
+                    .map((r) =>
+                      segmentPoints(
+                        r,
+                        Math.max(w.start, r[0].elapsed_s),
+                        Math.min(w.end, r.at(-1).elapsed_s),
+                      ).map((p) => [p.latitude_deg, p.longitude_deg]),
+                    )}
                   pathOptions={{ color: "#fff", weight: 11, opacity: 0.9 }}
                   interactive={false}
                 />
                 <Polyline
-                  positions={segmentPoints(session.records, w.start, w.end).map(
-                    (p) => [p.latitude_deg, p.longitude_deg],
-                  )}
+                  positions={runs
+                    .filter(
+                      (r) =>
+                        r.at(-1).elapsed_s >= w.start &&
+                        r[0].elapsed_s <= w.end,
+                    )
+                    .map((r) =>
+                      segmentPoints(
+                        r,
+                        Math.max(w.start, r[0].elapsed_s),
+                        Math.min(w.end, r.at(-1).elapsed_s),
+                      ).map((p) => [p.latitude_deg, p.longitude_deg]),
+                    )}
                   pathOptions={{
                     color: WINDOW_COLORS[w.duration],
                     weight: 6,
@@ -227,7 +248,9 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
         {windows.map((w) => {
           const p = interpolate(session.records, w.start);
           return (
-            p && (
+            p &&
+            Number.isFinite(p.latitude_deg) &&
+            Number.isFinite(p.longitude_deg) && (
               <CircleMarker
                 key={w.duration}
                 center={[p.latitude_deg, p.longitude_deg]}
@@ -262,7 +285,9 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
             const w = windows.find((w) => w.duration === selected),
               p = w && interpolate(session.records, w.end);
             return (
-              p && (
+              p &&
+              Number.isFinite(p.latitude_deg) &&
+              Number.isFinite(p.longitude_deg) && (
                 <CircleMarker
                   center={[p.latitude_deg, p.longitude_deg]}
                   radius={6}
@@ -436,7 +461,7 @@ export function BestWindows({ session, selected, onSelect }) {
             </div>
             <span className="window-time">
               {w.start == null
-                ? "Track required"
+                ? "Unavailable"
                 : `${timeLabel(w.start)} – ${timeLabel(w.end)}`}
             </span>
           </button>

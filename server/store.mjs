@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { openDatabase } from "./database.mjs";
+import { decodeUpload, importMatches } from "./fit-import.mjs";
+import { analyzeTelemetry } from "../src/domain/analysis.mjs";
+import { validRuns } from "../src/domain/metrics.mjs";
 
 export function createStore({
   database,
@@ -18,16 +21,111 @@ export function createStore({
     ),
   ).issues;
   const get = repo.get;
+  function inspectImport(args) {
+    const upload = decodeUpload(args);
+    const matches = importMatches(upload.session, repo.sessions());
+    matches.duplicate_session_id =
+      repo.findImport(upload.provenance.fit_sha256) ??
+      matches.duplicate_session_id;
+    return { upload, matches };
+  }
+  function previewImport(args) {
+    const { upload, matches } = inspectImport(args);
+    const { records, ...summary } = upload.session;
+    const stride = Math.max(1, Math.ceil(records.length / 400));
+    const route = validRuns(records, upload.session.pauses, true, false)
+      .flatMap((run) =>
+        run.length < 2
+          ? []
+          : [
+              run
+                .filter(
+                  (_, i) => i === 0 || i === run.length - 1 || i % stride === 0,
+                )
+                .map((p) => [p.latitude_deg, p.longitude_deg]),
+            ],
+      )
+      .slice(0, 500);
+    return {
+      status: matches.duplicate_session_id ? "duplicate" : "preview",
+      sha256: upload.provenance.original_sha256,
+      summary,
+      record_count: records.length,
+      gps_count: records.filter((p) => p.latitude_deg !== null).length,
+      route,
+      ...matches,
+    };
+  }
+  function commitImport(args) {
+    const { upload, matches } = inspectImport(args);
+    if (args.expected_sha256 !== upload.provenance.original_sha256)
+      throw new Error("File changed since preview. Preview it again.");
+    if (matches.duplicate_session_id) {
+      repo.saveImport(upload, matches.duplicate_session_id);
+      return { status: "duplicate", session_id: matches.duplicate_session_id };
+    }
+    if (args.target_session_id) {
+      if (!matches.candidates.some((s) => s.id === args.target_session_id))
+        throw new Error(
+          "Selected session does not match this FIT's time and distance. Preview again.",
+        );
+      const target = get(args.target_session_id);
+      if (target.records.length || target.hashes?.fit_sha256)
+        throw new Error(
+          "This session already has a FIT. Existing telemetry will not be replaced.",
+        );
+      // Keep historical summaries, names, boards, annotations, goals and source
+      // provenance intact. Attach measured telemetry and derived evidence only.
+      if (
+        target.elapsed !== null &&
+        Math.abs(target.elapsed * 60 - upload.session.elapsed * 60) > 60
+      )
+        throw new Error(
+          "Historical elapsed duration differs by more than 60 s; review the session match.",
+        );
+      if (target.annotations.some((a) => a.end_s > upload.session.elapsed * 60))
+        throw new Error(
+          "Existing annotations exceed the imported duration; review the session match.",
+        );
+      for (const key of [
+        "records",
+        "pauses",
+        "windows",
+        "statistics",
+        "deterministic",
+        "deviceSummary",
+        "timerEvents",
+        "quality",
+        "hashes",
+        "startUtc",
+        "elapsed",
+      ])
+        target[key] = upload.session[key];
+      target.fitSourceRef = upload.session.sourceRef;
+      target.revision++;
+      repo.save(target);
+      repo.saveImport(upload, target.id);
+      return { status: "attached", session_id: target.id };
+    }
+    if (args.board_id !== null) requireBoard(args.board_id);
+    const session = upload.session;
+    session.boardId = args.board_id;
+    if (args.launch_name?.trim()) {
+      session.title = args.launch_name.trim();
+      session.titleSource = "athlete_reported";
+    }
+    repo.insertSession(session, { provenance: upload.provenance });
+    repo.saveImport(upload, session.id);
+    return { status: "imported", session_id: session.id };
+  }
   function dashboard() {
     const sessions = repo.sessions();
     return {
       sessions,
-      boards: repo
-        .boards()
-        .map((b) => ({
-          ...b,
-          sessionCount: sessions.filter((s) => s.boardId === b.id).length,
-        })),
+      boards: repo.boards().map((b) => ({
+        ...b,
+        sessionCount: sessions.filter((s) => s.boardId === b.id).length,
+      })),
       defaultBoardId: repo.defaultBoard(),
       issues,
       storage: "sqlite",
@@ -101,6 +199,11 @@ export function createStore({
     const { records, hashes, ...summary } = s;
     return {
       ...summary,
+      deterministic:
+        s.deterministic ??
+        (s.elapsed == null
+          ? null
+          : analyzeTelemetry(records, s.pauses, s.elapsed * 60, s.sourceRef)),
       board: s.boardId
         ? {
             ...repo.boards().find((b) => b.id === s.boardId),
@@ -215,6 +318,7 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    commitImport,
     addAnnotation,
     removeAnnotation,
     updateContext,
@@ -227,6 +331,7 @@ export function createStore({
   };
   return {
     get,
+    previewImport,
     dashboard,
     context,
     issues,

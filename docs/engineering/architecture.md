@@ -1,6 +1,6 @@
 # Prototype architecture
 
-React 19 + Vite, Leaflet for actual route geometry, Recharts for telemetry/trends, and Phosphor icons. A small Node 24+ server owns SQLite persistence and the MCP interface. Analysis stays in the conversation. See [storage and tenant boundaries](storage.md) for schema, configuration, migration, backup and deployment details.
+React 19 + Vite, Leaflet for actual route geometry, Recharts for telemetry/trends, and Phosphor icons. A small Node 24+ server owns SQLite persistence and the MCP interface. App code owns deterministic analysis; interpretation and coaching stay in the conversation. Follow [LLM versus app responsibilities](../product/llm%20vs%20app.md) and [FIT import/evidence contracts](fit-import.md). See [storage and tenant boundaries](storage.md) for schema, configuration, migration, backup and deployment details.
 
 ## Shared operations
 
@@ -10,13 +10,15 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 
 | Tool | Behavior |
 |---|---|
+| preview_fit_import | Validate user-selected FIT/ZIP and calculate a preview, without persistence |
+| commit_fit_import | Revalidate and transactionally save a reviewed import, retaining originals and tenant-scoped identity |
 | get_dashboard | Latest 10 summaries and UI data |
 | get_session_context | Source metrics, annotations, goal, technique evidence and limitations |
 | upsert_annotation | Create/edit a point or interval, validated against elapsed duration |
 | delete_annotation | Remove an explicit annotation ID |
 | update_session_context | Save athlete-provided additional context |
 | update_training_focus | Save a speed target and valid dictionary IDs as athlete reports |
-| prepare_analysis_context | Current context plus at most 120 telemetry records; no model call |
+| prepare_analysis_context | Exact deterministic interval evidence, coverage and current context plus at most 120 illustrative telemetry records; no model call |
 | upsert_board | Add a named board or rename an existing ID; reject duplicate/empty names |
 | delete_board | Remove an unused board; reject deletion while assigned |
 | set_default_board | Set/clear preferred board without rewriting historical assignments |

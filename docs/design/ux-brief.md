@@ -35,7 +35,7 @@ Wind on the map is a nearby-station observation, not a spatially measured wind f
 
 **Review:** select session → inspect summary/conditions → choose best 10 min → locate its route and charts → review evidence → inspect goal gap.
 
-**Attach detailed data:** choose FIT/ZIP → validate → preview date/time/distance and candidate session → confirm match if ambiguous → persist after validated import (new-file decoding remains deferred) → show route/chart availability. A file may have summary data without GPS; retain the useful part.
+**Attach detailed data:** choose SUP FIT/one-FIT ZIP and display timezone → validate → preview date/time/distance, route, sensor counts, quality and calculated best windows → choose an existing candidate or a separate session → review launch name/default board for new sessions → persist after revalidation → show route/chart availability. Duplicates open the existing session without changing its edits. Cancel saves nothing. A file may have summary or distance data without GPS; retain the useful part. Narrow layouts scroll inside the modal; keyboard and Escape/Cancel remain available. See [FIT import contract](../engineering/fit-import.md).
 
 **Use external analysis:** select session → show available inputs and unresolved gaps → copy the prompt → analyze externally → review result. Future versioned result ingestion will write to SQLite; no spreadsheet transfer or refresh is part of the workflow.
 

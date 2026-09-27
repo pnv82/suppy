@@ -28,7 +28,7 @@ Initial data is a small personal history. The initial history uses imperial disp
 
 No authentication, multi-user sharing, broad import compatibility, automatic weather retrieval, Garmin account sync, in-app coaching analysis, training-plan generator, or public deployment in this slice. A small local Node/MCP server persists data in SQLite for the UI and ChatGPT. Tenant-scoped keys and a trusted request-identity resolver provide the foundation for multiple users; public authenticated hosting remains future work.
 
-The initial build supports visual linking and lightweight local 5/10/20-minute distance/time estimates so their real locations are visible. These are labelled separately from stored historical results. Coaching interpretation, robust metric analysis and arbitrary new-file decoding remain deferred in `todo.md`.
+The app supports validated SUP FIT/one-FIT ZIP import and deterministic 5/10/20-minute distance/time windows, channel-weighted interval evidence and coverage. Calculated evidence stays separate from device summaries and stored historical results. Interpretation and coaching run in the external LLM; advanced sensor validation and richer analysis remain in `todo.md`. See [responsibilities](llm%20vs%20app.md) and [import contract](../engineering/fit-import.md).
 
 ## Defaults and unresolved decisions
 
@@ -41,4 +41,4 @@ The initial build supports visual linking and lightweight local 5/10/20-minute d
 
 ## Initial slice versus full feature depth
 
-The initial app has a speed target scoped to 5/10/20 minutes, self-reported dictionary selection, and recognition of the three supplied FIT/ZIP files. General metric targets, richer technique evidence editing, arbitrary FIT decoding, typed analysis-result import remain in root `todo.md`. The capability table describes the intended path without implying these deferred depths already work.
+The app has a speed target scoped to 5/10/20 minutes, self-reported dictionary selection, and validated single-session SUP FIT/ZIP import. General metric targets, richer technique evidence editing, broader activity formats and typed LLM-result import remain in root `todo.md`.
