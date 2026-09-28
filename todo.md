@@ -12,7 +12,7 @@
 - [ ] introduce a notion of the session highlight and summary. It is to be filled the the LLM from outside when it is analysing existing session.
 - [x] in session overview exchange places for heart rate and stroke distance - it is better logical grouping.
 - [x] make arrows of the direction smaller - they take to much space and obstruct the view. Ideally if they will fit into the widths of the track and will be draw a bit more frequently - right now 5min segment with default zoom usually has only one arrow.
-- [ ] let's make session selector popover riacher - show last 10 session and allow to search rest.
+- [x] let's make session selector popover riacher - show last 10 session and allow to search rest.
 - [ ] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.
 - [x] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
 - [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.

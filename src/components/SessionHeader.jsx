@@ -6,7 +6,7 @@ import {
   PencilSimple,
   X,
 } from "@phosphor-icons/react";
-import { durationLabel } from "../domain/metrics.mjs";
+import { durationLabel, latestSessions } from "../domain/metrics.mjs";
 import { fullDate, fmt } from "./SessionViews.jsx";
 
 function SessionEditDialog({
@@ -240,6 +240,9 @@ export function SessionHeader({
   onManage,
 }) {
   const [editing, setEditing] = useState(false);
+  const [search, setSearch] = useState("");
+  const query = search.trim().toLocaleLowerCase();
+  const choices = query ? sessions.filter(s => `${s.title} ${s.location} ${s.date} ${fullDate(s.date)} ${s.id}`.toLocaleLowerCase().includes(query)) : latestSessions(sessions);
   const editTrigger = useRef(null);
   const picker = useRef(null);
   const index = sessions.findIndex((s) => s.id === session.id);
@@ -263,7 +266,10 @@ export function SessionHeader({
                 <CaretDown size={20} />
               </summary>
               <div className="session-picker-popover" aria-label="Sessions">
-                {sessions.map((s) => (
+                <label className="session-search">Search all sessions<input type="search" value={search} onChange={e => setSearch(e.target.value)} placeholder="Launch, date or session ID" /></label>
+                <p className="caption" role="status">{query ? `${choices.length} matching sessions` : `Latest ${choices.length} of ${sessions.length} sessions`}</p>
+                {!choices.length && <p>No matching sessions.</p>}
+                {choices.map((s) => (
                   <button
                     key={s.id}
                     aria-current={s.id === session.id ? "true" : undefined}

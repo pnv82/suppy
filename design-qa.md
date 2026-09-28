@@ -271,3 +271,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Interval selection: actual clicks at 3:20 then Shift-click at 8:40 produced 3:20–8:40. Keyboard Home/Enter/Shift+Right/Shift+Enter produced 0:00–0:10. Phone Point mode hides End. Build passed. Map point distinction inspected visually (SVG class queries are not available through the browser DOM projection).
 - HR/DPS swap: checked populated inspector at desktop and summary-only null values at 390 px, without horizontal overflow. Build passed.
 - Travel arrows: selected 5 min by keyboard, verified multiple arrows on phone, desktop and after zoom; width reduced to track width. Missing-GPS state remains unchanged. Build passed.
+- Picker: added eight older synthetic sessions only to next-qa.sqlite. Verified Latest 10 of 12, search finding oldest cove 0, no-match state at 390 px, and Escape. Build passed.

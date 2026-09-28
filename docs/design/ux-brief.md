@@ -115,3 +115,5 @@ Shift+Click extends the pinned point to an interval, including backwards selecti
 The current metric inspector places heart rate below speed/cadence, and estimated stroke distance in the properties list (exchanged positions). Coverage, HR quality and partial DPS labels remain visible.
 
 Best-window travel markers are now 6 px wide chevrons within the selected track, without duration badges. Up to 39 candidate positions use 14 px screen spacing; zoom reveals more arrows. The selected tile and boundary hints retain duration labels.
+
+The session picker initially lists the latest ten. Search covers the complete stored history by launch/source location, date or stable ID, including older sessions. Empty results and result counts are explicit; Escape returns focus to the picker.

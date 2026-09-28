@@ -2814,6 +2814,7 @@ td small {
   display: none;
 }
 .session-picker-popover {
+  overscroll-behavior: contain;
   position: absolute;
   z-index: 1100;
   top: 100%;
