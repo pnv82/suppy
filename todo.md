@@ -1,7 +1,7 @@
 # Next - Other
 
 - [x] add maximum speed attribute to the main page and graphs
-- [ ] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
+- [x] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
 - [ ] allow to delete sessions, so i can test the uploads
 - [ ] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
 - [ ] move additional session data into session edit dialog
