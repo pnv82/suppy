@@ -5,15 +5,18 @@ import { decodeUpload, importMatches } from "./fit-import.mjs";
 import { analyzeTelemetry, ANALYSIS_METHOD } from "../src/domain/analysis.mjs";
 import { validRuns } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
-import { launchSuggestions } from "./launch-names.mjs";
+import { launchPoint, launchSuggestions } from "./launch-names.mjs";
+import { lookupLaunchPlaces } from "./launch-lookup.mjs";
 import { longestCadenceRun } from "../src/domain/goals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
+const databaseLaunchCaches = new WeakMap();
 
 export function createStore({
   database,
   dbPath,
   tenantId = process.env.SUP_TENANT_ID || "local",
+  launchLookup = lookupLaunchPlaces,
 } = {}) {
   const owned = !database;
   database ??= openDatabase(dbPath);
@@ -37,6 +40,16 @@ export function createStore({
   const tenantCaches = databaseAnalysisCaches.get(database);
   if (!tenantCaches.has(tenantId)) tenantCaches.set(tenantId, new Map());
   const analysisCache = tenantCaches.get(tenantId);
+  if (!databaseLaunchCaches.has(database))
+    databaseLaunchCaches.set(database, new Map());
+  const launchTenants = databaseLaunchCaches.get(database);
+  if (!launchTenants.has(tenantId)) launchTenants.set(tenantId, new Map());
+  const launchCache = launchTenants.get(tenantId);
+  const launchKey = (session) => JSON.stringify(launchPoint(session));
+  const cachedLaunches = (session) => {
+    const entry = launchCache.get(launchKey(session));
+    return entry?.expires > Date.now() ? (entry.candidates ?? []) : [];
+  };
   function withMetrics(session) {
     const cadenceGoals = repo
       .goals()
@@ -412,30 +425,33 @@ export function createStore({
     if (!clean || clean.length > 100)
       throw new Error("Enter a launch name of 1–100 characters.");
     if (board_id !== null) requireBoard(board_id);
-    if (
-      launch_source_ref &&
-      !launchSuggestions(
-        get(session_id),
-        repo.sessions(),
-        launchCatalog.places,
-      ).candidates.some(
-        (c) => c.source_ref === launch_source_ref && c.name === clean,
-      )
-    )
+    const selectedLaunch = launch_source_ref
+      ? launchSuggestions(
+          get(session_id),
+          repo.sessions(),
+          launchCatalog.places,
+          cachedLaunches(get(session_id)),
+        ).candidates.find(
+          (c) => c.source_ref === launch_source_ref && c.name === clean,
+        )
+      : null;
+    if (launch_source_ref && !selectedLaunch)
       throw new Error(
         "Launch suggestion is no longer available. Search again or enter the name manually.",
       );
     changeSession(session_id, (s) => {
       if (
         s.title !== clean ||
+        selectedLaunch ||
         s.boardId !== board_id ||
         (note !== undefined && note !== s.additionalContext)
       ) {
-        if (s.title !== clean) {
+        if (s.title !== clean || selectedLaunch) {
           s.titleSource = "athlete_reported";
           s.launchNameProvenance = {
             source: "athlete_reported",
             reference: launch_source_ref ?? null,
+            evidence: selectedLaunch ?? null,
             confirmed_at_utc: new Date().toISOString(),
           };
         }
@@ -579,14 +595,57 @@ export function createStore({
   };
   return {
     get,
-    suggestLaunchName({ session_id }) {
+    async suggestLaunchName({ session_id }) {
+      const session = get(session_id),
+        start = launchPoint(session),
+        key = launchKey(session);
+      let lookup = { status: start ? "disabled" : "no_gps", candidates: [] };
+      if (start && launchLookup) {
+        let entry = launchCache.get(key);
+        if (!entry || entry.expires <= Date.now()) {
+          entry = { expires: Infinity };
+          entry.promise = Promise.resolve()
+            .then(() => launchLookup(start))
+            .then(
+              (candidates) => ({
+                candidates,
+                status: "ready",
+                expires: Date.now() + 86400000,
+              }),
+              () => ({
+                candidates: [],
+                status: "unavailable",
+                expires: Date.now() + 60000,
+              }),
+            )
+            .then((value) => {
+              Object.assign(entry, value);
+              delete entry.promise;
+              return entry;
+            });
+          launchCache.set(key, entry);
+          if (launchCache.size > 100)
+            launchCache.delete(launchCache.keys().next().value);
+        }
+        lookup = entry.promise ? await entry.promise : entry;
+        // A deleted session cannot be revived by a late provider response.
+        get(session_id);
+      }
       return {
         session_id,
         ...launchSuggestions(
-          get(session_id),
+          session,
           repo.sessions(),
           launchCatalog.places,
+          lookup.candidates,
         ),
+        lookup: {
+          status: lookup.status,
+          message:
+            lookup.status === "unavailable"
+              ? "Online lookup is temporarily unavailable. Showing local suggestions; try again in a minute."
+              : null,
+        },
         catalog: {
           scope: launchCatalog.scope,
           source: launchCatalog.source,

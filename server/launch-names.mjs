@@ -31,7 +31,7 @@ export function launchPoint(session) {
   }
   return null;
 }
-export function launchSuggestions(session, sessions, places = []) {
+export function launchSuggestions(session, sessions, places = [], online = []) {
   const start = launchPoint(session);
   if (!start)
     return {
@@ -90,6 +90,7 @@ export function launchSuggestions(session, sessions, places = []) {
   });
   const candidates = [
     ...known.sort((a, b) => a.distance_m - b.distance_m),
+    ...online,
     ...mapped.sort((a, b) => a.distance_m - b.distance_m),
   ]
     .filter((c, i, all) => all.findIndex((x) => x.name === c.name) === i)
@@ -98,6 +99,6 @@ export function launchSuggestions(session, sessions, places = []) {
     candidates,
     reason: candidates.length
       ? null
-      : "No specific launch found in the local catalog or your confirmed starts. Keep the source name or enter a confirmed launch.",
+      : "No specific nearby launch found. Keep the source name or enter a confirmed launch.",
   };
 }

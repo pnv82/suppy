@@ -104,6 +104,7 @@ export function createMcpServer(
             "upsert_goal",
           ].includes(name),
           openWorldHint: [
+            "suggest_launch_name",
             "fetch_session_weather",
             "commit_fit_import",
           ].includes(name),
@@ -112,7 +113,7 @@ export function createMcpServer(
       },
       async (args) => {
         try {
-          return dispatchTool(store, name, args, weatherService);
+          return await dispatchTool(store, name, args, weatherService);
         } catch (error) {
           return {
             isError: true,
@@ -177,7 +178,11 @@ export function createHttpServer(store, options = {}) {
               ? await options.resolveTenant(req)
               : tenantId;
             validateTenantId(identity);
-            requestStore = createStore({ database, tenantId: identity });
+            requestStore = createStore({
+              database,
+              tenantId: identity,
+              launchLookup: options.launchLookup,
+            });
           } catch {
             return json(res, 403, { error: "Tenant access denied." });
           }
@@ -209,7 +214,7 @@ export function createHttpServer(store, options = {}) {
         return json(
           res,
           200,
-          dispatchTool(requestStore, name, args, weatherService),
+          await dispatchTool(requestStore, name, args, weatherService),
         );
       }
       if (path.startsWith("/api/"))

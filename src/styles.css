@@ -2086,6 +2086,33 @@ td small {
 .session-edit-dialog .caption {
   margin: -6px 0 0;
 }
+.launch-suggestions {
+  display: grid;
+  gap: 10px;
+}
+.launch-suggestions > .text-button {
+  justify-self: start;
+}
+.launch-suggestions > div {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--pale);
+  overflow-wrap: anywhere;
+}
+.launch-suggestions > div .text-button {
+  min-height: 36px;
+  white-space: normal;
+  text-align: left;
+}
+.launch-suggestions small {
+  display: block;
+  color: var(--muted);
+}
+.launch-suggestions a:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
 .dialog-actions,
 .dialog-board-actions {
   display: flex;

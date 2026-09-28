@@ -17,7 +17,7 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 | get_session_weather | Read status and saved SI weather evidence without contacting the provider |
 | upsert_goal / delete_goal | Persist explicit SI athlete targets with tenant isolation |
 | set_session_summary | Save revision-checked external LLM highlight/summary as unreviewed interpretation |
-| suggest_launch_name | Offline candidate names near supported start GPS; no external lookup |
+| suggest_launch_name | Async OpenStreetMap lookup near supported start GPS, tenant-scoped caching, confirmed-start preference and offline fallback; see [contract](launch-names.md) |
 | recalculate_session | Refresh deterministic evidence from full stored telemetry |
 | get_dashboard | Latest 10 summaries and UI data |
 | get_session_context | Source metrics, annotations, goal, technique evidence and limitations |

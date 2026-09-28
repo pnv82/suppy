@@ -52,7 +52,7 @@ export function SessionEditDialog({
         if (event.key !== "Tab") return;
         const controls = [
           ...event.currentTarget.querySelectorAll(
-            "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)",
+            "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href]",
           ),
         ];
         const first = controls[0],
@@ -143,11 +143,14 @@ export function SessionEditDialog({
             {finding ? "Finding nearby launches…" : "Suggest nearby launch"}
           </button>
           <p className="caption">
-            Uses local names near the recorded start. Review the suggestion
-            before saving.
+            Finds named beaches, coves and launches near the recorded start.
+            Review the suggestion before saving.
           </p>
+          {suggestions?.lookup?.message && (
+            <p role="status">{suggestions.lookup.message}</p>
+          )}
           {suggestions?.reason && <p role="status">{suggestions.reason}</p>}
-          {suggestions?.candidates.map((c) => (
+          {suggestions?.candidates.map((c, index) => (
             <div key={c.source_ref}>
               <button
                 type="button"
@@ -157,10 +160,15 @@ export function SessionEditDialog({
                   setLaunchReference(c.source_ref);
                 }}
               >
-                {c.name} · {Math.round(c.distance_m)} m · use name
+                {c.name} · {Math.round(c.distance_m)} m ·{" "}
+                {index === 0 ? "suggested · " : ""}use name
               </button>
               <small>
-                {c.source === "historical_city_beach_reference" ? (
+                {c.source === "openstreetmap" ? (
+                  <a href={c.source_url} target="_blank" rel="noreferrer">
+                    OpenStreetMap · {c.kind} · nearby mapped feature
+                  </a>
+                ) : c.source === "historical_city_beach_reference" ? (
                   <a
                     href={suggestions.catalog.source_url}
                     target="_blank"
@@ -174,9 +182,27 @@ export function SessionEditDialog({
               </small>
             </div>
           ))}
-          {suggestions?.catalog && (
+          {suggestions?.candidates.some(
+            (c) => c.source === "historical_city_beach_reference",
+          ) && (
             <p className="caption">
               {suggestions.catalog.scope}. {suggestions.catalog.limitations}
+            </p>
+          )}
+          {suggestions?.candidates.some(
+            (c) => c.source === "openstreetmap",
+          ) && (
+            <p className="caption">
+              Map data ©{" "}
+              <a
+                href="https://www.openstreetmap.org/copyright"
+                target="_blank"
+                rel="noreferrer"
+              >
+                OpenStreetMap contributors
+              </a>
+              . Distance is to the mapped point or boundary, not proof of the
+              exact launch.
             </p>
           )}
         </div>

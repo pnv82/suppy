@@ -55,13 +55,13 @@ test("offline launch candidates use supported starts, never finishes or generic 
     0,
   );
 });
-test("launch suggestions respect tenant identity and preserve selected naming provenance", (t) => {
+test("launch suggestions respect tenant identity and preserve selected naming provenance", async (t) => {
   const store = testStore(t),
     s = store.dashboard().sessions[0];
   const before = structuredClone(store.get(s.id));
-  executeTool(store, "suggest_launch_name", { session_id: s.id });
+  await executeTool(store, "suggest_launch_name", { session_id: s.id });
   assert.deepEqual(store.get(s.id), before);
-  assert.throws(() =>
+  await assert.rejects(() =>
     executeTool(store, "suggest_launch_name", { session_id: "foreign" }),
   );
   executeTool(store, "update_session_details", {

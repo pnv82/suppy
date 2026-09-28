@@ -9,7 +9,7 @@
 - Automatic latest-10 trends; four current sessions, eight parameter choices.
 - Home now uses the comparison view, with newest-first session rows and phone cards.
 - Only the selected best-window route, arrows and boundaries appear on the map. Full route, current point and all annotation markers remain visible.
-- Documented start/launch-point naming; automatic geographic naming remains deferred.
+- Start/launch-point naming with on-demand OpenStreetMap lookup, source-labelled suggestions and explicit confirmation; see [launch lookup](launch-names.md).
 - Persistent board list, default preference and per-session assignments, shared through REST/MCP and analysis context.
 - Timed note create/edit/delete, extra context, speed targets and technique dictionary selection.
 - Shared local REST/MCP operations and embedded ChatGPT UI resource.

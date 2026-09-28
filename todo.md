@@ -62,7 +62,7 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 
 ## Data, imports and richer display
 
-- [ ] Expand offline launch catalog coverage beyond the six historical Mission Bay beach references. Nearby athlete-confirmed starts and local suggestions are implemented; live geographic lookup remains outside this slice. Keep unconfirmed fallbacks and stable session IDs.
+- [ ] Optionally expand the offline launch catalog beyond six historical Mission Bay references. On-demand OpenStreetMap lookup and nearby athlete-confirmed starts are implemented; keep unconfirmed fallbacks and stable session IDs. Review provider hosting before public deployment.
 - [x] Preselect the default board for review in new-session imports; duplicate/attached sessions retain their existing board.
 - [ ] On a specific session page, show similar sessions and allow comparison with the top five matches. Define similarity criteria (such as duration, distance, session type and available conditions), explain why each session matches, and handle missing context before implementing ranking. This session-specific feature is deferred; the global Compare screen continues to show automatic latest-10 trends.
 - [x] Decode valid single-session SUP FIT / one-FIT ZIP uploads, preview identity/route/metrics, explicitly match by time/distance, retain originals and reject malformed/unsupported activities. See `docs/engineering/fit-import.md`.

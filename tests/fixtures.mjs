@@ -83,7 +83,7 @@ export function testStore(t) {
   const database = openDatabase(":memory:");
   database.createTenant("test");
   database.importState("test", fixtureState());
-  const store = createStore({ database, tenantId: "test" });
+  const store = createStore({ database, tenantId: "test", launchLookup: null });
   t?.after(() => database.close());
   return store;
 }

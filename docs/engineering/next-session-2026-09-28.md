@@ -1,5 +1,7 @@
 # Next tasks delivery — 2026-09-28
 
+Follow-up: the offline-only naming decision below was superseded after the user explicitly approved the Overpass endpoint. See the implemented [online lookup contract](launch-names.md). The remainder of this report records the original delivery.
+
 Completed the 20 previously open items in the two **Next** sections of `todo.md`, with one commit per item (`c4e736b` through `a26d4d5`). Five items were already implemented: training-focus removal, deletion/re-import, interval tile values, context editing, and removal of the Home summary strip. Those received verification and documentation commits. The previously checked architecture item was retained. Deferred work was not promoted into this session.
 
 Home now places trends above the grid, exposes maximum speed, change arrows, session actions and applicable goal lines. Sessions have independent hover and selected markers, point/interval annotations, smaller route arrows, full-history picker search, external summaries and launch suggestions. The app is branded Suppy, with a favicon, wide-screen navigation labels, a Goals section and a redesigned import dialog.
