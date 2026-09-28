@@ -113,3 +113,5 @@ Chart selection now persists independently of the hover/keyboard cursor. Click/E
 Shift+Click extends the pinned point to an interval, including backwards selection. Shift+Enter/Space is the keyboard equivalent. The Annotate action prefills sorted bounds. The editor offers explicit Point/Interval modes and editable bounds for touch users; point mode saves equal start/end timestamps.
 
 The current metric inspector places heart rate below speed/cadence, and estimated stroke distance in the properties list (exchanged positions). Coverage, HR quality and partial DPS labels remain visible.
+
+Best-window travel markers are now 6 px wide chevrons within the selected track, without duration badges. Up to 39 candidate positions use 14 px screen spacing; zoom reveals more arrows. The selected tile and boundary hints retain duration labels.

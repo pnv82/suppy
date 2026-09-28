@@ -429,7 +429,7 @@ function TravelArrows({ session, selected }) {
     );
     const accepted = [];
     for (const w of candidates) {
-      const fractions = [0.15, 0.32, 0.5, 0.68, 0.85];
+      const fractions = Array.from({ length: 39 }, (_, i) => (i + 1) / 40);
       for (const p of segmentDirections(
         session.records,
         w,
@@ -437,7 +437,7 @@ function TravelArrows({ session, selected }) {
         fractions,
       )) {
         const pixel = map.project([p.latitude_deg, p.longitude_deg], zoom);
-        if (accepted.some((a) => a.pixel.distanceTo(pixel) < 38)) continue;
+        if (accepted.some((a) => a.pixel.distanceTo(pixel) < 14)) continue;
         accepted.push({ ...p, duration: w.duration, pixel });
       }
     }
@@ -453,9 +453,9 @@ function TravelArrows({ session, selected }) {
         keyboard={false}
         icon={divIcon({
           className: "travel-marker",
-          iconSize: [30, 42],
-          iconAnchor: [15, 15],
-          html: `<span class="travel-symbol" role="img" aria-label="${label}" style="color:${WINDOW_COLORS[p.duration]}"><svg viewBox="0 0 30 30" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M15 3 L25 24 L15 19 L5 24 Z" fill="currentColor" stroke="white" stroke-width="2.5" stroke-linejoin="round"/></svg><b>${p.duration / 60}m</b></span>`,
+          iconSize: [6, 10],
+          iconAnchor: [3, 5],
+          html: `<span class="travel-symbol" role="img" aria-label="${label}"><svg viewBox="0 0 6 10" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M3 1 L5.5 8 L3 6 L0.5 8 Z" fill="white" stroke="${WINDOW_COLORS[p.duration]}" stroke-width="0.6" stroke-linejoin="round"/></svg></span>`,
         })}
       />
     );
