@@ -64,6 +64,7 @@ export function createMcpServer(
   );
   for (const name of Object.keys(toolSchemas)) {
     const readOnly = ![
+      "set_session_summary",
       "upsert_annotation",
       "delete_annotation",
       "delete_session",

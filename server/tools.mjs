@@ -11,6 +11,21 @@ const uploadFields = {
 };
 
 export const toolSchemas = {
+  set_session_summary: z.object({
+    session_id: z.string(),
+    expected_revision: z.number().int().nonnegative(),
+    analysis: z
+      .object({
+        schema_version: z.literal("1"),
+        highlight: z.string().trim().min(1).max(160),
+        summary: z.string().trim().min(1).max(4000),
+        model: z.string().trim().min(1).max(120),
+        generated_at_utc: z.iso.datetime(),
+        evidence_refs: z.array(z.string().min(1).max(120)).min(1).max(20),
+      })
+      .strict()
+      .nullable(),
+  }),
   set_session_wind: z.object({
     session_id: z.string(),
     wind: z
@@ -90,6 +105,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  set_session_summary:
+    "Save an external LLM's session highlight and summary after analysis, or clear with analysis:null. Read current session context first and supply expected_revision. Requires schema_version:'1', model, UTC generation time and existing evidence refs ('session', 'best:300/600/1200', or 'annotation:<id>'). Stored as an unreviewed LLM interpretation, never measurements or confirmed technique faults. Do not write without the user's request to save an analysis.",
   recalculate_session:
     "Recompute deterministic evidence from the session's full stored telemetry using the current method. Retains original FIT bytes, source summaries and user edits; does not decode uploads again or run an LLM.",
   delete_session:
@@ -134,6 +151,7 @@ export function executeTool(store, name, input) {
   const args = toolSchemas[name].parse(input);
   let result;
   let importRoute;
+  if (name === "set_session_summary") result = store.setSessionSummary(args);
   if (name === "delete_session") result = store.deleteSession(args);
   if (name === "recalculate_session") result = store.recalculateSession(args);
   if (name === "set_session_wind") result = store.updateWind(args);

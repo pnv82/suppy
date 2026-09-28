@@ -3327,3 +3327,5 @@ td small {
 .session-actions-menu button:hover { background:#eaf3f5; }
 .session-actions-menu button:last-child { color:#a12f42; }
 .metrics-session-list .table-scroll { overflow:visible; }
+
+.summary-prose { white-space:pre-wrap; overflow-wrap:anywhere; }

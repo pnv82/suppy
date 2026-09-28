@@ -5,7 +5,9 @@ import {
   CaretRight,
   PencilSimple,
   X,
+  Sparkle,
 } from "@phosphor-icons/react";
+import { EvidenceDialog } from "./MetricEvidence.jsx";
 import { durationLabel, latestSessions } from "../domain/metrics.mjs";
 import { fullDate, fmt } from "./SessionViews.jsx";
 
@@ -241,6 +243,7 @@ export function SessionHeader({
   onManage,
 }) {
   const [editing, setEditing] = useState(false);
+  const [summaryOpen, setSummaryOpen] = useState(false);
   const [search, setSearch] = useState("");
   const query = search.trim().toLocaleLowerCase();
   const choices = query
@@ -259,6 +262,17 @@ export function SessionHeader({
         <div>
           <div className="session-title-row">
             <h1>{session.title}</h1>
+            <button
+              className="icon-button"
+              aria-label="Session highlight and summary"
+              title="Session highlight and summary"
+              onClick={() => setSummaryOpen(true)}
+            >
+              <Sparkle
+                size={19}
+                weight={session.llmSummary ? "fill" : "regular"}
+              />
+            </button>
             <details
               className="session-picker"
               ref={picker}
@@ -362,6 +376,41 @@ export function SessionHeader({
             onManage();
           }}
         />
+      )}
+      {summaryOpen && (
+        <EvidenceDialog
+          title="Session highlight and summary"
+          onClose={() => setSummaryOpen(false)}
+        >
+          {session.llmSummary ? (
+            <>
+              <p className="eyebrow">
+                LLM interpretation · unreviewed
+                {session.llmSummary.stale ? " · OUT OF DATE" : ""}
+              </p>
+              <h3>{session.llmSummary.highlight}</h3>
+              <p className="summary-prose">{session.llmSummary.summary}</p>
+              {session.llmSummary.stale && (
+                <p role="status">
+                  Session context has changed since this analysis. Ask ChatGPT
+                  to review the latest evidence.
+                </p>
+              )}
+              <p className="caption">
+                {session.llmSummary.model} ·{" "}
+                {session.llmSummary.generated_at_utc}
+              </p>
+              <p className="caption">
+                Evidence: {session.llmSummary.evidence_refs.join(", ")}
+              </p>
+            </>
+          ) : (
+            <p>
+              No analysis saved yet. Ask ChatGPT to analyze this session and
+              save a highlight and summary through Suppy.
+            </p>
+          )}
+        </EvidenceDialog>
       )}
     </>
   );

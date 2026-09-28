@@ -30,6 +30,15 @@ export function createStore({
   if (!tenantCaches.has(tenantId)) tenantCaches.set(tenantId, new Map());
   const analysisCache = tenantCaches.get(tenantId);
   function withMetrics(session) {
+    session = {
+      ...session,
+      llmSummary: session.llmSummary
+        ? {
+            ...session.llmSummary,
+            stale: session.llmSummary.context_revision !== session.revision,
+          }
+        : null,
+    };
     if (!Number.isFinite(session.elapsed))
       return {
         ...session,
@@ -387,6 +396,36 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    setSessionSummary({ session_id, expected_revision, analysis }) {
+      return changeSession(session_id, (s) => {
+        if (s.revision !== expected_revision)
+          throw new Error(
+            "Session changed. Read fresh context before saving a summary.",
+          );
+        const refs = new Set([
+          "session",
+          ...withMetrics(s)
+            .windows.filter((w) => w.start != null)
+            .map((w) => `best:${w.duration}`),
+          ...s.annotations.map((a) => `annotation:${a.id}`),
+        ]);
+        if (analysis?.evidence_refs.some((ref) => !refs.has(ref)))
+          throw new Error(
+            "Summary evidence reference is unavailable in this session.",
+          );
+        s.revision++;
+        s.llmSummary = analysis
+          ? {
+              ...analysis,
+              source: "llm",
+              review_status: "unreviewed",
+              context_revision: s.revision,
+              saved_at_utc: new Date().toISOString(),
+            }
+          : null;
+        return s.llmSummary;
+      });
+    },
     deleteSession({ session_id }) {
       repo.deleteSession(session_id);
       return { deleted: session_id };
