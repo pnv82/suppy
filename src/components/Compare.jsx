@@ -68,6 +68,74 @@ export function Compare({ sessions, boards = [], onOpen }) {
           </button>
         </div>
       </div>
+      <section className="trend-panel compact-metric-trend">
+        <div className="section-heading">
+          <div>
+            <h2>{title} over time</h2>
+            <p>
+              {metric === "maxSpeed"
+                ? "Whole-session maximum"
+                : basis === "best20"
+                  ? "Best 20 min"
+                  : "Whole session"}{" "}
+              · chronological · derived telemetry
+            </p>
+          </div>
+          <label className="inline-label">
+            Metric
+            <select
+              aria-label="Comparison parameter"
+              value={metric}
+              onChange={(e) => setMetric(e.target.value)}
+            >
+              {Object.entries(options).map(([key, [label]]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="compare-chart">
+          <ResponsiveContainer width="100%" height={210} minWidth={0}>
+            <LineChart
+              data={[...newest].reverse()}
+              margin={{ top: 20, right: 24, bottom: 8, left: 0 }}
+            >
+              <CartesianGrid vertical={false} stroke="#e8edf1" />
+              <XAxis
+                dataKey="dateLabel"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "#63788d" }}
+              />
+              <YAxis
+                width={70}
+                domain={metric === "zigzag" ? [0, 100] : ["auto", "auto"]}
+                tickFormatter={(v) => fmt(v, dp)}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 12, fill: "#63788d" }}
+              />
+              <Line
+                type="linear"
+                dataKey={metric}
+                stroke={color}
+                strokeWidth={2}
+                dot={{ r: 4, fill: "white" }}
+                connectNulls={false}
+                isAnimationActive={false}
+              />
+              <Tooltip formatter={(v) => [fmt(v, dp) + " " + unit, title]} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="caption">
+          {unit} · Conditions, boards and coverage vary. These descriptive
+          trends do not establish improved fitness or technique. Zig-zag: higher
+          means a straighter eligible recorded path.
+        </p>
+      </section>
       <section className="sessions-table-section metrics-session-list">
         <div className="section-heading">
           <h2>
@@ -189,74 +257,6 @@ export function Compare({ sessions, boards = [], onOpen }) {
             No sessions available in your stored data.
           </p>
         )}
-      </section>
-      <section className="trend-panel compact-metric-trend">
-        <div className="section-heading">
-          <div>
-            <h2>{title} over time</h2>
-            <p>
-              {metric === "maxSpeed"
-                ? "Whole-session maximum"
-                : basis === "best20"
-                  ? "Best 20 min"
-                  : "Whole session"}{" "}
-              · chronological · derived telemetry
-            </p>
-          </div>
-          <label className="inline-label">
-            Metric
-            <select
-              aria-label="Comparison parameter"
-              value={metric}
-              onChange={(e) => setMetric(e.target.value)}
-            >
-              {Object.entries(options).map(([key, [label]]) => (
-                <option key={key} value={key}>
-                  {label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="compare-chart">
-          <ResponsiveContainer width="100%" height={210} minWidth={0}>
-            <LineChart
-              data={[...newest].reverse()}
-              margin={{ top: 20, right: 24, bottom: 8, left: 0 }}
-            >
-              <CartesianGrid vertical={false} stroke="#e8edf1" />
-              <XAxis
-                dataKey="dateLabel"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#63788d" }}
-              />
-              <YAxis
-                width={70}
-                domain={metric === "zigzag" ? [0, 100] : ["auto", "auto"]}
-                tickFormatter={(v) => fmt(v, dp)}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#63788d" }}
-              />
-              <Line
-                type="linear"
-                dataKey={metric}
-                stroke={color}
-                strokeWidth={2}
-                dot={{ r: 4, fill: "white" }}
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-              <Tooltip formatter={(v) => [fmt(v, dp) + " " + unit, title]} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <p className="caption">
-          {unit} · Conditions, boards and coverage vary. These descriptive
-          trends do not establish improved fitness or technique. Zig-zag: higher
-          means a straighter eligible recorded path.
-        </p>
       </section>
       {details && (
         <MetricDetails

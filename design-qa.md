@@ -273,3 +273,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Travel arrows: selected 5 min by keyboard, verified multiple arrows on phone, desktop and after zoom; width reduced to track width. Missing-GPS state remains unchanged. Build passed.
 - Picker: added eight older synthetic sessions only to next-qa.sqlite. Verified Latest 10 of 12, search finding oldest cove 0, no-match state at 390 px, and Escape. Build passed.
 - Home summaries strip: already absent in current implementation. Verified only the page heading, trends and session grid remain; retained the explicit available-session count and per-session values.
+- Home graph order: browser headings now Recent sessions, Speed over time, Best 20-minute metrics at phone and desktop widths. Build passed.
