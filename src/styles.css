@@ -3343,6 +3343,70 @@ td small {
 
 @media(max-width:600px){.metrics-inspector .text-button,.metric-scope button,.performance-actions .text-button,.track-label select,.evidence-dialog .icon-button,.clean-metrics-table td:last-child .text-button{min-height:44px;}.evidence-dialog .icon-button{min-width:44px;}}
 
+/* Saved intervals share the existing tile strip; additional tiles scroll sideways. */
+.interval-tile {
+  position: relative;
+  min-width: 0;
+  display: flex;
+}
+.interval-tile .window-button {
+  width: 100%;
+}
+.app-workspace .best-window-bar .window-list.has-custom-intervals {
+  grid-template-columns: none;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(230px, calc((100% - 16px) / 3));
+  overflow-x: auto;
+  padding: 3px;
+}
+.best-window-bar .window-button {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+}
+.window-zigzag,
+.custom-interval-bounds {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.window-zigzag {
+  white-space: nowrap;
+}
+.custom-interval-tile .window-button {
+  padding-right: 42px;
+}
+.custom-interval-remove {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  min-width: 36px;
+  min-height: 36px;
+}
+.window-list.has-custom-intervals:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+@media (max-width: 600px) {
+  .custom-interval-remove {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  .custom-interval-tile .window-button {
+    padding-right: 46px;
+  }
+  .window-zigzag {
+    font-size: 10px;
+  }
+  .app-workspace .has-custom-intervals .window-button > div {
+    flex-direction: row;
+  }
+  .app-workspace .has-custom-intervals .window-time {
+    flex-direction: row;
+    padding-left: 0;
+  }
+}
+
 .metric-change { display:inline-flex; vertical-align:middle; margin-left:3px; }
 .metric-change.increase { color:#197b53; }
 .metric-change.decrease { color:#b13c4b; }

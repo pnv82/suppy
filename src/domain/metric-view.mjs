@@ -1,9 +1,11 @@
-// Shared display selection: never substitute a session value for a missing best effort.
+import { intervalKey, reviewIntervals } from "./intervals.mjs";
+
+// Shared display selection: never substitute a session value for a missing interval.
 export function metricView(session, duration = null) {
   const window =
     duration == null
       ? null
-      : session.windows?.find((w) => w.duration === duration);
+      : reviewIntervals(session).find((w) => intervalKey(w) === duration);
   const evidence =
     duration == null ? session.deterministic?.summary : window?.statistics;
   const pair = evidence?.speed_cadence;

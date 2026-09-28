@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Waves,
   X,
@@ -9,6 +9,7 @@ import {
   ArrowClockwise,
 } from "@phosphor-icons/react";
 import { timeLabel, validRuns } from "./domain/metrics.mjs";
+import { customIntervalEvidence, intervalKey } from "./domain/intervals.mjs";
 import { ImportDialog } from "./components/ImportDialog.jsx";
 import {
   connect,
@@ -126,6 +127,27 @@ export function App() {
       });
     }
   }, [Boolean(draft)]);
+  const manualInterval = useMemo(
+    () =>
+      session && spot != null && rangeEnd != null && spot !== rangeEnd
+        ? customIntervalEvidence(
+            {
+              id: "manual",
+              start: Math.min(spot, rangeEnd),
+              end: Math.max(spot, rangeEnd),
+            },
+            session.records,
+            session.pauses,
+          )
+        : null,
+    [session?.records, session?.pauses, spot, rangeEnd],
+  );
+  const reviewSession = manualInterval
+    ? {
+        ...session,
+        customIntervals: [...(session.customIntervals || []), manualInterval],
+      }
+    : session;
   const perform = async (action) => {
     setBusy(true);
     setError("");
@@ -150,8 +172,12 @@ export function App() {
       return;
     }
     if (w.start == null) return;
-    setSelected(w.duration);
+    setSelected(intervalKey(w));
     setCursor(w.start);
+    if (w.id !== "manual") {
+      setSpot(null);
+      setRangeEnd(null);
+    }
   };
   const openSession = (id) => {
     navigate({ sessionId: id, page: "Sessions" });
@@ -295,7 +321,7 @@ export function App() {
               <div className="session-overview">
                 <div className="route-layout">
                   <SessionMap
-                    session={session}
+                    session={reviewSession}
                     selected={selected}
                     onSelect={chooseWindow}
                     cursor={cursor}
@@ -305,11 +331,23 @@ export function App() {
                     session={session}
                     selected={selected}
                     onSelect={chooseWindow}
+                    busy={busy}
+                    onRemove={(interval) =>
+                      perform(async () => {
+                        await callTool("delete_custom_interval", {
+                          session_id: session.id,
+                          interval_id: interval.id,
+                        });
+                        if (selected === interval.id) setSelected(null);
+                        notice("Custom interval removed.");
+                        return true;
+                      })
+                    }
                   />
                 </div>
                 <MetricsInspector
                   key={session.id}
-                  session={session}
+                  session={reviewSession}
                   selected={selected}
                   onSelect={chooseWindow}
                   onAsk={(interval) =>
@@ -323,7 +361,7 @@ export function App() {
                 />
               </div>
               <Timeline
-                session={session}
+                session={reviewSession}
                 selected={selected}
                 cursor={cursor}
                 spot={spot}
@@ -331,6 +369,23 @@ export function App() {
                 rangeEnd={rangeEnd}
                 setRangeEnd={setRangeEnd}
                 setCursor={setCursor}
+                onManualSelection={(hasRange) =>
+                  setSelected(hasRange ? "manual" : null)
+                }
+                busy={busy}
+                onAddInterval={() =>
+                  perform(async () => {
+                    if (!manualInterval) return false;
+                    const result = await callTool("add_custom_interval", {
+                      session_id: session.id,
+                      start_s: manualInterval.start,
+                      end_s: manualInterval.end,
+                    });
+                    chooseWindow(result.structuredContent);
+                    notice("Custom interval saved.");
+                    return true;
+                  })
+                }
                 onAnnotate={annotate}
                 onEdit={editAnnotation}
               />

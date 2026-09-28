@@ -64,6 +64,8 @@ export function createMcpServer(
   );
   for (const name of Object.keys(toolSchemas)) {
     const readOnly = ![
+      "add_custom_interval",
+      "delete_custom_interval",
       "upsert_goal",
       "delete_goal",
       "set_session_summary",
@@ -93,6 +95,7 @@ export function createMcpServer(
         annotations: {
           readOnlyHint: readOnly,
           destructiveHint: [
+            "delete_custom_interval",
             "delete_goal",
             "delete_annotation",
             "delete_board",

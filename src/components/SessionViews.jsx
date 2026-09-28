@@ -1,5 +1,12 @@
 import { ensureWindowStatistics } from "../domain/analysis.mjs";
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  intervalKey,
+  intervalColor,
+  intervalTitle,
+  reviewIntervals,
+  pointInRuns,
+} from "../domain/intervals.mjs";
 import {
   ArrowUp,
   Wind,
@@ -8,6 +15,7 @@ import {
   NotePencil,
   MapPin,
   Diamond,
+  X,
 } from "@phosphor-icons/react";
 import {
   MapContainer,
@@ -37,7 +45,6 @@ import "leaflet/dist/leaflet.css";
 import { WeatherPanel } from "./WeatherPanel.jsx";
 import { DriftDetails } from "./MetricEvidence.jsx";
 import {
-  WINDOW_COLORS,
   mph,
   feet,
   durationLabel,
@@ -163,8 +170,8 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
           (run) => spot >= run[0].elapsed_s && spot <= run.at(-1).elapsed_s,
         );
   const selectedMarker = spotRun ? interpolate(spotRun, spot) : null;
-  const windows = session.windows.filter(
-    (w) => w.start != null && w.duration === selected,
+  const windows = reviewIntervals(session).filter(
+    (w) => w.start != null && intervalKey(w) === selected,
   );
   if (!all.length)
     return (
@@ -186,7 +193,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
         zoom={13}
         scrollWheelZoom={false}
         className="route-map"
-        aria-label="GPS track with the selected best interval and annotations"
+        aria-label="GPS track with the selected interval and annotations"
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -206,7 +213,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
         ))}
         {selected &&
           windows
-            .filter((w) => w.duration === selected)
+            .filter((w) => intervalKey(w) === selected)
             .map((w) => (
               <Pane
                 name={`selected-window-${session.id}-${selected}`}
@@ -245,7 +252,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
                       ).map((p) => [p.latitude_deg, p.longitude_deg]),
                     )}
                   pathOptions={{
-                    color: WINDOW_COLORS[w.duration],
+                    color: intervalColor(w),
                     weight: 6,
                     opacity: 1,
                   }}
@@ -255,17 +262,17 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
             ))}
         <TravelArrows session={session} selected={selected} />
         {windows.map((w) => {
-          const p = interpolate(session.records, w.start);
+          const p = pointInRuns(runs, w.start);
           return (
             p &&
             Number.isFinite(p.latitude_deg) &&
             Number.isFinite(p.longitude_deg) && (
               <CircleMarker
-                key={w.duration}
+                key={intervalKey(w)}
                 center={[p.latitude_deg, p.longitude_deg]}
                 radius={5}
                 pathOptions={{
-                  color: WINDOW_COLORS[w.duration],
+                  color: intervalColor(w),
                   fillColor: "#fff",
                   fillOpacity: 1,
                   weight: 3,
@@ -283,7 +290,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
                   className={`interval-map-label interval-${w.duration}`}
                   offset={[0, w.duration === 1200 ? -8 : 0]}
                 >
-                  {w.duration / 60} min start · {timeLabel(w.start)}
+                  {intervalTitle(w)} start · {timeLabel(w.start)}
                 </MapTooltip>
               </CircleMarker>
             )
@@ -291,8 +298,8 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
         })}
         {selected &&
           (() => {
-            const w = windows.find((w) => w.duration === selected),
-              p = w && interpolate(session.records, w.end);
+            const w = windows.find((w) => intervalKey(w) === selected),
+              p = w && pointInRuns(runs, w.end);
             return (
               p &&
               Number.isFinite(p.latitude_deg) &&
@@ -301,13 +308,13 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
                   center={[p.latitude_deg, p.longitude_deg]}
                   radius={6}
                   pathOptions={{
-                    color: WINDOW_COLORS[selected],
-                    fillColor: WINDOW_COLORS[selected],
+                    color: intervalColor(w),
+                    fillColor: intervalColor(w),
                     fillOpacity: 1,
                   }}
                 >
                   <MapTooltip direction="bottom">
-                    {selected / 60} min end · {timeLabel(w.end)}
+                    {intervalTitle(w)} end · {timeLabel(w.end)}
                   </MapTooltip>
                 </CircleMarker>
               )
@@ -424,8 +431,8 @@ function TravelArrows({ session, selected }) {
   const [zoom, setZoom] = useState(map.getZoom());
   useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
   const arrows = useMemo(() => {
-    const candidates = session.windows.filter(
-      (w) => w.start != null && selected === w.duration,
+    const candidates = reviewIntervals(session).filter(
+      (w) => w.start != null && selected === intervalKey(w),
     );
     const accepted = [];
     for (const w of candidates) {
@@ -438,16 +445,24 @@ function TravelArrows({ session, selected }) {
       )) {
         const pixel = map.project([p.latitude_deg, p.longitude_deg], zoom);
         if (accepted.some((a) => a.pixel.distanceTo(pixel) < 14)) continue;
-        accepted.push({ ...p, duration: w.duration, pixel });
+        accepted.push({ ...p, interval: w, pixel });
       }
     }
     return accepted;
-  }, [map, zoom, session.records, session.pauses, session.windows, selected]);
+  }, [
+    map,
+    zoom,
+    session.records,
+    session.pauses,
+    session.windows,
+    session.customIntervals,
+    selected,
+  ]);
   return arrows.map((p) => {
-    const label = `${p.duration / 60} min travel ${bearing(p.bearing_deg)} at ${timeLabel(p.elapsed_s)}`;
+    const label = `${intervalTitle(p.interval)} travel ${bearing(p.bearing_deg)} at ${timeLabel(p.elapsed_s)}`;
     return (
       <Marker
-        key={`${p.duration}-${p.elapsed_s}`}
+        key={`${intervalKey(p.interval)}-${p.elapsed_s}`}
         position={[p.latitude_deg, p.longitude_deg]}
         interactive={false}
         keyboard={false}
@@ -455,76 +470,134 @@ function TravelArrows({ session, selected }) {
           className: "travel-marker",
           iconSize: [6, 10],
           iconAnchor: [3, 5],
-          html: `<span class="travel-symbol" role="img" aria-label="${label}"><svg viewBox="0 0 6 10" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M3 1 L5.5 8 L3 6 L0.5 8 Z" fill="white" stroke="${WINDOW_COLORS[p.duration]}" stroke-width="0.6" stroke-linejoin="round"/></svg></span>`,
+          html: `<span class="travel-symbol" role="img" aria-label="${label}"><svg viewBox="0 0 6 10" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M3 1 L5.5 8 L3 6 L0.5 8 Z" fill="white" stroke="${intervalColor(p.interval)}" stroke-width="0.6" stroke-linejoin="round"/></svg></span>`,
         })}
       />
     );
   });
 }
 
-export function BestWindows({ session, selected, onSelect }) {
+export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
+  const listRef = useRef(null);
+  useEffect(() => {
+    listRef.current?.querySelector(".window-button.chosen")?.scrollIntoView({
+      behavior: "instant",
+      block: "nearest",
+      inline: "nearest",
+    });
+  }, [selected, session.customIntervals]);
   const windows = useMemo(
     () =>
-      ensureWindowStatistics(session.windows, session.records, session.pauses),
-    [session.windows, session.records, session.pauses],
+      ensureWindowStatistics(
+        reviewIntervals(session),
+        session.records,
+        session.pauses,
+      ),
+    [session.windows, session.customIntervals, session.records, session.pauses],
   );
   return (
     <section
       className="best-window-bar"
-      aria-label="Best windows · local FIT estimates"
+      aria-label="Best windows and saved custom intervals · derived telemetry"
     >
-      <div className="window-list">
+      <div
+        className={`window-list ${session.customIntervals?.length ? "has-custom-intervals" : ""}`}
+        ref={listRef}
+        tabIndex={session.customIntervals?.length ? 0 : -1}
+        role="group"
+        aria-label="Interval tiles"
+      >
         {windows.map((w) => {
           const stats = w.statistics;
           const stroke = stats?.distance_per_stroke;
+          const zigzag = stats?.zigzag;
+          const zigzagDetail = `Experimental GPS straightness; higher means straighter eligible recorded sections. Eligible coverage: ${fmt(zigzag?.coverage_pct)}%. ${zigzag?.reason || ""}`;
           const detail =
             stroke?.value_m == null
               ? stroke?.reason
               : `${stroke.method === "matched_distance_cadence_integral_v1" ? "Estimated from distance and integrated cadence" : "Stored interval stroke distance"}. Coverage: ${fmt(stroke.coverage_pct, 0)}%. ${stroke.assumption || ""}`;
           return (
-            <button
-              type="button"
-              key={w.duration}
-              className={`window-button ${selected === w.duration ? "chosen" : ""}`}
-              style={{ "--interval": WINDOW_COLORS[w.duration] }}
-              onClick={() => onSelect(w)}
-              disabled={w.start == null}
-              aria-pressed={selected === w.duration}
+            <div
+              className={`interval-tile ${w.id ? "custom-interval-tile" : ""}`}
+              key={intervalKey(w)}
             >
-              <div>
-                <span className="window-dot" />
-                <strong>{w.duration / 60} min</strong>
-                <b>
-                  {fmt(mph(w.speed_mps), 2)} <small>mph</small>
-                </b>
-              </div>
-              <span
-                className="window-time"
-                title={detail}
-                aria-description={detail}
+              <button
+                type="button"
+                className={`window-button ${selected === intervalKey(w) ? "chosen" : ""}`}
+                style={{ "--interval": intervalColor(w) }}
+                onClick={() => onSelect(w)}
+                disabled={w.start == null}
+                aria-pressed={selected === intervalKey(w)}
+                aria-label={`${intervalTitle(w)}${w.start == null ? ", unavailable" : w.id ? `, duration ${timeLabel(w.duration)}` : `, ${timeLabel(w.start)}–${timeLabel(w.end)}`}`}
               >
-                <span>
-                  @{" "}
-                  {fmt(
-                    stats?.speed_cadence?.coverage_pct >= 90
-                      ? stats.speed_cadence.cadence_spm
-                      : null,
-                  )}{" "}
-                  spm
+                <div>
+                  <span className="window-dot" />
+                  <strong>{w.id ? "Custom" : `${w.duration / 60} min`}</strong>
+                  <b>
+                    {fmt(mph(w.speed_mps), 2)} <small>mph</small>
+                  </b>
+                </div>
+                {w.id && (
+                  <span className="custom-interval-bounds">
+                    {timeLabel(w.start)}–{timeLabel(w.end)}
+                  </span>
+                )}
+                <span
+                  className="window-time"
+                  title={detail}
+                  aria-description={detail}
+                >
+                  <span>
+                    @{" "}
+                    {fmt(
+                      stats?.speed_cadence?.coverage_pct >= 90
+                        ? stats.speed_cadence.cadence_spm
+                        : null,
+                    )}{" "}
+                    spm
+                  </span>
+                  <span>
+                    {fmt(stats?.distance_per_stroke?.value_m, 2)} m/stroke
+                    {stroke?.status === "cadence_estimate" &&
+                    stroke?.value_m != null
+                      ? " est."
+                      : ""}
+                    {stroke?.value_m != null &&
+                    stats?.speed_cadence?.coverage_pct < 90
+                      ? " · partial"
+                      : ""}
+                  </span>
                 </span>
-                <span>
-                  {fmt(stats?.distance_per_stroke?.value_m, 2)} m/stroke
-                  {stroke?.status === "cadence_estimate" &&
-                  stroke?.value_m != null
-                    ? " est."
-                    : ""}
-                  {stroke?.value_m != null &&
-                  stats?.speed_cadence?.coverage_pct < 90
-                    ? " · partial"
-                    : ""}
+                <span
+                  className="window-zigzag"
+                  title={zigzagDetail}
+                  aria-description={zigzagDetail}
+                >
+                  Zig-zag {fmt(zigzag?.score, 1)} / 100
+                  {zigzag?.score == null && (
+                    <span className="sr-only"> · Unavailable</span>
+                  )}
                 </span>
-              </span>
-            </button>
+              </button>
+              {w.id && (
+                <button
+                  type="button"
+                  className="custom-interval-remove icon-button"
+                  aria-label={`Remove ${intervalTitle(w)}`}
+                  disabled={busy}
+                  onClick={async () => {
+                    if (await onRemove(w))
+                      (
+                        listRef.current?.querySelector(
+                          ".window-button:not(:disabled)",
+                        ) || listRef.current
+                      )?.focus();
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
           );
         })}
       </div>
@@ -543,8 +616,15 @@ export function Timeline({
   setRangeEnd,
   onAnnotate,
   onEdit,
+  onManualSelection,
+  onAddInterval,
+  busy,
 }) {
   const [hover, setHover] = useState(null);
+  const [extending, setExtending] = useState(false);
+  useEffect(() => {
+    if (spot == null) setExtending(false);
+  }, [spot]);
   const [third, setThird] = useState("cadence");
   const [driftOpen, setDriftOpen] = useState(false);
   const rows = useMemo(() => {
@@ -561,7 +641,8 @@ export function Timeline({
   }, [session.records, session.deterministic]);
   const max = session.elapsed,
     ticks = Array.from({ length: Math.floor(max / 20) + 1 }, (_, i) => i * 20);
-  const w = session.windows.find((w) => w.duration === selected);
+  const w = reviewIntervals(session).find((w) => intervalKey(w) === selected);
+  const manualRange = spot != null && rangeEnd != null && spot !== rangeEnd;
   const current = session.pauses.some((p) => cursor > p.start && cursor < p.end)
     ? null
     : interpolate(session.records, cursor);
@@ -577,11 +658,15 @@ export function Timeline({
     if (seconds != null) setCursor(seconds);
   };
   const selectPoint = (seconds, extend) => {
-    if (extend && spot != null) setRangeEnd(seconds);
-    else {
+    if ((extend || extending) && spot != null) {
+      setRangeEnd(seconds);
+      onManualSelection(seconds !== spot);
+    } else {
       setSpot(seconds);
       setRangeEnd(null);
+      onManualSelection(false);
     }
+    setExtending(false);
   };
   const annotatePoint = (event, nativeEvent) => {
     const seconds = pointTime(event);
@@ -616,10 +701,36 @@ export function Timeline({
           {w?.start != null && (
             <span
               className="selection-caption"
-              style={{ color: WINDOW_COLORS[w.duration] }}
+              style={{ color: intervalColor(w) }}
             >
-              {w.duration / 60} min · {timeLabel(w.start)}–{timeLabel(w.end)}
+              {w.id
+                ? w.id === "manual"
+                  ? "Selected"
+                  : "Custom"
+                : `${w.duration / 60} min`}{" "}
+              · {timeLabel(w.start)}–{timeLabel(w.end)}
             </span>
+          )}
+          {manualRange && (
+            <button
+              className="text-button"
+              onClick={onAddInterval}
+              disabled={busy}
+            >
+              <Plus size={16} /> Add interval
+            </button>
+          )}
+          {spot != null && !manualRange && (
+            <button
+              className="text-button"
+              aria-pressed={extending}
+              onClick={() => setExtending(!extending)}
+            >
+              Choose interval end
+              <span className="sr-only">
+                , then click or tap a chart, or press Enter at another time
+              </span>
+            </button>
           )}
           <button className="text-button" onClick={() => setDriftOpen(true)}>
             Drift details
@@ -649,8 +760,10 @@ export function Timeline({
               onClick={() => {
                 setSpot(null);
                 setRangeEnd(null);
+                setExtending(false);
+                if (selected === "manual") onManualSelection(false);
               }}
-              aria-label="Clear selected point"
+              aria-label="Clear chart selection"
             >
               Clear selection
             </button>
@@ -660,8 +773,10 @@ export function Timeline({
       <p id="chart-keyboard-help" className="sr-only">
         Elapsed time. Arrow keys move one second, Shift + arrow ten seconds.
         Home/End jump to limits. Click or Enter selects a persistent point.
-        Shift+Click or Shift+Enter extends to an interval. Annotate uses the
-        selection; hover only moves the current position.
+        Shift+Click or Shift+Enter extends to an interval. Choose interval end
+        also makes the next chart click, tap or Enter extend the selection.
+        Annotate uses the selection; hover only moves the current position. Add
+        interval saves a non-empty selection as a reusable tile.
       </p>
       {rows.length ? (
         <div className="chart-stack">
@@ -838,9 +953,9 @@ export function Timeline({
                         <ReferenceArea
                           x1={w.start / 60}
                           x2={w.end / 60}
-                          fill={WINDOW_COLORS[w.duration]}
+                          fill={intervalColor(w)}
                           fillOpacity={0.11}
-                          stroke={WINDOW_COLORS[w.duration]}
+                          stroke={intervalColor(w)}
                           strokeDasharray="3 3"
                         />
                       )}{" "}

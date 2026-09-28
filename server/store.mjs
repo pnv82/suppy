@@ -8,6 +8,7 @@ import { presentWeather } from "../src/domain/weather.mjs";
 import { launchPoint, launchSuggestions } from "./launch-names.mjs";
 import { lookupLaunchPlaces } from "./launch-lookup.mjs";
 import { longestCadenceRun } from "../src/domain/goals.mjs";
+import { customIntervalEvidence } from "../src/domain/intervals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
 const databaseLaunchCaches = new WeakMap();
@@ -118,6 +119,9 @@ export function createStore({
       };
       cached.value.input_hash = signature;
       cached.value.context_revision = session.revision;
+      cached.customIntervals = (session.customIntervals || []).map((interval) =>
+        customIntervalEvidence(interval, session.records, session.pauses),
+      );
       analysisCache.set(session.id, cached);
       if (analysisCache.size > 30)
         analysisCache.delete(analysisCache.keys().next().value);
@@ -126,6 +130,7 @@ export function createStore({
       ...session,
       deterministic: cached.value,
       windows: cached.value.windows,
+      customIntervals: cached.customIntervals,
     };
   }
   function inspectImport(args) {
@@ -282,6 +287,48 @@ export function createStore({
       s.revision++;
     });
   }
+  function addCustomInterval({ session_id, start_s, end_s }) {
+    return changeSession(session_id, (session) => {
+      if (
+        !Number.isFinite(start_s) ||
+        !Number.isFinite(end_s) ||
+        session.elapsed == null ||
+        start_s < 0 ||
+        end_s <= start_s ||
+        end_s > session.elapsed * 60
+      )
+        throw new Error("Select a non-empty interval inside the session.");
+      if (!session.records.length)
+        throw new Error("Import recorded telemetry before saving an interval.");
+      const intervals = (session.customIntervals ??= []);
+      const existing = intervals.find(
+        (interval) => interval.start === start_s && interval.end === end_s,
+      );
+      if (existing) return existing;
+      const interval = {
+        id: randomUUID(),
+        start: start_s,
+        end: end_s,
+        source: "athlete_selected",
+        created_at_utc: new Date().toISOString(),
+      };
+      intervals.push(interval);
+      session.revision++;
+      return interval;
+    });
+  }
+  function removeCustomInterval({ session_id, interval_id }) {
+    return changeSession(session_id, (session) => {
+      const intervals = session.customIntervals || [];
+      const index = intervals.findIndex(
+        (interval) => interval.id === interval_id,
+      );
+      if (index < 0) throw new Error("Custom interval not found.");
+      intervals.splice(index, 1);
+      session.revision++;
+      return { deleted: interval_id };
+    });
+  }
   function updateContext({ session_id, note }) {
     return changeSession(session_id, (s) => {
       s.additionalContext = note;
@@ -313,6 +360,10 @@ export function createStore({
         ...w,
         statistics: compactInterval(w.statistics),
       })),
+      customIntervals: (s.customIntervals || []).map((interval) => ({
+        ...interval,
+        statistics: compactInterval(interval.statistics),
+      })),
       deterministic,
       board: s.boardId
         ? {
@@ -333,6 +384,8 @@ export function createStore({
         avgHr: "bpm",
         cadence: "spm",
         windows: "elapsed seconds and m/s",
+        customIntervals:
+          "athlete-selected elapsed seconds; derived speed in m/s",
         statistics:
           "speed_mps in m/s; heart_rate_bpm in bpm; distance_per_stroke.value_m in m/stroke; covered_s in seconds",
       },
@@ -516,6 +569,9 @@ export function createStore({
             .windows.filter((w) => w.start != null)
             .map((w) => `best:${w.duration}`),
           ...s.annotations.map((a) => `annotation:${a.id}`),
+          ...(s.customIntervals || []).map(
+            (interval) => `interval:${interval.id}`,
+          ),
         ]);
         if (analysis?.evidence_refs.some((ref) => !refs.has(ref)))
           throw new Error(
@@ -585,6 +641,8 @@ export function createStore({
     commitImport,
     addAnnotation,
     removeAnnotation,
+    addCustomInterval,
+    removeCustomInterval,
     updateContext,
     updateFocus,
     upsertBoard,

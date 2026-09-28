@@ -61,6 +61,20 @@ test("MCP handshake, UI resource, tool calls and REST share persistent tenant st
     });
     assert.equal(dashboard.structuredContent.availableCount, 4);
     const id = dashboard.structuredContent.sessions[0].id;
+    for (const name of ["add_custom_interval", "delete_custom_interval"])
+      assert.equal(tools.find((tool) => tool.name === name).annotations.readOnlyHint, false);
+    const custom = await client.callTool({
+      name: "add_custom_interval",
+      arguments: { session_id: id, start_s: 100, end_s: 400 },
+    });
+    const savedId = custom.structuredContent.id;
+    const intervalRest = await fetch(base + "/api/dashboard").then((r) => r.json());
+    assert.equal(intervalRest.sessions[0].customIntervals[0].id, savedId);
+    assert.ok(intervalRest.sessions[0].customIntervals[0].statistics.zigzag.score > 99.9);
+    await client.callTool({
+      name: "delete_custom_interval",
+      arguments: { session_id: id, interval_id: savedId },
+    });
     assert.deepEqual(dashboard.structuredContent.boards, []);
     assert.equal(
       tools.find((t) => t.name === "assign_session_board").annotations

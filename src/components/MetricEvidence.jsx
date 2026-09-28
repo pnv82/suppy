@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { X, Info, ChatCircle } from "@phosphor-icons/react";
 import { mph, timeLabel, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
+import { intervalTitle, reviewIntervals } from "../domain/intervals.mjs";
 const fmt = (v, dp = 0) => (Number.isFinite(v) ? v.toFixed(dp) : "—");
 
 export function EvidenceDialog({ title, onClose, children }) {
@@ -48,7 +49,7 @@ export function MetricDetails({ session, duration, onClose }) {
     movement = session.deterministic?.movement;
   return (
     <EvidenceDialog
-      title={`${whole ? "Whole session" : `Best ${duration / 60} min`} · metric details`}
+      title={`${whole ? "Whole session" : intervalTitle(view.window)} · metric details`}
       onClose={onClose}
     >
       <p>
@@ -228,7 +229,7 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
     z = e?.zigzag;
   const best =
     session.windows.find((w) => w.duration === 1200 && w.start != null) ||
-    session.windows.find((w) => w.start != null);
+    reviewIntervals(session).find((w) => w.start != null);
   return (
     <aside className="metrics-inspector" aria-label="Metric inspector">
       <div className="metric-scope" aria-label="Metric scope">
@@ -245,7 +246,7 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
       </div>
       <div>
         <h2>
-          {selected == null ? "Whole session" : `Best ${selected / 60} min`}
+          {selected == null ? "Whole session" : intervalTitle(view.window)}
         </h2>
         <p className="paired-headline">
           {fmt(mph(view.speed), 2)} <small>mph</small>{" "}
@@ -269,7 +270,7 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
         <dd>
           {selected == null
             ? `${durationLabel(session.active)} / ${durationLabel(session.elapsed)}`
-            : `${selected / 60} min`}
+            : timeLabel(view.window?.duration)}
         </dd>
         <dt>Distance / stroke · est.</dt>
         <dd>
@@ -299,6 +300,7 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
         </button>
         <button
           className="text-button"
+          disabled={selected != null && !view.window}
           onClick={() =>
             onAsk(
               selected == null

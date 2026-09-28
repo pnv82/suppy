@@ -21,6 +21,8 @@ Seeding refuses a populated tenant. Tests use isolated in-memory or temporary fi
 
 ## Schema and transaction rules
 
+Custom interval selections live in each session's JSON aggregate as `customIntervals: [{id,start,end,source:"athlete_selected",created_at_utc}]`, with elapsed bounds in seconds. No new table or database reset is required. Add/remove operations read and validate the trusted tenant's current session inside the existing transaction, increment its revision and retain all telemetry, annotations, best windows and original uploads. Duplicate bounds reuse the saved ID without advancing revision. Derived interval evidence is calculated on read and is not written as a new measurement. Normal SQLite backup includes these selections.
+
 | Table | Ownership and data |
 |---|---|
 | tenants | String ID and creation time in UTC |

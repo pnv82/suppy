@@ -43,6 +43,8 @@ The app supports validated SUP FIT/one-FIT ZIP import and deterministic 5/10/20-
 
 ## Initial slice versus full feature depth
 
+Manual chart ranges can be saved as custom interval tiles alongside the fixed best 5/10/20-minute windows. Several tiles persist per session and tenant, with independent identities even at identical durations. Exact duplicate bounds reuse the existing tile. Removal changes only the saved selection. Each tile's experimental zig-zag uses that interval's full telemetry; missing/insufficient GPS support stays unavailable. Custom intervals are athlete-selected ranges, not continuous best-effort claims.
+
 The app has a separate Goals section for maximum/average/best-5/10/20 speed and continuous cadence-duration targets, plus validated SUP FIT/ZIP import. Small versioned external highlights/summaries are supported. Richer technique editing, broader activity formats and full typed analysis-envelope ingestion remain in root `todo.md`.
 
 ## Session management refinement (2026-09-27)
