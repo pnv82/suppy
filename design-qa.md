@@ -266,3 +266,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Session deletion already implemented: browser confirmation/Keep session checked; 11 FIT tests pass including byte-preserving archives, tenant isolation and re-import.
 - Interval tile task already implemented: cadence and estimated metres/stroke visible at desktop/390 px; keyboard selection updates inspector to Best 5 min. Six interval/session tests pass.
 - Additional context already moved into Edit: saved a synthetic observation at 390 px, reopened at desktop, checked Escape dismissal. Atomic detail-save test passes.
+- Wide navigation: browser checked at 1440 px (persistent labels, keyboard Home) and 390 px (44 px icon buttons, hidden idle labels). Build passed.

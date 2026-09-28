@@ -2216,6 +2216,14 @@ td small {
   visibility: hidden !important;
   opacity: 0 !important;
 }
+@media (min-width: 1400px) {
+  :root { --rail-width: 168px; }
+  .navigation-rail nav, .rail-actions { width: calc(100% - 20px); }
+  .navigation-rail .rail-button { width: 100%; display: flex; justify-content: flex-start; gap: 12px; padding: 0 12px; }
+  .navigation-rail .rail-brand { width: calc(100% - 20px); }
+  .navigation-rail .rail-label { position: static; transform: none; padding: 0; background: none; color: inherit; box-shadow: none; visibility: visible !important; opacity: 1 !important; }
+  .navigation-rail .rail-label::before { display: none; }
+}
 .app-main:focus {
   outline: none;
 }

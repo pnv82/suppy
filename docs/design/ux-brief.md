@@ -105,3 +105,5 @@ Training focus and the separate context panel are removed from session review fo
 The top row has previous (older) / next (newer) controls, disabled at the ends. A single session-selection popover contains full date, local start/end, explicit timezone, distance, active duration, type and source availability. The separate info disclosure is removed. Home includes maximum speed in cards, table and chronological trends using the same FIT maximum as session review, with nulls kept as gaps.
 
 Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Missing interval stroke distance now calculates lazily as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.
+
+At 1400 px and wider the navigation expands to 168 px with persistent section names. Smaller widths retain the compact icon rail and focus/hover labels; vertical footprint is unchanged.
