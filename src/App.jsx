@@ -53,6 +53,7 @@ export function App() {
     [busy, setBusy] = useState(false),
     [selected, setSelected] = useState(null),
     [cursor, setCursor] = useState(0),
+    [spot, setSpot] = useState(null),
     [draft, setDraft] = useState(null),
     [prepared, setPrepared] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -108,6 +109,7 @@ export function App() {
         : 0,
     );
     setSelected(null);
+    setSpot(null);
     setDraft(null);
     setPrepared("");
   }, [session?.id]);
@@ -291,6 +293,7 @@ export function App() {
                     selected={selected}
                     onSelect={chooseWindow}
                     cursor={cursor}
+                    spot={spot}
                   />
                   <BestWindows
                     session={session}
@@ -317,6 +320,8 @@ export function App() {
                 session={session}
                 selected={selected}
                 cursor={cursor}
+                spot={spot}
+                setSpot={setSpot}
                 setCursor={setCursor}
                 onAnnotate={annotate}
                 onEdit={editAnnotation}

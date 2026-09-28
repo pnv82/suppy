@@ -267,3 +267,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Interval tile task already implemented: cadence and estimated metres/stroke visible at desktop/390 px; keyboard selection updates inspector to Best 5 min. Six interval/session tests pass.
 - Additional context already moved into Edit: saved a synthetic observation at 390 px, reopened at desktop, checked Escape dismissal. Atomic detail-save test passes.
 - Wide navigation: browser checked at 1440 px (persistent labels, keyboard Home) and 390 px (44 px icon buttons, hidden idle labels). Build passed.
+- Persistent point: at 390 px used Home, Right, Enter, Right; cursor moved to 2 s, annotation stayed at 1 s. Verified prefilled Start, cancel, both map marker classes at 1440 px. Build passed.

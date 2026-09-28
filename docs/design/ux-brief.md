@@ -107,3 +107,5 @@ The top row has previous (older) / next (newer) controls, disabled at the ends. 
 Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Missing interval stroke distance now calculates lazily as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.
 
 At 1400 px and wider the navigation expands to 168 px with persistent section names. Smaller widths retain the compact icon rail and focus/hover labels; vertical footprint is unchanged.
+
+Chart selection now persists independently of the hover/keyboard cursor. Click/Enter/Space pins a point; Annotate uses that point until cleared. The map shows a light current dot and outlined selected dot; charts use a solid light cursor and dark dashed selection. Selection resets when switching sessions. Gaps have no interpolated map marker.

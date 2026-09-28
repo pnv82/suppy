@@ -7,7 +7,7 @@
 - [x] move additional session data into session edit dialog
 - [x] Integrate `docs/product/llm vs app.md` into architecture and agent principles. App-owned FIT import and deterministic interval evidence are implemented; remaining multi-session evidence, advanced features and reviewed LLM-result persistence are listed below.
 - [x] if we have sufficient horizontal space - show the names of the sections in the left toolbar
-- [ ] update how i'm using the markers on the graphs - let's have to states - current position and selected spot (last clicked position, i.e. some persistency). Selected spot will allow to add annotations better, right now it is hard to attach annotation to a specific spot because it moves with any mouse move. This also mean couple of different markers on the map - one is lights, following the active position of the mouse on the graphs. Second - last selected position.
+- [x] update how i'm using the markers on the graphs - let's have to states - current position and selected spot (last clicked position, i.e. some persistency). Selected spot will allow to add annotations better, right now it is hard to attach annotation to a specific spot because it moves with any mouse move. This also mean couple of different markers on the map - one is lights, following the active position of the mouse on the graphs. Second - last selected position.
 
 - [ ] introduce a notion of the session highlight and summary. It is to be filled the the LLM from outside when it is analysing existing session.
 - [ ] in session overview exchange places for heart rate and stroke distance - it is better logical grouping.

@@ -145,7 +145,7 @@ function WindDigest({ session, cursor }) {
   );
 }
 
-export function SessionMap({ session, selected, onSelect, cursor }) {
+export function SessionMap({ session, selected, onSelect, cursor, spot }) {
   const [tileError, setTileError] = useState(false);
   const runs = useMemo(
     () => validRuns(session.records, session.pauses, true, false),
@@ -156,6 +156,13 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
     (run) => cursor >= run[0].elapsed_s && cursor <= run.at(-1).elapsed_s,
   );
   const marker = cursorRun ? interpolate(cursorRun, cursor) : null;
+  const spotRun =
+    spot == null
+      ? null
+      : runs.find(
+          (run) => spot >= run[0].elapsed_s && spot <= run.at(-1).elapsed_s,
+        );
+  const selectedMarker = spotRun ? interpolate(spotRun, spot) : null;
   const windows = session.windows.filter(
     (w) => w.start != null && w.duration === selected,
   );
@@ -355,16 +362,34 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
           })}
         </Pane>
         <Pane name="current-point" style={{ zIndex: 625 }}>
+          {selectedMarker && (
+            <CircleMarker
+              center={[
+                selectedMarker.latitude_deg,
+                selectedMarker.longitude_deg,
+              ]}
+              radius={8}
+              pathOptions={{
+                color: "#082936",
+                weight: 3,
+                fillColor: "#fff",
+                fillOpacity: 1,
+                className: "selected-point",
+              }}
+            >
+              <MapTooltip>Selected point · {timeLabel(spot)}</MapTooltip>
+            </CircleMarker>
+          )}
           {marker && (
             <CircleMarker
               center={[marker.latitude_deg, marker.longitude_deg]}
-              radius={8}
+              radius={5}
               interactive
               pathOptions={{
                 color: "#fff",
-                weight: 3,
-                fillColor: "#082936",
-                fillOpacity: 1,
+                weight: 2,
+                fillColor: "#429eac",
+                fillOpacity: 0.65,
                 className: "current-point",
               }}
             >
@@ -512,6 +537,8 @@ export function Timeline({
   selected,
   cursor,
   setCursor,
+  spot,
+  setSpot,
   onAnnotate,
   onEdit,
 }) {
@@ -551,7 +578,7 @@ export function Timeline({
     const seconds = pointTime(event);
     if (seconds == null) return;
     setCursor(seconds);
-    onAnnotate(seconds);
+    setSpot(seconds);
   };
   const keyboardCursor = (event) => {
     if (event.key === "Escape") setHover(null);
@@ -569,7 +596,7 @@ export function Timeline({
       setCursor(Math.max(0, Math.min(Math.floor(max * 60), next)));
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onAnnotate(cursor);
+      setSpot(cursor);
     }
   };
   return (
@@ -590,16 +617,28 @@ export function Timeline({
           </button>
           <button
             className="text-button"
-            onClick={() => onAnnotate(rows.length ? cursor : 0)}
+            onClick={() => onAnnotate(spot ?? (rows.length ? cursor : 0))}
           >
             <NotePencil size={16} />{" "}
-            {rows.length ? "Annotate " + timeLabel(cursor) : "Add annotation"}
+            {rows.length
+              ? "Annotate " + timeLabel(spot ?? cursor)
+              : "Add annotation"}
           </button>
+          {spot != null && (
+            <button
+              className="text-button"
+              onClick={() => setSpot(null)}
+              aria-label="Clear selected point"
+            >
+              Clear selection
+            </button>
+          )}
         </div>
       </div>
       <p id="chart-keyboard-help" className="sr-only">
         Elapsed time. Arrow keys move one second, Shift + arrow ten seconds.
-        Home/End jump to limits. Enter annotates.
+        Home/End jump to limits. Click or Enter selects a persistent point.
+        Annotate uses the selected point; hover only moves the current position.
       </p>
       {rows.length ? (
         <div className="chart-stack">
@@ -838,9 +877,17 @@ export function Timeline({
                       )}
                       <ReferenceLine
                         x={cursor / 60}
-                        stroke="#354a60"
+                        stroke="#80a9ae"
                         strokeWidth={1}
                       />
+                      {spot != null && (
+                        <ReferenceLine
+                          x={spot / 60}
+                          stroke="#082936"
+                          strokeWidth={2}
+                          strokeDasharray="4 2"
+                        />
+                      )}
                       <Tooltip content={() => null} cursor={false} />
                     </LineChart>
                   </ResponsiveContainer>
