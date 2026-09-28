@@ -6,12 +6,14 @@ import {
   Stack,
   ChatCircleDots,
   UploadSimple,
+  Target,
 } from "@phosphor-icons/react";
 
 const destinations = [
   ["Home", House],
   ["Sessions", Path],
   ["Boards", Stack],
+  ["Goals", Target],
   ["ChatGPT", ChatCircleDots],
 ];
 

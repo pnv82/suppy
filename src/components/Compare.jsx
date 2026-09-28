@@ -16,6 +16,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  ReferenceLine,
 } from "recharts";
 import { latestSessions, mph, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
@@ -26,6 +27,7 @@ export function Compare({
   sessions,
   boards = [],
   defaultBoardId,
+  goals = [],
   onOpen,
   onAction,
   onManage,
@@ -43,6 +45,23 @@ export function Compare({
       view,
       speed: mph(view.speed),
       maxSpeed: mph(session.statistics?.speed_mps?.max),
+      average_speed: mph(metricView(session).speed),
+      ...Object.fromEntries(
+        [300, 600, 1200].map((d) => [
+          `best_${d}`,
+          mph(metricView(session, d).speed),
+        ]),
+      ),
+      ...Object.fromEntries(
+        goals
+          .filter((g) => g.metric === "cadence_duration")
+          .map((g) => [
+            `goal:${g.id}`,
+            session.goalMetrics?.[g.id]?.value_s == null
+              ? null
+              : session.goalMetrics[g.id].value_s / 60,
+          ]),
+      ),
       dps: view.dps,
       cadenceValue: view.cadence,
       zigzag: view.zigzag,
@@ -70,12 +89,37 @@ export function Compare({
   const options = {
     speed: ["Speed", "mph", 2, "#008591"],
     maxSpeed: ["Session maximum speed", "mph", 2, "#327aa6"],
+    average_speed: ["Whole-session average speed", "mph", 2, "#008591"],
+    best_300: ["Best 5-minute speed", "mph", 2, "#c9790b"],
+    best_600: ["Best 10-minute speed", "mph", 2, "#7952c7"],
+    best_1200: ["Best 20-minute speed", "mph", 2, "#008591"],
+    ...Object.fromEntries(
+      goals
+        .filter((g) => g.metric === "cadence_duration")
+        .map((g) => [
+          `goal:${g.id}`,
+          [`Longest above ${g.cadence_threshold_spm} spm`, "min", 2, "#6273c9"],
+        ]),
+    ),
     dps: ["Estimated distance per stroke", "m/stroke", 2, "#7952c7"],
     cadenceValue: ["Recorded cadence", "spm", 0, "#6273c9"],
     zigzag: ["Zig-zag · experimental", "/100", 1, "#008591"],
     hr: ["Heart rate", "bpm", 0, "#d54d72"],
   };
-  const [title, unit, dp, color] = options[metric];
+  const effectiveMetric = options[metric] ? metric : "speed";
+  const [title, unit, dp, color] = options[effectiveMetric];
+  const applicableGoals = goals.filter(
+    (g) =>
+      effectiveMetric === `goal:${g.id}` ||
+      g.metric ===
+        (effectiveMetric === "maxSpeed"
+          ? "max_speed"
+          : effectiveMetric === "speed"
+            ? basis === "best20"
+              ? "best_1200"
+              : "average_speed"
+            : effectiveMetric),
+  );
   return (
     <>
       <div className="page-heading">
@@ -107,11 +151,16 @@ export function Compare({
           <div>
             <h2>{title} over time</h2>
             <p>
-              {metric === "maxSpeed"
+              {effectiveMetric === "maxSpeed"
                 ? "Whole-session maximum"
-                : basis === "best20"
-                  ? "Best 20 min"
-                  : "Whole session"}{" "}
+                : effectiveMetric === "average_speed" ||
+                    effectiveMetric.startsWith("goal:")
+                  ? "Whole session"
+                  : effectiveMetric.startsWith("best_")
+                    ? `Best ${Number(effectiveMetric.slice(5)) / 60} min`
+                    : basis === "best20"
+                      ? "Best 20 min"
+                      : "Whole session"}{" "}
               · chronological · derived telemetry
             </p>
           </div>
@@ -119,7 +168,7 @@ export function Compare({
             Metric
             <select
               aria-label="Comparison parameter"
-              value={metric}
+              value={effectiveMetric}
               onChange={(e) => setMetric(e.target.value)}
             >
               {Object.entries(options).map(([key, [label]]) => (
@@ -153,7 +202,7 @@ export function Compare({
               />
               <Line
                 type="linear"
-                dataKey={metric}
+                dataKey={effectiveMetric}
                 stroke={color}
                 strokeWidth={2}
                 dot={{ r: 4, fill: "white" }}
@@ -161,10 +210,35 @@ export function Compare({
                 isAnimationActive={false}
               />
               <Tooltip formatter={(v) => [fmt(v, dp) + " " + unit, title]} />
+              {applicableGoals.map((g) => (
+                <ReferenceLine
+                  key={g.id}
+                  y={
+                    g.metric === "cadence_duration"
+                      ? g.target_si / 60
+                      : mph(g.target_si)
+                  }
+                  stroke="#91acb5"
+                  strokeDasharray="5 5"
+                  ifOverflow="extendDomain"
+                  label={{
+                    value: `Goal ${fmt(g.metric === "cadence_duration" ? g.target_si / 60 : mph(g.target_si), 2)} ${unit}`,
+                    position: "insideTopRight",
+                    fill: "#536f7a",
+                    fontSize: 11,
+                  }}
+                />
+              ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
         <p className="caption">
+          {applicableGoals
+            .map(
+              (g) =>
+                `Goal: ${fmt(g.metric === "cadence_duration" ? g.target_si / 60 : mph(g.target_si), 2)} ${unit}. `,
+            )
+            .join("")}
           {unit} · Conditions, boards and coverage vary. These descriptive
           trends do not establish improved fitness or technique. Zig-zag: higher
           means a straighter eligible recorded path.

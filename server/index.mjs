@@ -64,6 +64,8 @@ export function createMcpServer(
   );
   for (const name of Object.keys(toolSchemas)) {
     const readOnly = ![
+      "upsert_goal",
+      "delete_goal",
       "set_session_summary",
       "upsert_annotation",
       "delete_annotation",
@@ -91,11 +93,16 @@ export function createMcpServer(
         annotations: {
           readOnlyHint: readOnly,
           destructiveHint: [
+            "delete_goal",
             "delete_annotation",
             "delete_board",
             "delete_session",
           ].includes(name),
-          idempotentHint: !["upsert_annotation", "upsert_board"].includes(name),
+          idempotentHint: ![
+            "upsert_annotation",
+            "upsert_board",
+            "upsert_goal",
+          ].includes(name),
           openWorldHint: [
             "fetch_session_weather",
             "commit_fit_import",

@@ -27,6 +27,7 @@ import { Compare } from "./components/Compare.jsx";
 import { MetricsInspector } from "./components/MetricEvidence.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
 import { Boards } from "./components/Boards.jsx";
+import { Goals } from "./components/Goals.jsx";
 import { NavigationRail } from "./components/NavigationRail.jsx";
 import { SessionHeader } from "./components/SessionHeader.jsx";
 import { useNavigation } from "./services/useNavigation.jsx";
@@ -397,6 +398,7 @@ export function App() {
               onOpen={openSession}
               defaultBoardId={data.defaultBoardId}
               onAction={boardAction}
+              goals={data.goals || []}
               onManage={() => setPage("Boards")}
             />
           )}
@@ -404,6 +406,13 @@ export function App() {
             <Boards
               boards={data.boards || []}
               defaultBoardId={data.defaultBoardId}
+              busy={busy}
+              onAction={boardAction}
+            />
+          )}
+          {page === "Goals" && (
+            <Goals
+              goals={data.goals || []}
               busy={busy}
               onAction={boardAction}
             />

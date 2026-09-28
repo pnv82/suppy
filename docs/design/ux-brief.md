@@ -119,3 +119,5 @@ Best-window travel markers are now 6 px wide chevrons within the selected track,
 The session picker initially lists the latest ten. Search covers the complete stored history by launch/source location, date or stable ID, including older sessions. Empty results and result counts are explicit; Escape returns focus to the picker.
 
 Home now presents its chronological trend above the latest-ten grid, in both desktop and phone reading order.
+
+Goals is a separate navigation section for adding/editing/deleting explicit athlete targets. The Home chart selector includes all requested speed scopes and saved cadence thresholds. Matching goals use light dashed lines and text labels. This does not restore the removed training-focus panel or next-outing technique pinning.

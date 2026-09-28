@@ -83,7 +83,7 @@ export function openDatabase(path = databasePath()) {
     );
     transaction(() => {
       const version = db.prepare("PRAGMA user_version").get().user_version;
-      if (version > 4)
+      if (version > 5)
         throw new Error(
           "Database schema is newer than this app. Upgrade the app before opening it.",
         );
@@ -143,6 +143,10 @@ export function openDatabase(path = databasePath()) {
         CREATE TABLE deleted_fit_archives AS SELECT *, '' AS deleted_at FROM fit_imports WHERE 0;
         PRAGMA user_version = 4;
       `);
+      if (version < 5)
+        db.exec(
+          `CREATE TABLE goals (tenant_id TEXT NOT NULL REFERENCES tenants(id), id TEXT NOT NULL, data_json TEXT NOT NULL CHECK(json_valid(data_json)), PRIMARY KEY(tenant_id,id)) STRICT; PRAGMA user_version = 5;`,
+        );
     });
   } catch (error) {
     db.close();
@@ -166,6 +170,23 @@ export function openDatabase(path = databasePath()) {
     return {
       tenantId: id,
       transaction,
+      goals: () =>
+        db
+          .prepare(
+            "SELECT id,data_json FROM goals WHERE tenant_id=? ORDER BY rowid",
+          )
+          .all(id)
+          .map((row) => ({ id: row.id, ...JSON.parse(row.data_json) })),
+      saveGoal: (goal) => {
+        const { id: goalId, ...data } = goal;
+        db.prepare(
+          "INSERT INTO goals VALUES(?,?,?) ON CONFLICT(tenant_id,id) DO UPDATE SET data_json=excluded.data_json",
+        ).run(id, goalId, JSON.stringify(data));
+      },
+      deleteGoal: (goalId) =>
+        db
+          .prepare("DELETE FROM goals WHERE tenant_id=? AND id=?")
+          .run(id, goalId),
       saveWeatherSource: (sessionId, attemptId, provenance) =>
         db
           .prepare("INSERT INTO weather_sources VALUES (?, ?, ?, ?)")

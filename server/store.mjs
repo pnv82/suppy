@@ -5,6 +5,7 @@ import { decodeUpload, importMatches } from "./fit-import.mjs";
 import { analyzeTelemetry, ANALYSIS_METHOD } from "../src/domain/analysis.mjs";
 import { validRuns } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
+import { longestCadenceRun } from "../src/domain/goals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
 
@@ -30,6 +31,22 @@ export function createStore({
   if (!tenantCaches.has(tenantId)) tenantCaches.set(tenantId, new Map());
   const analysisCache = tenantCaches.get(tenantId);
   function withMetrics(session) {
+    const cadenceGoals = repo
+      .goals()
+      .filter((g) => g.metric === "cadence_duration");
+    session = {
+      ...session,
+      goalMetrics: Object.fromEntries(
+        cadenceGoals.map((g) => [
+          g.id,
+          longestCadenceRun(
+            session.records,
+            session.pauses,
+            g.cadence_threshold_spm,
+          ),
+        ]),
+      ),
+    };
     session = {
       ...session,
       llmSummary: session.llmSummary
@@ -199,6 +216,7 @@ export function createStore({
       defaultBoardId: repo.defaultBoard(),
       issues,
       storage: "sqlite",
+      goals: repo.goals(),
       tenantId,
     };
   }
@@ -270,6 +288,7 @@ export function createStore({
     const deterministic = compactAnalysis(s.deterministic);
     return {
       ...summary,
+      goals: repo.goals(),
       windows: (s.windows || []).map((w) => ({
         ...w,
         statistics: compactInterval(w.statistics),
@@ -396,6 +415,40 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    upsertGoal({ goal_id, ...goal }) {
+      const existing = repo.goals();
+      if (goal_id && !existing.some((g) => g.id === goal_id))
+        throw new Error("Goal not found.");
+      if (!goal_id && existing.length >= 20)
+        throw new Error("Keep at most 20 goals.");
+      if (
+        existing.some(
+          (g) =>
+            g.id !== goal_id &&
+            g.metric === goal.metric &&
+            g.cadence_threshold_spm === goal.cadence_threshold_spm,
+        )
+      )
+        throw new Error(
+          "A goal for this metric and threshold already exists. Edit it instead.",
+        );
+      const result = {
+        ...goal,
+        id: goal_id || randomUUID(),
+        source: "athlete_reported",
+        updated_at_utc: new Date().toISOString(),
+      };
+      repo.saveGoal(result);
+      for(const s of repo.sessions()){s.revision++;repo.save(s);}
+      return result;
+    },
+    deleteGoal({ goal_id }) {
+      if (!repo.goals().some((g) => g.id === goal_id))
+        throw new Error("Goal not found.");
+      repo.deleteGoal(goal_id);
+      for(const s of repo.sessions()){s.revision++;repo.save(s);}
+      return { deleted: goal_id };
+    },
     setSessionSummary({ session_id, expected_revision, analysis }) {
       return changeSession(session_id, (s) => {
         if (s.revision !== expected_revision)

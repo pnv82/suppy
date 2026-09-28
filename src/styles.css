@@ -3329,3 +3329,7 @@ td small {
 .metrics-session-list .table-scroll { overflow:visible; }
 
 .summary-prose { white-space:pre-wrap; overflow-wrap:anywhere; }
+.goal-editor { display:flex; flex-wrap:wrap; gap:16px; align-items:end; border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:12px; }
+.goal-editor label { display:grid; gap:8px; flex:1 1 180px; }
+.goal-editor input,.goal-editor select { width:100%; }
+@media(max-width:600px){.goal-editor {padding:12px;} .goal-editor label {flex-basis:100%;}}

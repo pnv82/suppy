@@ -11,6 +11,28 @@ const uploadFields = {
 };
 
 export const toolSchemas = {
+  upsert_goal: z
+    .object({
+      goal_id: z.string().optional(),
+      metric: z.enum([
+        "max_speed",
+        "best_300",
+        "best_600",
+        "best_1200",
+        "average_speed",
+        "cadence_duration",
+      ]),
+      target_si: z.number().positive(),
+      cadence_threshold_spm: z.number().min(0).max(200).nullable(),
+    })
+    .refine(
+      (g) =>
+        g.metric === "cadence_duration"
+          ? g.cadence_threshold_spm != null && g.target_si <= 86400
+          : g.cadence_threshold_spm === null && g.target_si <= 30,
+      "Supply a cadence threshold only for duration goals; maximum targets are 24 hours or 30 m/s.",
+    ),
+  delete_goal: z.object({ goal_id: z.string() }),
   set_session_summary: z.object({
     session_id: z.string(),
     expected_revision: z.number().int().nonnegative(),
@@ -105,6 +127,9 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  upsert_goal:
+    "Create or edit an explicit athlete target. Speed targets are m/s; cadence-duration targets are seconds with a strict above-X recorded cadence threshold in spm. Tenant-wide goals, at least comparator. Do not invent goals or infer achievement from incompatible windows.",
+  delete_goal: "Delete a user-selected goal from this tenant.",
   set_session_summary:
     "Save an external LLM's session highlight and summary after analysis, or clear with analysis:null. Read current session context first and supply expected_revision. Requires schema_version:'1', model, UTC generation time and existing evidence refs ('session', 'best:300/600/1200', or 'annotation:<id>'). Stored as an unreviewed LLM interpretation, never measurements or confirmed technique faults. Do not write without the user's request to save an analysis.",
   recalculate_session:
@@ -151,6 +176,8 @@ export function executeTool(store, name, input) {
   const args = toolSchemas[name].parse(input);
   let result;
   let importRoute;
+  if (name === "upsert_goal") result = store.upsertGoal(args);
+  if (name === "delete_goal") result = store.deleteGoal(args);
   if (name === "set_session_summary") result = store.setSessionSummary(args);
   if (name === "delete_session") result = store.deleteSession(args);
   if (name === "recalculate_session") result = store.recalculateSession(args);
@@ -171,6 +198,7 @@ export function executeTool(store, name, input) {
       availableCount: dashboard.sessions.length,
       boards: dashboard.boards,
       defaultBoardId: dashboard.defaultBoardId,
+      goals: dashboard.goals,
       storage: dashboard.storage,
       tenantId: dashboard.tenantId,
     };
