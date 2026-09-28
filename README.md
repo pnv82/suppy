@@ -88,7 +88,7 @@ Environment variables set in one terminal may not be available in another proces
 1. Open **Settings → Security and login → Developer mode**.
 2. Open **Plugins**, select **+**, and name the connection **Suppy**.
 3. Under **Connection**, choose **Tunnel**, then select your tunnel or enter its ID.
-4. Create the connection and review the eighteen discovered tools.
+4. Create the connection and review the discovered tools.
 5. Start a conversation and add Suppy from the tools menu.
 
 Account/workspace policy controls availability; labels may vary by client. If Developer mode is absent, first check your workspace access. These steps follow the [official connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt), checked 2026-09-26.

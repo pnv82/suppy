@@ -80,3 +80,5 @@ Independent on-water validation with timed reference observations is still requi
 
 ## Home change arrows
 A metric compares with the arithmetic mean of the immediately preceding three sessions in date/ID order, using the same scope. All three and the current value must be finite and the mean positive; no skipping missing sessions or zero filling. Changes strictly greater than 5% in magnitude get small green/up or red/down arrows with accessible percentage descriptions. Full history supplies baselines for the latest-ten rows. Colors mean numerical direction, including HR and cadence; they do not score fitness or technique.
+
+Home row actions provide Edit, Delete (existing confirmation), Refresh weather (existing post-import service) and Recalculate. Recalculate evicts the tenant-scoped evidence cache and runs the current deterministic methods over full stored telemetry. It preserves source summaries, original bytes and user edits, and does not re-decode the FIT or fetch weather.

@@ -3319,3 +3319,11 @@ td small {
 .metric-change { display:inline-flex; vertical-align:middle; margin-left:3px; }
 .metric-change.increase { color:#197b53; }
 .metric-change.decrease { color:#b13c4b; }
+.session-actions-menu { position:relative; }
+.session-actions-menu > summary { cursor:pointer; list-style:none; display:inline-flex; align-items:center; justify-content:center; min-width:36px; min-height:36px; border-radius:6px; }
+.session-actions-menu[open] > summary { background:#e4eff1; }
+.session-actions-menu > div { position:absolute; z-index:50; right:0; min-width:165px; padding:6px; background:var(--surface,white); border:1px solid var(--line); box-shadow:0 5px 16px #16344c20; border-radius:10px; }
+.session-actions-menu button { display:block; width:100%; text-align:left; padding:10px; border-radius:5px; }
+.session-actions-menu button:hover { background:#eaf3f5; }
+.session-actions-menu button:last-child { color:#a12f42; }
+.metrics-session-list .table-scroll { overflow:visible; }

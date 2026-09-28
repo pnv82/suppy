@@ -395,6 +395,9 @@ export function App() {
               sessions={data.sessions}
               boards={data.boards || []}
               onOpen={openSession}
+              defaultBoardId={data.defaultBoardId}
+              onAction={boardAction}
+              onManage={() => setPage("Boards")}
             />
           )}
           {page === "Boards" && (

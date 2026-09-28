@@ -276,3 +276,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Home graph order: browser headings now Recent sessions, Speed over time, Best 20-minute metrics at phone and desktop widths. Build passed.
 - Change arrows: numeric threshold/null/zero/three-session test passes. Synthetic +50% max shows at desktop and 390 px with descriptive accessible label; scope switching works. Build passed.
 - Suppy branding: browser title/accessible home name verified on phone/desktop; SVG favicon is bundled. Seven MCP/static packaging tests and build pass. Existing operator tunnel profile and storage environment names intentionally remain stable.
+- Home menu: desktop and phone keyboard/menu edit, cancel and deletion confirmation checked; recalculation verified after restarting the isolated QA server. Recalculation regression test verifies identical evidence and unchanged source/context, and rejects unknown tenant/session input. Build passed.

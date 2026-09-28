@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createHttpServer } from "../server/index.mjs";
+import { toolSchemas } from "../server/tools.mjs";
 
 test("local app serves its home page, assets and routes within the build directory", async (t) => {
   const server = createHttpServer(testStore(t));
@@ -40,7 +41,7 @@ test("MCP handshake, UI resource, tool calls and REST share persistent tenant st
       new StreamableHTTPClientTransport(new URL(base + "/mcp")),
     );
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 18);
+    assert.deepEqual(tools.map(t=>t.name).sort(), Object.keys(toolSchemas).sort());
     const read = tools.find((t) => t.name === "get_dashboard");
     assert.equal(read.annotations.readOnlyHint, true);
     assert.equal(

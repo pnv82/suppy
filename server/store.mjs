@@ -448,6 +448,11 @@ export function createStore({
   };
   return {
     get,
+    recalculateSession({ session_id }) {
+      get(session_id);
+      analysisCache.delete(session_id);
+      return context(session_id);
+    },
     previewImport,
     dashboard,
     context,

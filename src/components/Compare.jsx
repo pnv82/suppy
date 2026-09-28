@@ -1,5 +1,12 @@
-import React, { useState } from "react";
-import { ArrowUpRight, ArrowUp, ArrowDown, Info } from "@phosphor-icons/react";
+import React, { useRef, useState } from "react";
+import {
+  ArrowUpRight,
+  ArrowUp,
+  ArrowDown,
+  Info,
+  DotsThree,
+} from "@phosphor-icons/react";
+import { SessionEditDialog } from "./SessionHeader.jsx";
 import { previousThreeChange } from "../domain/trends.mjs";
 import {
   ResponsiveContainer,
@@ -15,7 +22,16 @@ import { metricView } from "../domain/metric-view.mjs";
 import { fmt, shortDate } from "./SessionViews.jsx";
 import { MetricDetails } from "./MetricEvidence.jsx";
 
-export function Compare({ sessions, boards = [], onOpen }) {
+export function Compare({
+  sessions,
+  boards = [],
+  defaultBoardId,
+  onOpen,
+  onAction,
+  onManage,
+}) {
+  const [editing, setEditing] = useState(null);
+  const actionTrigger = useRef(null);
   const [basis, setBasis] = useState("best20"),
     [metric, setMetric] = useState("speed"),
     [details, setDetails] = useState(null);
@@ -183,6 +199,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   "Zig-zag · experimental",
                   "HR",
                   "Details",
+                  "Actions",
                 ].map((label) => (
                   <th key={label}>{label}</th>
                 ))}
@@ -270,6 +287,58 @@ export function Compare({ sessions, boards = [], onOpen }) {
                       <span className="mobile-detail-label">Details</span>
                     </button>
                   </td>
+                  <td data-label="Session actions">
+                    <details
+                      className="session-actions-menu"
+                      onKeyDown={(e) => {
+                        if (e.key === "Escape") {
+                          e.currentTarget.open = false;
+                          e.currentTarget.querySelector("summary").focus();
+                        }
+                      }}
+                    >
+                      <summary
+                        aria-label={`Actions for ${shortDate(s.date)} · ${s.title}`}
+                      >
+                        <DotsThree size={24} />
+                      </summary>
+                      <div>
+                        {[
+                          "Edit",
+                          "Recalculate",
+                          "Refresh weather",
+                          "Delete",
+                        ].map((action) => (
+                          <button
+                            key={action}
+                            onClick={async (e) => {
+                              const menu = e.currentTarget.closest("details");
+                              actionTrigger.current =
+                                menu.querySelector("summary");
+                              menu.open = false;
+                              if (action === "Edit" || action === "Delete")
+                                setEditing({
+                                  session: s,
+                                  deleting: action === "Delete",
+                                });
+                              else
+                                await onAction(
+                                  action === "Recalculate"
+                                    ? "recalculate_session"
+                                    : "fetch_session_weather",
+                                  { session_id: s.id },
+                                  action === "Recalculate"
+                                    ? "Derived metrics recalculated."
+                                    : "Weather retrieval requested.",
+                                );
+                            }}
+                          >
+                            {action}
+                          </button>
+                        ))}
+                      </div>
+                    </details>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -286,6 +355,37 @@ export function Compare({ sessions, boards = [], onOpen }) {
           session={details}
           duration={duration}
           onClose={() => setDetails(null)}
+        />
+      )}
+      {editing && (
+        <SessionEditDialog
+          session={editing.session}
+          boards={boards}
+          defaultBoardId={defaultBoardId}
+          deleting={editing.deleting}
+          returnFocusRef={actionTrigger}
+          onClose={() => setEditing(null)}
+          onManage={onManage}
+          onSave={async (args) => {
+            if (
+              !(await onAction(
+                "update_session_details",
+                args,
+                "Session details saved.",
+              ))
+            )
+              throw new Error("Session could not be saved.");
+          }}
+          onDelete={async () => {
+            if (
+              !(await onAction(
+                "delete_session",
+                { session_id: editing.session.id },
+                "Session deleted. You can upload its FIT again.",
+              ))
+            )
+              throw new Error("Session could not be deleted.");
+          }}
         />
       )}
     </>

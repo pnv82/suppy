@@ -39,6 +39,7 @@ export const toolSchemas = {
   get_dashboard: z.object({}),
   get_session_context: z.object({ session_id: z.string() }),
   delete_session: z.object({ session_id: z.string() }),
+  recalculate_session: z.object({ session_id: z.string() }),
   update_session_details: z.object({
     note: z.string().max(4000).optional(),
     session_id: z.string(),
@@ -89,6 +90,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  recalculate_session:
+    "Recompute deterministic evidence from the session's full stored telemetry using the current method. Retains original FIT bytes, source summaries and user edits; does not decode uploads again or run an LLM.",
   delete_session:
     "Delete a user-selected session and active import identity, allowing re-import. Original bytes and provenance remain privately archived. Requires an explicit user request.",
   set_session_wind:
@@ -132,6 +135,7 @@ export function executeTool(store, name, input) {
   let result;
   let importRoute;
   if (name === "delete_session") result = store.deleteSession(args);
+  if (name === "recalculate_session") result = store.recalculateSession(args);
   if (name === "set_session_wind") result = store.updateWind(args);
   if (name === "preview_fit_import") result = store.previewImport(args);
   if (name === "preview_fit_import") {

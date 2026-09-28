@@ -22,7 +22,7 @@
 # Next - Main page redesign
 - [x] get rid of the summaries line - it is confusing, not clear what it shows
 - [x] move the graph to the top of the screen - it is muc useable
-- [ ] add controls to manage the session (behind 3 dots menu) - delete, recalculate, refresh weather, edit
+- [x] add controls to manage the session (behind 3 dots menu) - delete, recalculate, refresh weather, edit
 - [x] show the dynamic for the key attributes in the grid - if there is more that 5% change compared to the window of avg last 3 session - show the dynamic with a a small colored arrow (red/down, green/up)
 
 # Deferred work
