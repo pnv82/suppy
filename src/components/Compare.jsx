@@ -18,16 +18,20 @@ import {
   WINDOW_COLORS,
   latestSessions,
   durationLabel,
+  mph,
 } from "../domain/metrics.mjs";
 import { fmt, shortDate, bearing } from "./SessionViews.jsx";
-
 export function Compare({ sessions, boards = [], onOpen }) {
   const [metric, setMetric] = useState("avgSpeed");
-  const newest = latestSessions(sessions),
+  const newest = latestSessions(sessions).map((s) => ({
+      ...s,
+      maxSpeed: mph(s.statistics?.speed_mps?.max),
+    })),
     rows = [...newest]
       .reverse()
       .map((s) => ({ ...s, dateLabel: shortDate(s.date) }));
   const options = {
+    maxSpeed: ["Maximum speed", "mph", 2, "#7952c7"],
     avgSpeed: ["Average speed", "mph", 2, "#008996"],
     best20: ["Best 20 min", "mph", 2, "#008996"],
     best10: ["Best 10 min", "mph", 2, "#7952c7"],
@@ -52,7 +56,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
         <span className="quiet-badge">Saved in your app</span>
       </div>
       <div className="compare-summary">
-        {["avgSpeed", "best20", "avgHr", "cadence"].map((key) => {
+        {["avgSpeed", "maxSpeed", "best20", "avgHr", "cadence"].map((key) => {
           const [label, u, d] = options[key],
             first = rows[0]?.[key],
             last = rows.at(-1)?.[key],
@@ -110,6 +114,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   "Distance",
                   "Active",
                   "Avg speed",
+                  "Max speed",
                   "Best 5 / 10 / 20 min",
                   "Heart rate",
                   "Cadence",
@@ -141,6 +146,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   <td data-label="Distance">{fmt(s.distance, 2)} mi</td>
                   <td data-label="Active time">{durationLabel(s.active)}</td>
                   <td data-label="Average speed">{fmt(s.avgSpeed, 2)} mph</td>
+                  <td data-label="Maximum speed">{fmt(s.maxSpeed, 2)} mph</td>
                   <td data-label="Best 5 / 10 / 20 min">
                     <span
                       className="table-interval"

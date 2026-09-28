@@ -10,6 +10,7 @@ test("session details save atomically, retain provenance and reach analysis cont
   const args = {
     session_id: original.id,
     name: " Confirmed launch ",
+    note: "Extra session observations",
     board_id: board.id,
   };
   assert.throws(() =>
@@ -29,6 +30,7 @@ test("session details save atomically, retain provenance and reach analysis cont
     args,
   ).structuredContent;
   assert.equal(result.title, "Confirmed launch");
+  assert.equal(result.additionalContext, args.note);
   assert.equal(result.titleSource, "athlete_reported");
   assert.equal(result.location, original.location);
   assert.equal(result.id, original.id);

@@ -37,3 +37,11 @@ P03 is automatic latest-10 comparison, superseding the initial two-session selec
 ## Persistent storage slice
 
 Completed SQLite storage with transaction-based saves and schema versioning; tenant-scoped repositories and foreign keys; trusted REST/MCP identity resolution; one-time migration of current history; isolated synthetic tests/development data; backup/integrity CLI; updated persistent UI labels. See [storage.md](storage.md). Google Sheets is retired from all ongoing workflows.
+
+## Session management refinement (2026-09-27)
+
+Training focus and the separate context panel are removed from session review for now. The existing Edit session dialog holds source notes and additional observations, saved atomically with name and board. Deletion requires confirmation inside the dialog and navigates to a remaining session, or Home when empty. Original uploads/provenance remain privately archived; re-upload is permitted. Saved legacy goals and technique reports remain preserved for compatibility.
+
+The top row has previous (older) / next (newer) controls, disabled at the ends. A single session-selection popover contains full date, local start/end, explicit timezone, distance, active duration, type and source availability. The separate info disclosure is removed. Home includes maximum speed in cards, table and chronological trends using the same FIT maximum as session review, with nulls kept as gaps.
+
+Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Missing interval stroke distance now calculates lazily as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.

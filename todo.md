@@ -1,5 +1,5 @@
 # next improvements
-- [ ] 
+
 - [ ] add maximum speed attribute to the main page and graphs
 - [ ] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
 - [ ] allow to delete sessions, so i can test the uploads
@@ -13,13 +13,26 @@
 - [ ] in session overview exchange places for heart rate and stroke distance - it is better logical grouping.
 - [ ] make arrows of the direction smaller - they take to much space and obstruct the view. Ideally if they will fit into the widths of the track and will be draw a bit more frequently - right now 5min segment with default zoom usually has only one arrow.
 - [ ] let's make session selector popover riacher - show last 10 session and allow to search rest.
-- [ ] add next/previous session control to the right of the top row. Get rid of the session info dropdown - it is pointless, ove this infor to session selection popover.
+- [ ] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.
 
+# Review key KPI
+- [ ] Speed ↔ stroke-rate efficiency, Format example - 5.0 mph @ 40 spm. Let's make it a primary attribute of the Interval tile. use imperial for this one.
+- [ ] Distance per stroke. Format example - 3.35m/stroke (use metric for this one)
+- [ ] since we are usign the mix of the metric and imperial metric, let's make sure that on hover in tooltip for each value we show the alternative value.
+- [ ] let's add another graph on the session page - distance per stroke
+- [ ] Fatigue / efficiency drift.
+- [ ] Tracking / zig-zag score. Using GPS data 
+
+# Main page redesign
+- [ ] get rid of the summaries line - it is confusing, not clear what it shows
+- [ ] move the graph to the top of the screen - it is muc useable
+- [ ] add controls to manage the session (behind 3 dots menu) - delete, recalculate, refresh weather, edit
+- [ ] show the dynamic for the key attributes in the grid - if there is more that 5% change compared to the window of avg last 3 session - show the dynamic with a a small colored arrow (red/down, green/up)
 
 # Deferred work
 
 The current slice intentionally prioritizes the light UI and ChatGPT-native skeleton. This list does not revive discarded P01/P02/P04/P06 proposals.
-
+- [ ] Automatic interval detection
 - [ ] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
 - [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
 - [ ] make upload dialog pretty

@@ -1,3 +1,4 @@
+import { ensureWindowStatistics } from "../domain/analysis.mjs";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   ArrowUp,
@@ -435,36 +436,64 @@ function TravelArrows({ session, selected }) {
 }
 
 export function BestWindows({ session, selected, onSelect }) {
+  const windows = useMemo(
+    () =>
+      ensureWindowStatistics(session.windows, session.records, session.pauses),
+    [session.windows, session.records, session.pauses],
+  );
   return (
     <section
       className="best-window-bar"
       aria-label="Best windows · local FIT estimates"
     >
       <div className="window-list">
-        {session.windows.map((w) => (
-          <button
-            type="button"
-            key={w.duration}
-            className={`window-button ${selected === w.duration ? "chosen" : ""}`}
-            style={{ "--interval": WINDOW_COLORS[w.duration] }}
-            onClick={() => onSelect(w)}
-            disabled={w.start == null}
-            aria-pressed={selected === w.duration}
-          >
-            <div>
-              <span className="window-dot" />
-              <strong>{w.duration / 60} min</strong>
-              <b>
-                {fmt(mph(w.speed_mps), 2)} <small>mph</small>
-              </b>
-            </div>
-            <span className="window-time">
-              {w.start == null
-                ? "Unavailable"
-                : `${timeLabel(w.start)} – ${timeLabel(w.end)}`}
-            </span>
-          </button>
-        ))}
+        {windows.map((w) => {
+          const stats = w.statistics;
+          const stroke = stats?.distance_per_stroke;
+          const detail =
+            stroke?.value_m == null
+              ? stroke?.reason
+              : `${stroke.method === "matched_distance_cadence_integral_v1" ? "Estimated from distance and integrated cadence" : "Stored interval stroke distance"}. Coverage: ${fmt(stroke.coverage_pct, 0)}%. ${stroke.assumption || ""}`;
+          return (
+            <button
+              type="button"
+              key={w.duration}
+              className={`window-button ${selected === w.duration ? "chosen" : ""}`}
+              style={{ "--interval": WINDOW_COLORS[w.duration] }}
+              onClick={() => onSelect(w)}
+              disabled={w.start == null}
+              aria-pressed={selected === w.duration}
+            >
+              <div>
+                <span className="window-dot" />
+                <strong>{w.duration / 60} min</strong>
+                <b>
+                  {fmt(mph(w.speed_mps), 2)} <small>mph</small>
+                </b>
+              </div>
+              <span
+                className="window-time"
+                title={detail}
+                aria-description={detail}
+              >
+                <span>{fmt(stats?.cadence_raw?.mean)} spm</span>
+                <span>
+                  {fmt(
+                    stats?.distance_per_stroke?.value_m == null
+                      ? null
+                      : stats.distance_per_stroke.value_m / 0.3048,
+                    1,
+                  )}{" "}
+                  ft/stroke
+                  {stroke?.status === "cadence_estimate" &&
+                  stroke?.value_m != null
+                    ? " est."
+                    : ""}
+                </span>
+              </span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );

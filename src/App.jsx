@@ -23,11 +23,7 @@ import {
   MetricStrip,
   Timeline,
 } from "./components/SessionViews.jsx";
-import {
-  AnnotationForm,
-  ContextPanel,
-  FocusPanel,
-} from "./components/ReviewPanels.jsx";
+import { AnnotationForm } from "./components/ReviewPanels.jsx";
 import { Compare } from "./components/Compare.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
 import { Boards } from "./components/Boards.jsx";
@@ -268,6 +264,17 @@ export function App() {
                 defaultBoardId={data.defaultBoardId}
                 onOpen={openSession}
                 onManage={() => setPage("Boards")}
+                onDelete={async () => {
+                  await callTool("delete_session", { session_id: session.id });
+                  const remaining = data.sessions.filter(
+                    (s) => s.id !== session.id,
+                  );
+                  navigate({
+                    page: remaining.length ? "Sessions" : "Home",
+                    sessionId: remaining[0]?.id ?? null,
+                  });
+                  notice("Session deleted. You can upload its FIT again.");
+                }}
                 onSave={async (args) => {
                   await callTool("update_session_details", args);
                   notice("Session details saved.");
@@ -352,46 +359,6 @@ export function App() {
                   ))}
                 </div>
               )}
-              <div className="details-grid">
-                <ContextPanel
-                  session={session}
-                  busy={busy}
-                  onSave={(note) =>
-                    perform(async () => {
-                      await callTool("update_session_context", {
-                        session_id: session.id,
-                        note,
-                      });
-                      notice("Session context saved.");
-                    })
-                  }
-                  onAsk={(note) =>
-                    perform(async () => {
-                      await callTool("update_session_context", {
-                        session_id: session.id,
-                        note,
-                      });
-                      await prepare(
-                        "Review this session with my latest notes and additional context. What should I focus on next?",
-                      );
-                    })
-                  }
-                />
-                <FocusPanel
-                  session={session}
-                  issues={data.issues}
-                  busy={busy}
-                  onSave={(args) =>
-                    perform(async () => {
-                      await callTool("update_training_focus", {
-                        session_id: session.id,
-                        ...args,
-                      });
-                      notice("Training focus saved.");
-                    })
-                  }
-                />
-              </div>
             </>
           )}
           {page === "Home" && (

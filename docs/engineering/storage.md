@@ -1,6 +1,6 @@
 # Persistent storage and tenant boundaries
 
-SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 3 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage. Version 3 adds immutable weather response provenance per tenant, session and attempt; existing sessions and edits are preserved.
+SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 4 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage. Version 3 adds immutable weather response provenance per tenant, session and attempt; existing sessions and edits are preserved.
 
 ## Files and environments
 
@@ -62,3 +62,9 @@ npm run db -- backup C:\backups\sup-2026-09-27.sqlite
 Backup uses SQLite's online backup API, includes all tenants and provenance, and refuses an existing destination. Treat the result as private user data. Do not copy only the main file while the app is running: committed pages may still be in the WAL. For restore, stop every process using the database, keep the old database/sidecars as a separate recovery copy, and point `SUP_DB_PATH` to a fresh copy of the backup. Run `check`, then start the app. Do not restore over live sidecars. No schema reset or destructive reset command is provided.
 
 `openDatabase().importState()` is an internal operator/bootstrap helper used by synthetic fixtures and the completed local migration; it is not a public arbitrary-result ingestion contract. It inserts only into an empty tenant within one transaction. Validated FIT uploads use [preview/commit import tools](fit-import.md) and store source blobs in the same database, so normal backup includes them. Reviewed LLM-result ingestion with full schema validation/versioning remains deferred. All ingestion writes target the app database, never a spreadsheet.
+
+## Session deletion
+
+Schema v4 adds private deleted-session and deleted-FIT archives. `delete_session({session_id})` transactionally archives the selected tenant's complete session, source/weather provenance and unchanged original/FIT bytes, then removes active session and import rows. Boards/defaults remain. The upload can be imported again, including with the same generated ID. Archives are included in backups but excluded from app queries and duplicate matching; there is no UI archive restoration flow. Source files on disk remain untouched. The tool is marked destructive and writable in MCP.
+
+`update_session_details` accepts optional `note` (up to 4000 characters) alongside name/board, committing all three atomically. Omitting note preserves existing observations.

@@ -1,7 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
-import { CaretDown, PencilSimple, X } from "@phosphor-icons/react";
+import {
+  CaretDown,
+  CaretLeft,
+  CaretRight,
+  PencilSimple,
+  X,
+} from "@phosphor-icons/react";
 import { durationLabel } from "../domain/metrics.mjs";
-import { shortDate, fullDate, fmt } from "./SessionViews.jsx";
+import { fullDate, fmt } from "./SessionViews.jsx";
 
 function SessionEditDialog({
   session,
@@ -9,10 +15,13 @@ function SessionEditDialog({
   defaultBoardId,
   onClose,
   onSave,
+  onDelete,
   onManage,
   returnFocusRef,
 }) {
   const dialog = useRef(null);
+  const [note, setNote] = useState(session.additionalContext ?? "");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [name, setName] = useState(session.title);
   const [boardId, setBoardId] = useState(session.boardId ?? "");
   const [busy, setBusy] = useState(false);
@@ -36,7 +45,7 @@ function SessionEditDialog({
         if (event.key !== "Tab") return;
         const controls = [
           ...event.currentTarget.querySelectorAll(
-            "button:not(:disabled), input:not(:disabled), select:not(:disabled)",
+            "button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)",
           ),
         ];
         const first = controls[0],
@@ -64,6 +73,7 @@ function SessionEditDialog({
               session_id: session.id,
               name: name.trim(),
               board_id: boardId || null,
+              note,
             });
             onClose();
           } catch (e) {
@@ -136,6 +146,17 @@ function SessionEditDialog({
             {boards.length ? "Manage boards" : "Add boards"}
           </button>
         </div>
+        <p className="source-note">{session.notes || "No source notes."}</p>
+        <label>
+          Additional data or observations
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={4000}
+            rows={3}
+            disabled={busy}
+          />
+        </label>
         <p className="caption">
           Changes are athlete reported and saved in your app.
         </p>
@@ -144,6 +165,52 @@ function SessionEditDialog({
             {error}
           </p>
         )}
+        <div className="session-delete">
+          {confirmDelete ? (
+            <>
+              <p>
+                Delete {session.title}? Notes and edits will leave the app. You
+                can upload the FIT again; original files remain privately
+                archived.
+              </p>
+              <button
+                type="button"
+                className="button danger"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  setError("");
+                  try {
+                    await onDelete();
+                    onClose();
+                  } catch (e) {
+                    setError(e.message);
+                    setBusy(false);
+                  }
+                }}
+              >
+                Confirm deletion
+              </button>
+              <button
+                type="button"
+                className="button plain"
+                disabled={busy}
+                onClick={() => setConfirmDelete(false)}
+              >
+                Keep session
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              className="text-button danger"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
+              Delete session
+            </button>
+          )}
+        </div>
         <div className="dialog-actions">
           <button
             type="button"
@@ -169,32 +236,61 @@ export function SessionHeader({
   defaultBoardId,
   onOpen,
   onSave,
+  onDelete,
   onManage,
 }) {
   const [editing, setEditing] = useState(false);
   const editTrigger = useRef(null);
+  const picker = useRef(null);
+  const index = sessions.findIndex((s) => s.id === session.id);
   return (
     <>
       <div className="session-heading">
         <div>
           <div className="session-title-row">
             <h1>{session.title}</h1>
-            <div className="compact-session-select">
-              <CaretDown size={20} aria-hidden="true" />
-              <select
-                aria-label="Choose session"
-                title="Choose session"
-                value={session.id}
-                onChange={(e) => onOpen(e.target.value)}
-              >
+            <details
+              className="session-picker"
+              ref={picker}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  picker.current.open = false;
+                  picker.current.querySelector("summary").focus();
+                }
+              }}
+            >
+              <summary aria-label="Choose session" title="Choose session">
+                <CaretDown size={20} />
+              </summary>
+              <div className="session-picker-popover" aria-label="Sessions">
                 {sessions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {shortDate(s.date)} · {s.title} · {fmt(s.distance, 2)} mi ·{" "}
-                    {durationLabel(s.active)}
-                  </option>
+                  <button
+                    key={s.id}
+                    aria-current={s.id === session.id ? "true" : undefined}
+                    onClick={() => {
+                      picker.current.open = false;
+                      onOpen(s.id);
+                    }}
+                  >
+                    <strong>
+                      {s.title} · {fullDate(s.date)}
+                    </strong>
+                    <span>
+                      {s.start}–{s.end} · {s.timezone}
+                    </span>
+                    <span>
+                      {fmt(s.distance, 2)} mi · {durationLabel(s.active)} active
+                      · {s.type}
+                    </span>
+                    <span>
+                      {s.records.length
+                        ? "Garmin FIT + stored summary"
+                        : "Stored summary only"}
+                    </span>
+                  </button>
                 ))}
-              </select>
-            </div>
+              </div>
+            </details>
             <button
               ref={editTrigger}
               className="icon-button session-edit-trigger"
@@ -204,24 +300,28 @@ export function SessionHeader({
             >
               <PencilSimple size={19} />
             </button>
-            <details className="session-metadata">
-              <summary aria-label="Session details">
-                {shortDate(session.date)}
-              </summary>
-              <div className="session-meta-popover">
-                <div>{fullDate(session.date)}</div>
-                <div>
-                  {session.start}–{session.end} PT
-                </div>
-                <div>
-                  {session.records.length
-                    ? "Garmin FIT + stored summary"
-                    : "Stored summary only"}
-                </div>
-              </div>
-            </details>
           </div>
         </div>
+        <nav className="session-navigation" aria-label="Session navigation">
+          <button
+            className="icon-button"
+            aria-label="Previous session"
+            title="Previous (older) session"
+            disabled={index === sessions.length - 1}
+            onClick={() => onOpen(sessions[index + 1].id)}
+          >
+            <CaretLeft size={21} />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Next session"
+            title="Next (newer) session"
+            disabled={index <= 0}
+            onClick={() => onOpen(sessions[index - 1].id)}
+          >
+            <CaretRight size={21} />
+          </button>
+        </nav>
       </div>
       {editing && (
         <SessionEditDialog
@@ -231,6 +331,7 @@ export function SessionHeader({
           defaultBoardId={defaultBoardId}
           onClose={() => setEditing(false)}
           onSave={onSave}
+          onDelete={onDelete}
           onManage={() => {
             setEditing(false);
             onManage();

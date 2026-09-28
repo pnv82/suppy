@@ -2,7 +2,11 @@ import { readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 import { openDatabase } from "./database.mjs";
 import { decodeUpload, importMatches } from "./fit-import.mjs";
-import { analyzeTelemetry } from "../src/domain/analysis.mjs";
+import {
+  analyzeTelemetry,
+  ensureWindowStatistics,
+  ensureIntervalStatistics,
+} from "../src/domain/analysis.mjs";
 import { validRuns } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
 
@@ -198,13 +202,29 @@ export function createStore({
   function context(id) {
     const s = presentWeather(get(id));
     const { records, hashes, ...summary } = s;
+    const deterministic = s.deterministic
+      ? {
+          ...s.deterministic,
+          summary: ensureIntervalStatistics(
+            records,
+            s.pauses,
+            0,
+            s.elapsed == null ? null : s.elapsed * 60,
+            s.deterministic.summary,
+          ),
+          windows: ensureWindowStatistics(
+            s.deterministic.windows,
+            records,
+            s.pauses,
+          ),
+        }
+      : s.elapsed == null
+        ? null
+        : analyzeTelemetry(records, s.pauses, s.elapsed * 60, s.sourceRef);
     return {
       ...summary,
-      deterministic:
-        s.deterministic ??
-        (s.elapsed == null
-          ? null
-          : analyzeTelemetry(records, s.pauses, s.elapsed * 60, s.sourceRef)),
+      windows: ensureWindowStatistics(s.windows, records, s.pauses),
+      deterministic,
       board: s.boardId
         ? {
             ...repo.boards().find((b) => b.id === s.boardId),
@@ -235,7 +255,7 @@ export function createStore({
       limitations: [
         "Local best windows are unreviewed estimates.",
         "Medians are time-weighted display estimates over covered intervals; gaps and pauses are excluded. Maxima retain their stated source and may include sensor spikes.",
-        "Distance per stroke uses FIT session distance and watch-counted strokes; it is not validated biomechanical efficiency.",
+        "Session stroke distance uses FIT totals; interval stroke distance may be a cadence-integral estimate with explicit coverage and assumptions. Neither is validated biomechanical efficiency.",
         "Wind is nearby-station context, not an on-water measurement.",
         "Watch telemetry cannot diagnose stroke faults.",
       ],
@@ -303,15 +323,20 @@ export function createStore({
     });
     return context(session_id);
   }
-  function updateDetails({ session_id, name, board_id }) {
+  function updateDetails({ session_id, name, board_id, note }) {
     const clean = name.trim();
     if (!clean || clean.length > 100)
       throw new Error("Enter a launch name of 1–100 characters.");
     if (board_id !== null) requireBoard(board_id);
     changeSession(session_id, (s) => {
-      if (s.title !== clean || s.boardId !== board_id) {
+      if (
+        s.title !== clean ||
+        s.boardId !== board_id ||
+        (note !== undefined && note !== s.additionalContext)
+      ) {
         if (s.title !== clean) s.titleSource = "athlete_reported";
         s.title = clean;
+        if (note !== undefined) s.additionalContext = note;
         s.boardId = board_id;
         s.revision++;
       }
@@ -319,6 +344,10 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    deleteSession({ session_id }) {
+      repo.deleteSession(session_id);
+      return { deleted: session_id };
+    },
     updateWind({ session_id, wind }) {
       return changeSession(session_id, (s) => {
         const direction =

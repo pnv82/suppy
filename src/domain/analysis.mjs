@@ -101,11 +101,7 @@ export function intervalStatistics(records, pauses, start, end) {
       mean_speed_mps: covered ? distance / covered : null,
       method: "sum_of_eligible_distance_segments_v1",
     },
-    distance_per_stroke: {
-      value_m: null,
-      reason:
-        "No validated interval stroke count; raw cadence is not converted to strokes.",
-    },
+    distance_per_stroke: intervalStrokeDistance(records, pauses, start, end),
   };
 }
 
@@ -132,4 +128,92 @@ export function analyzeTelemetry(records, pauses, elapsed, sourceRef = null) {
     summary: intervalStatistics(records, pauses, 0, elapsed),
     windows,
   };
+}
+
+export const INTERVAL_STROKE_METHOD = "matched_distance_cadence_integral_v1";
+
+// Cadence is interpreted as strokes/minute for this labelled SUP estimate.
+// Distance and cadence must cover the SAME edges, including clipped boundaries.
+export function intervalStrokeDistance(records, pauses, start, end) {
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start < 0 ||
+    end < start
+  )
+    throw new Error("Invalid analysis interval.");
+  let distance_m = 0,
+    estimated_strokes = 0,
+    covered_s = 0;
+  for (const run of validRuns(records, pauses, false)) {
+    for (let i = 0; i < run.length - 1; i++) {
+      const a = run[i],
+        b = run[i + 1];
+      if (
+        ![a.cadence_raw, b.cadence_raw].every(
+          (v) => Number.isFinite(v) && v >= 0,
+        )
+      )
+        continue;
+      const seconds = Math.min(end, b.elapsed_s) - Math.max(start, a.elapsed_s);
+      if (seconds <= 0) continue;
+      distance_m +=
+        ((b.distance_m - a.distance_m) * seconds) / (b.elapsed_s - a.elapsed_s);
+      estimated_strokes += (a.cadence_raw * seconds) / 60;
+      covered_s += seconds;
+    }
+  }
+  return {
+    value_m: estimated_strokes > 0 ? distance_m / estimated_strokes : null,
+    method: INTERVAL_STROKE_METHOD,
+    source: "derived",
+    status: "cadence_estimate",
+    distance_m: covered_s ? distance_m : null,
+    estimated_strokes: covered_s ? estimated_strokes : null,
+    covered_s,
+    coverage_pct: end > start ? (100 * covered_s) / (end - start) : null,
+    reason: !covered_s
+      ? "No overlapping valid distance and cadence data."
+      : estimated_strokes <= 0
+        ? "No positive cadence over the covered interval."
+        : null,
+    assumption:
+      "Raw SUP cadence is treated as strokes/minute without a cycle multiplier. This is an estimate, not a measured stroke count or biomechanical efficiency.",
+  };
+}
+
+// Lazy upgrade of old persisted evidence: preserve present values and other metrics.
+// A current-method null is a calculated missing-data result, not a stale cache.
+export function ensureIntervalStatistics(
+  records,
+  pauses,
+  start,
+  end,
+  existing,
+) {
+  if (start == null || end == null) return existing ?? null;
+  if (!existing) return intervalStatistics(records, pauses, start, end);
+  const stroke = existing.distance_per_stroke;
+  if (
+    Number.isFinite(stroke?.value_m) ||
+    stroke?.method === INTERVAL_STROKE_METHOD
+  )
+    return existing;
+  return {
+    ...existing,
+    distance_per_stroke: intervalStrokeDistance(records, pauses, start, end),
+  };
+}
+
+export function ensureWindowStatistics(windows, records, pauses) {
+  return windows.map((w) => ({
+    ...w,
+    statistics: ensureIntervalStatistics(
+      records,
+      pauses,
+      w.start,
+      w.end,
+      w.statistics,
+    ),
+  }));
 }

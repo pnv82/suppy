@@ -2774,3 +2774,128 @@ td small {
     width: 16px;
   }
 }
+
+/* Compact session management */
+.session-heading {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.session-heading > div {
+  min-width: 0;
+}
+.session-navigation {
+  display: flex;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.session-date {
+  color: var(--muted);
+  font-size: 13px;
+}
+.session-picker {
+  position: relative;
+}
+.session-picker summary {
+  display: flex;
+  cursor: pointer;
+  padding: 10px;
+  list-style: none;
+}
+.session-picker summary::-webkit-details-marker {
+  display: none;
+}
+.session-picker-popover {
+  position: absolute;
+  z-index: 1100;
+  top: 100%;
+  left: 0;
+  width: min(420px, calc(100vw - 90px));
+  max-height: 60vh;
+  overflow: auto;
+  background: white;
+  border: 1px solid #dbe3ea;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px #19354a22;
+  padding: 6px;
+}
+.session-picker-popover button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+}
+.session-picker-popover button[aria-current],
+.session-picker-popover button:hover {
+  background: #e9f5f4;
+}
+.session-picker-popover span {
+  font-size: 12px;
+  color: #607084;
+}
+.session-edit-dialog textarea {
+  width: 100%;
+  resize: vertical;
+}
+.session-delete {
+  border-top: 1px solid #e1e7ed;
+  padding-top: 12px;
+}
+.danger {
+  color: #ac3141;
+}
+.compare-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+@media (max-width: 900px) {
+  .compare-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .session-picker {
+    position: static;
+  }
+  .session-picker-popover {
+    left: 0;
+    top: 100%;
+  }
+  .session-heading {
+    position: relative;
+  }
+}
+
+.session-heading {
+  flex-wrap: nowrap;
+}
+.session-heading > div {
+  flex: 1 1 auto;
+}
+.session-picker {
+  flex-shrink: 0;
+}
+
+/* Keep cadence and stroke distance readable within the existing compact tiles. */
+.app-workspace .best-window-bar .window-time {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  white-space: normal;
+}
+@media (max-width: 600px) {
+  .app-workspace .best-window-bar .window-button > div {
+    flex-direction: row;
+    gap: 3px;
+    font-size: 10px;
+  }
+  .best-window-bar .window-button b {
+    font-size: 11px;
+  }
+  .best-window-bar .window-button small {
+    font-size: 8px;
+  }
+}

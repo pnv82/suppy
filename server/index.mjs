@@ -66,6 +66,7 @@ export function createMcpServer(
     const readOnly = ![
       "upsert_annotation",
       "delete_annotation",
+      "delete_session",
       "update_session_context",
       "update_session_details",
       "update_training_focus",
@@ -88,7 +89,11 @@ export function createMcpServer(
         inputSchema: toolSchemas[name],
         annotations: {
           readOnlyHint: readOnly,
-          destructiveHint: ["delete_annotation", "delete_board"].includes(name),
+          destructiveHint: [
+            "delete_annotation",
+            "delete_board",
+            "delete_session",
+          ].includes(name),
           idempotentHint: !["upsert_annotation", "upsert_board"].includes(name),
           openWorldHint: [
             "fetch_session_weather",

@@ -83,7 +83,7 @@ export function openDatabase(path = databasePath()) {
     );
     transaction(() => {
       const version = db.prepare("PRAGMA user_version").get().user_version;
-      if (version > 3)
+      if (version > 4)
         throw new Error(
           "Database schema is newer than this app. Upgrade the app before opening it.",
         );
@@ -137,6 +137,12 @@ export function openDatabase(path = databasePath()) {
         ) STRICT;
         PRAGMA user_version = 3;
       `);
+      if (version < 4)
+        db.exec(`
+        CREATE TABLE deleted_session_archives (tenant_id TEXT NOT NULL, session_id TEXT NOT NULL, deleted_at TEXT NOT NULL, session_json TEXT NOT NULL, sources_json TEXT NOT NULL, weather_json TEXT NOT NULL) STRICT;
+        CREATE TABLE deleted_fit_archives AS SELECT *, '' AS deleted_at FROM fit_imports WHERE 0;
+        PRAGMA user_version = 4;
+      `);
     });
   } catch (error) {
     db.close();
@@ -177,6 +183,48 @@ export function openDatabase(path = databasePath()) {
           id,
           s.id,
           JSON.stringify(source),
+        );
+      },
+      deleteSession: (sessionId) => {
+        const stamp = new Date().toISOString();
+        const row = db
+          .prepare("SELECT * FROM sessions WHERE tenant_id = ? AND id = ?")
+          .get(id, sessionId);
+        if (!row) throw new Error("Session not found");
+        const source = db
+          .prepare(
+            "SELECT * FROM session_sources WHERE tenant_id = ? AND session_id = ?",
+          )
+          .all(id, sessionId);
+        const weather = db
+          .prepare(
+            "SELECT * FROM weather_sources WHERE tenant_id = ? AND session_id = ?",
+          )
+          .all(id, sessionId);
+        db.prepare(
+          "INSERT INTO deleted_session_archives VALUES (?, ?, ?, ?, ?, ?)",
+        ).run(
+          id,
+          sessionId,
+          stamp,
+          JSON.stringify(row),
+          JSON.stringify(source),
+          JSON.stringify(weather),
+        );
+        db.prepare(
+          "INSERT INTO deleted_fit_archives SELECT *, ? FROM fit_imports WHERE tenant_id = ? AND session_id = ?",
+        ).run(stamp, id, sessionId);
+        for (const table of [
+          "fit_imports",
+          "weather_sources",
+          "session_sources",
+        ])
+          db.prepare(
+            `DELETE FROM ${table} WHERE tenant_id = ? AND session_id = ?`,
+          ).run(id, sessionId);
+        db.prepare("DELETE FROM sessions WHERE tenant_id = ? AND id = ?").run(
+          id,
+          sessionId,
         );
       },
       saveImport: (upload, sessionId) =>

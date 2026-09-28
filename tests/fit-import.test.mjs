@@ -360,3 +360,44 @@ test("REST and MCP expose the same import flow and calculated interval evidence,
     await new Promise((r) => server.close(r));
   }
 });
+
+test("session deletion preserves original bytes, isolates tenants and permits re-import", (t) => {
+  const path = join(mkdtempSync(join(tmpdir(), "sup-delete-")), "test.sqlite");
+  const { db, store, bob } = setup(t, path);
+  const upload = uploadFixture();
+  const saved = store.commitImport(commitArgs(store, upload));
+  bob.commitImport(commitArgs(bob, upload));
+  const result = executeTool(store, "delete_session", {
+    session_id: saved.session_id,
+  });
+  assert.equal(result._meta.sessionId, undefined);
+  assert.equal(store.dashboard().sessions.length, 0);
+  assert.throws(() => store.get(saved.session_id), /not found/);
+  assert.equal(bob.dashboard().sessions.length, 1);
+  assert.equal(store.previewImport(upload).status, "preview");
+  assert.throws(() =>
+    executeTool(store, "delete_session", {
+      session_id: saved.session_id,
+      tenant_id: "bob",
+    }),
+  );
+  const raw = new DatabaseSync(path);
+  t.after(() => raw.close());
+  const archived = raw
+    .prepare("SELECT * FROM deleted_fit_archives WHERE tenant_id = ?")
+    .get("alice");
+  assert.deepEqual(
+    Buffer.from(archived.original_bytes),
+    Buffer.from(upload.data_base64, "base64"),
+  );
+  assert.equal(
+    raw.prepare("SELECT COUNT(*) AS n FROM deleted_session_archives").get().n,
+    1,
+  );
+  assert.equal(
+    store.commitImport(commitArgs(store, upload)).status,
+    "imported",
+  );
+  assert.equal(store.dashboard().sessions.length, 1);
+  assert.deepEqual(db.integrity().foreignKeys, []);
+});

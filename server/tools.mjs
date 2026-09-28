@@ -37,7 +37,9 @@ export const toolSchemas = {
   }),
   get_dashboard: z.object({}),
   get_session_context: z.object({ session_id: z.string() }),
+  delete_session: z.object({ session_id: z.string() }),
   update_session_details: z.object({
+    note: z.string().max(4000).optional(),
     session_id: z.string(),
     name: z.string().trim().min(1).max(100),
     board_id: z.string().nullable(),
@@ -86,6 +88,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  delete_session:
+    "Delete a user-selected session and active import identity, allowing re-import. Original bytes and provenance remain privately archived. Requires an explicit user request.",
   set_session_wind:
     "Save user-reported on-water wind for the whole session in SI, or clear it with wind:null to restore station/legacy display. Keep station observations unchanged. Never infer this adjustment: it is an athlete report, not measured weather. Retains report history.",
   fetch_session_weather:
@@ -126,6 +130,7 @@ export function executeTool(store, name, input) {
   const args = toolSchemas[name].parse(input);
   let result;
   let importRoute;
+  if (name === "delete_session") result = store.deleteSession(args);
   if (name === "set_session_wind") result = store.updateWind(args);
   if (name === "preview_fit_import") result = store.previewImport(args);
   if (name === "preview_fit_import") {
@@ -216,7 +221,7 @@ export function executeTool(store, name, input) {
       appData: store.dashboard(),
       importRoute,
       sessionId:
-        args.session_id ??
+        (name === "delete_session" ? undefined : args.session_id) ??
         (name === "commit_fit_import" ? result.session_id : undefined),
     },
   };
