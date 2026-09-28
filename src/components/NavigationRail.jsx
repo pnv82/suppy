@@ -27,14 +27,14 @@ export function NavigationRail({ page, onNavigate, onImport }) {
     >
       <button
         className="rail-button rail-brand"
-        aria-label="SUP Training home"
+        aria-label="Suppy home"
         onClick={() => onNavigate("Home")}
         onFocus={reveal}
         onMouseEnter={reveal}
       >
         <Waves size={27} weight="bold" aria-hidden="true" />
         <span className="rail-label" aria-hidden="true">
-          SUP Training
+          Suppy
         </span>
       </button>
       <nav aria-label="Main navigation">

@@ -17,7 +17,7 @@
 - [x] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
 - [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
 - [ ] make upload dialog pretty
-- [ ] Rename app to Suppy in all places. Also add the icon fro the web-site.
+- [x] Rename app to Suppy in all places. Also add the icon fro the web-site.
 
 # Next - Main page redesign
 - [x] get rid of the summaries line - it is confusing, not clear what it shows

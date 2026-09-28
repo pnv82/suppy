@@ -22,7 +22,7 @@ export async function connect() {
   if (!connecting)
     connecting = (async () => {
       bridge = new App(
-        { name: "SUP Training", version: "0.1.0" },
+        { name: "Suppy", version: "0.1.0" },
         {},
         { autoResize: true },
       );
@@ -36,7 +36,7 @@ export async function connect() {
               () =>
                 reject(
                   new Error(
-                    "The ChatGPT host did not respond. Open this UI through the SUP Training connection, or use the standalone app.",
+                    "The ChatGPT host did not respond. Open this UI through the Suppy connection, or use the standalone app.",
                   ),
                 ),
               12000,

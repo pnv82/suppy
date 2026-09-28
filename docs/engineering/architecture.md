@@ -27,7 +27,7 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 | set_default_board | Set/clear preferred board without rewriting historical assignments |
 | assign_session_board | Set/clear a session's athlete-reported board and advance its revision |
 
-Tools declare read/write/destructive behavior. UI metadata names `ui://sup-training/dashboard.html`. The resource embeds the built JS/CSS, so it has no localhost asset dependency. Private records are sent in tool `_meta` for UI use; model-visible results contain summaries and bounded telemetry. The app bridge sends follow-up messages to the host conversation after context updates.
+Tools declare read/write/destructive behavior. UI metadata names `ui://suppy/dashboard.html`. The resource embeds the built JS/CSS, so it has no localhost asset dependency. Private records are sent in tool `_meta` for UI use; model-visible results contain summaries and bounded telemetry. The app bridge sends follow-up messages to the host conversation after context updates.
 
 ## Source and state
 

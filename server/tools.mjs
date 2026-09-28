@@ -216,7 +216,7 @@ export function executeTool(store, name, input) {
     content: [
       {
         type: "text",
-        text: `SUP Training: ${name} completed. Current data is in structuredContent. Changes are saved in the app; no background analysis was run.`,
+        text: `Suppy: ${name} completed. Current data is in structuredContent. Changes are saved in the app; no background analysis was run.`,
       },
     ],
     structuredContent: result,

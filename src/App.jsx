@@ -212,7 +212,7 @@ export function App() {
     return (
       <main className="loading-state">
         <Waves size={38} />
-        <h1>SUP Training</h1>
+        <h1>Suppy</h1>
         <p>{error || "Loading your sessions…"}</p>
         {error && (
           <button

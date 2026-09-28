@@ -51,7 +51,7 @@ const response = await fetch("/mcp", {
     jsonrpc: "2.0",
     id: 1,
     method: "resources/read",
-    params: { uri: "ui://sup-training/dashboard.html" },
+    params: { uri: "ui://suppy/dashboard.html" },
   }),
 });
 const data = await response.json();

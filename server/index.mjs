@@ -13,7 +13,7 @@ import { createWeatherService } from "./weather/service.mjs";
 const clientRoot = resolve(
   fileURLToPath(new URL("../dist/client/", import.meta.url)),
 );
-const resourceUri = "ui://sup-training/dashboard.html";
+const resourceUri = "ui://suppy/dashboard.html";
 const mimeType = "text/html;profile=mcp-app";
 
 // Ship the same UI in ChatGPT. Only code is embedded here; private data arrives through tools.
@@ -38,7 +38,7 @@ export function createMcpServer(
   store,
   weatherService = createWeatherService(),
 ) {
-  const server = new McpServer({ name: "sup-training", version: "0.1.0" });
+  const server = new McpServer({ name: "suppy", version: "0.1.0" });
   server.registerResource(
     "sup-dashboard",
     resourceUri,
@@ -253,7 +253,7 @@ if (
   const server = createHttpServer();
   server.listen(port, "127.0.0.1", () =>
     console.log(
-      `SUP Training: http://127.0.0.1:${port} | MCP: /mcp | SQLite | tenant: ${process.env.SUP_TENANT_ID || "local"}`,
+      `Suppy: http://127.0.0.1:${port} | MCP: /mcp | SQLite | tenant: ${process.env.SUP_TENANT_ID || "local"}`,
     ),
   );
   for (const signal of ["SIGINT", "SIGTERM"])
