@@ -1,6 +1,6 @@
-# next improvements
+# Next - Other
 
-- [ ] add maximum speed attribute to the main page and graphs
+- [x] add maximum speed attribute to the main page and graphs
 - [ ] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
 - [ ] allow to delete sessions, so i can test the uploads
 - [ ] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
@@ -14,20 +14,12 @@
 - [ ] make arrows of the direction smaller - they take to much space and obstruct the view. Ideally if they will fit into the widths of the track and will be draw a bit more frequently - right now 5min segment with default zoom usually has only one arrow.
 - [ ] let's make session selector popover riacher - show last 10 session and allow to search rest.
 - [ ] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.
+- [ ] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
+- [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
+- [ ] make upload dialog pretty
+- [ ] Rename app to Suppy in all places. Also add the icon fro the web-site.
 
-# Review key KPI
-
-Implemented source: [metrics plan](docs/product/key%20metrics.md#part-i-active-plan), [selected UI](docs/design/metrics-ui-plan.md), and [method contract](docs/engineering/performance-metrics.md). No backward compatibility work or data reset was needed; original uploads remain unchanged.
-
-- [x] Retain fractional cadence/GPS accuracy and lap/device provenance; define current shared evidence/support. Independent cadence counting remains below.
-- [x] Show speed at recorded cadence and matched estimated metres/stroke, with partial/unavailable qualifiers and accessible alternate units/methods.
-- [x] Default the clean session list to best-20-minute metrics; offer whole-session scope explicitly.
-- [x] Combine the selected interval inspector with clean map/chart highlights and a DPS switch in the existing third chart lane.
-- [x] Add conservative timer/low-speed evidence with boundary uncertainty; missing cadence never means zero.
-- [x] Add independent matched-window descriptive drift in three modes, with exact windows and support; no fatigue diagnosis.
-- [x] Add explicitly experimental whole-session/interval zig-zag with coverage and underlying deviations. Independent field validation remains future work under S1.
-
-# Main page redesign
+# Next - Main page redesign
 - [ ] get rid of the summaries line - it is confusing, not clear what it shows
 - [ ] move the graph to the top of the screen - it is muc useable
 - [ ] add controls to manage the session (behind 3 dots menu) - delete, recalculate, refresh weather, edit
@@ -37,9 +29,7 @@ Implemented source: [metrics plan](docs/product/key%20metrics.md#part-i-active-p
 
 The current slice intentionally prioritizes the light UI and ChatGPT-native skeleton. This list does not revive discarded P01/P02/P04/P06 proposals.
 - [ ] Automatic interval detection is suspended; see [S3: effort intervals](docs/product/key%20metrics.md#s3-automatic-effort-intervals-and-exhaustive-segment-labels).
-- [ ] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
-- [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
-- [ ] make upload dialog pretty
+
 
 ## Demanding analysis and domain work
 

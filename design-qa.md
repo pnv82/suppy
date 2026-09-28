@@ -258,3 +258,7 @@ Validated the built app against a separate synthetic SQLite database on port 300
 ## Lazy interval stroke-distance calculation — 2026-09-27
 
 All 45 tests pass; production build succeeds (existing bundle-size warning). In the isolated synthetic database on port 3002, a legacy session without cached interval statistics now displays 12.3 ft/stroke est. in all three tiles, with 100% matched coverage and the cadence assumption in accessible detail text. Verified Enter selects the interval. Checked 1440 px desktop and 390 px mobile, including compact wrapping without horizontal overflow or added tile height. Summary-only session retains unavailable cadence/stroke distance. Calculation uses matched distance/cadence edges, excludes gaps/pauses/resets/spikes, clips interval boundaries, preserves existing numeric evidence, and does not rewrite historical stored sessions. Browser validation completed after the temporary approval-review usage limit cleared.
+
+## Next tasks · 2026-09-28
+- Maximum speed: verified Home table/cards and keyboard-operable trend selector using synthetic next-qa.sqlite on port 3011. Missing max remains unavailable; at 390 px there is no horizontal overflow. Build and six session/interval tests passed. Whole-session max is explicitly independent of best-20 basis.
+

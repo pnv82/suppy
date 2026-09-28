@@ -25,6 +25,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
       ...session,
       view,
       speed: mph(view.speed),
+      maxSpeed: mph(session.statistics?.speed_mps?.max),
       dps: view.dps,
       cadenceValue: view.cadence,
       zigzag: view.zigzag,
@@ -34,6 +35,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
   });
   const options = {
     speed: ["Speed", "mph", 2, "#008591"],
+    maxSpeed: ["Session maximum speed", "mph", 2, "#327aa6"],
     dps: ["Estimated distance per stroke", "m/stroke", 2, "#7952c7"],
     cadenceValue: ["Recorded cadence", "spm", 0, "#6273c9"],
     zigzag: ["Zig-zag · experimental", "/100", 1, "#008591"],
@@ -90,6 +92,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
                 {[
                   "Session",
                   "Speed @ cadence",
+                  "Session max",
                   "Distance / stroke",
                   "Zig-zag · experimental",
                   "HR",
@@ -131,6 +134,15 @@ export function Compare({ sessions, boards = [], onOpen }) {
                           "% matched" +
                           (!s.view.paired ? " · cadence unavailable" : "")}
                     </small>
+                  </td>
+                  <td
+                    data-label="Session max"
+                    title={s.statistics?.speed_mps?.max_source || "Unavailable"}
+                  >
+                    <strong>
+                      {fmt(s.maxSpeed, 2)} <span>mph</span>
+                    </strong>
+                    <small>whole-session maximum</small>
                   </td>
                   <td data-label="Distance / stroke">
                     <strong>
@@ -183,8 +195,12 @@ export function Compare({ sessions, boards = [], onOpen }) {
           <div>
             <h2>{title} over time</h2>
             <p>
-              {basis === "best20" ? "Best 20 min" : "Whole session"} ·
-              chronological · derived telemetry
+              {metric === "maxSpeed"
+                ? "Whole-session maximum"
+                : basis === "best20"
+                  ? "Best 20 min"
+                  : "Whole session"}{" "}
+              · chronological · derived telemetry
             </p>
           </div>
           <label className="inline-label">
