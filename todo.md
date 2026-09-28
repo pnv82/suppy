@@ -10,7 +10,7 @@
 - [x] update how i'm using the markers on the graphs - let's have to states - current position and selected spot (last clicked position, i.e. some persistency). Selected spot will allow to add annotations better, right now it is hard to attach annotation to a specific spot because it moves with any mouse move. This also mean couple of different markers on the map - one is lights, following the active position of the mouse on the graphs. Second - last selected position.
 
 - [ ] introduce a notion of the session highlight and summary. It is to be filled the the LLM from outside when it is analysing existing session.
-- [ ] in session overview exchange places for heart rate and stroke distance - it is better logical grouping.
+- [x] in session overview exchange places for heart rate and stroke distance - it is better logical grouping.
 - [ ] make arrows of the direction smaller - they take to much space and obstruct the view. Ideally if they will fit into the widths of the track and will be draw a bit more frequently - right now 5min segment with default zoom usually has only one arrow.
 - [ ] let's make session selector popover riacher - show last 10 session and allow to search rest.
 - [ ] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.

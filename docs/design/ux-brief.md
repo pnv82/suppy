@@ -111,3 +111,5 @@ At 1400 px and wider the navigation expands to 168 px with persistent section na
 Chart selection now persists independently of the hover/keyboard cursor. Click/Enter/Space pins a point; Annotate uses that point until cleared. The map shows a light current dot and outlined selected dot; charts use a solid light cursor and dark dashed selection. Selection resets when switching sessions. Gaps have no interpolated map marker.
 
 Shift+Click extends the pinned point to an interval, including backwards selection. Shift+Enter/Space is the keyboard equivalent. The Annotate action prefills sorted bounds. The editor offers explicit Point/Interval modes and editable bounds for touch users; point mode saves equal start/end timestamps.
+
+The current metric inspector places heart rate below speed/cadence, and estimated stroke distance in the properties list (exchanged positions). Coverage, HR quality and partial DPS labels remain visible.

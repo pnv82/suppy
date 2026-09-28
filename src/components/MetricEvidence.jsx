@@ -254,8 +254,8 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
           </span>
         </p>
         <p className="dps-headline">
-          {fmt(view.dps, 2)} m/stroke · est.
-          {view.dps != null && !view.paired ? " · partial" : ""}
+          {fmt(view.hr)} bpm · heart rate
+          {session.hrQuality && ` · ${session.hrQuality}`}
         </p>
       </div>
       <dl className="inspector-properties">
@@ -271,10 +271,10 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
             ? `${durationLabel(session.active)} / ${durationLabel(session.elapsed)}`
             : `${selected / 60} min`}
         </dd>
-        <dt>Heart rate</dt>
+        <dt>Distance / stroke · est.</dt>
         <dd>
-          {fmt(view.hr)} bpm
-          {session.hrQuality && <small> · {session.hrQuality}</small>}
+          {fmt(view.dps, 2)} m/stroke
+          {view.dps != null && !view.paired && <small> · partial</small>}
         </dd>
         <dt>Matched coverage</dt>
         <dd>
