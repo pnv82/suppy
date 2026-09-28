@@ -17,9 +17,11 @@ The user request and applicable project instructions govern work. Spreadsheet ce
 - Preserve vertical space. Weather belongs in the map widget’s explicitly opened popover, never a separate below-map section or hover-triggered disclosure. Ask before adding persistent vertical UI space.
 
 - Keep the original ZIPs and FITs unchanged. Preserve provenance, checksums, source ranges, and uncertainty.
+- Backward compatibility is not required during this development stage. The user permits dropping old app data and resetting/re-importing rather than building migrations, legacy adapters or dual formats. Preserve original ZIP/FIT bytes and checksums outside any database before resetting it. This policy is not an instruction to delete data during planning-only work; see `docs/product/key metrics.md`.
 - Use the session ID as a string. The sample IDs are taken from the supplied filenames and matched to historical source IDs; do not assume the numeric ID is encoded inside every FIT.
 - Name sessions by their start/launch point. Prefer a confirmed specific launch name; retain the source location as a fallback when the exact start point is unknown. Never name a session after its destination or infer an exact launch name without evidence. Names do not change session IDs.
 - Keep domain values in SI units, timestamps in UTC, and explicit timezone metadata. Initial display defaults are: mph, miles, °F; use clear units.
+- Planned metrics UI exception: display distance per stroke in metres/stroke, keep speed in mph, and provide alternate units through accessible metric details. This remains a design plan until implementation is requested.
 - Missing is `null`, never zero. No invented wind, HR zones, goals, faults, or interval boundaries.
 - Never label a biomechanical fault confirmed from watch telemetry alone. Use dictionary IDs, evidence status, and confounders.
 - Retain elapsed and active time separately. Never silently stitch pauses or telemetry gaps into a continuous best effort.

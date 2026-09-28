@@ -16,12 +16,16 @@
 - [ ] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.
 
 # Review key KPI
-- [ ] Speed ↔ stroke-rate efficiency, Format example - 5.0 mph @ 40 spm. Let's make it a primary attribute of the Interval tile. use imperial for this one.
-- [ ] Distance per stroke. Format example - 3.35m/stroke (use metric for this one)
-- [ ] since we are usign the mix of the metric and imperial metric, let's make sure that on hover in tooltip for each value we show the alternative value.
-- [ ] let's add another graph on the session page - distance per stroke
-- [ ] Fatigue / efficiency drift.
-- [ ] Tracking / zig-zag score. Using GPS data 
+
+Implemented source: [metrics plan](docs/product/key%20metrics.md#part-i-active-plan), [selected UI](docs/design/metrics-ui-plan.md), and [method contract](docs/engineering/performance-metrics.md). No backward compatibility work or data reset was needed; original uploads remain unchanged.
+
+- [x] Retain fractional cadence/GPS accuracy and lap/device provenance; define current shared evidence/support. Independent cadence counting remains below.
+- [x] Show speed at recorded cadence and matched estimated metres/stroke, with partial/unavailable qualifiers and accessible alternate units/methods.
+- [x] Default the clean session list to best-20-minute metrics; offer whole-session scope explicitly.
+- [x] Combine the selected interval inspector with clean map/chart highlights and a DPS switch in the existing third chart lane.
+- [x] Add conservative timer/low-speed evidence with boundary uncertainty; missing cadence never means zero.
+- [x] Add independent matched-window descriptive drift in three modes, with exact windows and support; no fatigue diagnosis.
+- [x] Add explicitly experimental whole-session/interval zig-zag with coverage and underlying deviations. Independent field validation remains future work under S1.
 
 # Main page redesign
 - [ ] get rid of the summaries line - it is confusing, not clear what it shows
@@ -32,20 +36,31 @@
 # Deferred work
 
 The current slice intentionally prioritizes the light UI and ChatGPT-native skeleton. This list does not revive discarded P01/P02/P04/P06 proposals.
-- [ ] Automatic interval detection
+- [ ] Automatic interval detection is suspended; see [S3: effort intervals](docs/product/key%20metrics.md#s3-automatic-effort-intervals-and-exhaustive-segment-labels).
 - [ ] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
 - [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
 - [ ] make upload dialog pretty
 
 ## Demanding analysis and domain work
 
-- [ ] Validate Garmin cadence/fractional cadence/stroke-count semantics across devices and against manually counted strokes before efficiency claims. The summary now shows a labelled distance-per-stroke estimate from explicit SUP FIT distance/total-stroke fields only; cadence-derived stroke counts remain deferred.
+- [ ] Validate Garmin cadence/fractional cadence/stroke-count semantics across devices and against manually counted strokes before efficiency claims. Whole-session DPS uses explicit SUP FIT totals; interval DPS already uses a labelled cadence-integral estimate. Neither is a validated independent stroke counter.
 - [ ] Validate the local 5/10/20-minute display estimates against reviewed external results; add robust GPS/spike handling, coverage reasons and source-method reconciliation. Current estimates split at pauses, invalid GPS/distance and gaps over 15 seconds.
 - [x] Add exact interval time-weighted speed/HR/raw cadence means and medians, coverage, distance and methodology provenance before model-visible downsampling.
-- [ ] Extend deterministic interval analytics with drift, pacing consistency and boundary confidence after defining/test-validating each method. Interval stroke distance needs a validated interval stroke counter.
-- [ ] Add condition-aware comparison only after validated wind/current/wave/board context exists. Raw last-10 trends already work; no normalization or causal fitness claim is implemented.
+- [ ] Validate metric thresholds against independently annotated on-water sessions; synthetic coverage, event boundary and independent-pair checks are implemented. See [validation gates](docs/product/key%20metrics.md#9-validation-and-release-gates).
+- [ ] Condition-normalized comparison remains suspended under [S4](docs/product/key%20metrics.md#s4-environmental-normalization-and-historical-benchmarks). Raw last-10 trends already work; no normalization or causal fitness claim is implemented.
 - [ ] Review the SUP technique dictionary with a qualified coach. Preserve evidence requirements and confounders; do not turn watch patterns into confirmed biomechanical faults.
 - [ ] Extend goal types beyond duration-scoped speed; define evaluation windows and compatible units before adding automatic goal assessment.
+
+## Suspended metrics research
+
+Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md#part-ii-suspended-research-and-future-work). These items are outside the active delivery stages. Review their independent-evidence and promotion gates before bringing one forward.
+
+- [ ] [S1: Local course variability, tracking/zig-zag and eventual paddle-side inference](docs/product/key%20metrics.md#s1-local-course-variability-tracking-and-zig-zag). The experimental local path-straightness score is implemented by explicit user request. Independent accuracy/sensitivity validation, quality bands and paddle-side inference remain future work.
+- [ ] [S2: Fall/remount and semantic interruption detection](docs/product/key%20metrics.md#s2-fallremount-and-semantic-interruption-classification). Collect independently timed labels and assess false positives; ordinary stops must not become probable falls.
+- [ ] [S3: Automatic effort intervals and exhaustive segment labels](docs/product/key%20metrics.md#s3-automatic-effort-intervals-and-exhaustive-segment-labels). Preserve explicit lap/workout evidence first.
+- [ ] [S4: Environmental normalization and historical benchmarks](docs/product/key%20metrics.md#s4-environmental-normalization-and-historical-benchmarks). Validate conditions/equipment support before normalized claims.
+- [ ] [S5: Physiological fatigue/regression models and composite indices](docs/product/key%20metrics.md#s5-physiological-fatigue-models-and-composite-indices). Keep simple descriptive drift and external interpretation separate.
+- [ ] [S6: Steady-only DPS, universal GPS thresholds/scores, timestamp repair and permanent chart additions](docs/product/key%20metrics.md#s6-alternative-estimands-generic-thresholds-and-repair-mode). Each needs a bounded decision and validation.
 
 ## External analysis and ChatGPT
 

@@ -20,11 +20,11 @@ import {
   shortDate,
   SessionMap,
   BestWindows,
-  MetricStrip,
   Timeline,
 } from "./components/SessionViews.jsx";
 import { AnnotationForm } from "./components/ReviewPanels.jsx";
 import { Compare } from "./components/Compare.jsx";
+import { MetricsInspector } from "./components/MetricEvidence.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
 import { Boards } from "./components/Boards.jsx";
 import { NavigationRail } from "./components/NavigationRail.jsx";
@@ -139,6 +139,10 @@ export function App() {
       return true;
     });
   const chooseWindow = (w) => {
+    if (!w) {
+      setSelected(null);
+      return;
+    }
     if (w.start == null) return;
     setSelected(w.duration);
     setCursor(w.start);
@@ -294,7 +298,20 @@ export function App() {
                     onSelect={chooseWindow}
                   />
                 </div>
-                <MetricStrip session={session} />
+                <MetricsInspector
+                  key={session.id}
+                  session={session}
+                  selected={selected}
+                  onSelect={chooseWindow}
+                  onAsk={(interval) =>
+                    perform(() =>
+                      prepare(
+                        "Explain these metrics, their coverage and limitations.",
+                        interval,
+                      ),
+                    )
+                  }
+                />
               </div>
               <Timeline
                 session={session}

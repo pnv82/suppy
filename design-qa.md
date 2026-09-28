@@ -1,3 +1,68 @@
+# Metrics implementation QA — 2026-09-27 (America/Los_Angeles)
+
+**Final result: passed.** This is the current report; earlier checks are preserved below.
+
+## Scope and visual truth
+
+- User selection: option 2's selected-interval properties/details plus option 1's clean chart interval highlight. Option 3's replacement table is excluded. Home uses a cleaner list, defaulting to best 20 minutes.
+- Source visual truth: [combined selected target](docs/design/concepts/metrics-selected-target.png), informed by the three studies in [metrics-ui-plan.md](docs/design/metrics-ui-plan.md).
+- Rendered implementation: isolated synthetic SQLite app at `http://127.0.0.1:3002`; final production startup verified at `http://127.0.0.1:3001`.
+- Desktop source and implementation: 1487 × 1058 pixels, CSS viewport 1487 × 1058, devicePixelRatio 1. No density resampling. [Final desktop screenshot](.tools/qa/metrics-session-desktop-final.jpg).
+- State: selected best 20 minutes, DPS in the third lane, metric inspector visible. Synthetic route/values differ intentionally from the illustrative source. The real Leaflet map and computed Recharts plots replace illustration-only geometry. Existing compact navigation/header and median/max references remain.
+- Full-view comparison: source and rendered screenshots were opened together in the same image comparison input on initial and revised passes. Inspector, interval controls and chart highlight were also inspected as focused regions in those full-resolution inputs. Their text was readable; separate crops were unnecessary.
+- Narrow checks: CSS 390 × 844, 320 × 760 and tablet 768 × 1024. Native mobile screenshots exclude the scrollbar: JPEG content widths 375 px at the 390 px viewport, DPR 1. [Phone list](.tools/qa/metrics-home-mobile-final.jpg), [phone session](.tools/qa/metrics-session-mobile-final.jpg), [phone drift dialog](.tools/qa/metrics-drift-mobile-final.jpg). Screenshots are browser-native JPEG bytes; final links use the matching extension.
+
+## Findings and comparison history
+
+1. **[P2, fixed] Supporting interval metrics too small.** Initial desktop capture `.tools/qa/metrics-session-desktop-v1.png` used inherited 9–10 px supporting text. Cadence and DPS were harder to scan than the selected design. Increased desktop support text to 12 px, strengthened the inspector headline, and used 64 px interval controls while reducing map height to preserve the compact overview. A follow-up caught inherited column flow expanding the cards; corrected it to a single support row. Final desktop image above verifies readable values and three chart lanes in the existing footprint.
+2. **[P2, fixed] Excessive mobile list spacing.** `.tools/qa/metrics-home-mobile-v1.png` inherited desktop cell padding inside phone cards, producing roughly 435 px cards. Narrow-specific padding and footer layout reduced cards to roughly 304 px before final touch-target expansion. The final phone-list image verifies compact grouping without losing coverage or estimate qualifiers.
+3. **[P2, fixed] Trend control overflow at 320 px.** The long metric option forced the select to extend to x346. Constrained the flex label/select to the available width. DOM checks on the revised page show no page-wide overflow at 320, 390 or 768 px.
+4. **[P2, fixed] Narrow DPS selector was truncated.** Shortened its visible label to “DPS (est.)”; the lane retains m/stroke units and its accessible chart name remains “Distance / stroke chart time”. Details explain the estimate and rolling window.
+5. **[P3, accepted] Visual reference is illustrative.** The implemented inspector is narrower and the overall screen denser than the image study to retain the existing application's vertical-space discipline. No fabricated map, weather, curved plot or athlete value was copied from the study. Existing map tiles and source maxima remain. Exact pixel matching of fictional content is not an acceptance criterion.
+
+No actionable P0/P1/P2 findings remain.
+
+## Required fidelity surfaces
+
+- **Fonts/typography:** preserved existing Inter/system/Segoe UI stack; distinct session title, paired headline and secondary evidence hierarchy. Generated typography is an approximate style reference. Values and units remain legible; long titles wrap on phones.
+- **Spacing/layout rhythm:** map-led overview, inspector in the existing right-hand region, compact interval row and three charts. Inspector stacks at narrow widths; deeper metrics/drift use dismissible overlays. No new permanent analysis panel or fourth chart.
+- **Colors/tokens:** existing white/navy/teal palette and interval colors retained. Root computed background is `rgb(255,255,255)`; captured screenshots have the same warm tint seen in earlier project captures, so raw screenshot color fidelity is limited by capture conditions. No compensating yellow CSS was introduced.
+- **Image quality/assets:** retained actual Leaflet/OpenStreetMap tiles, chart vectors and the established Phosphor icon set. The generated reference is documentation, not a rasterized app surface. Map route geometry reflects synthetic records, not the illustrative route.
+- **Copy/content:** best-20 versus session scope is explicit; DPS stays “est.”; partial support is qualified; zig-zag stays experimental with coverage. Drift is descriptive with independent pair counts and conditions not normalized. Missing telemetry stays unavailable. Native dialogs expose alternate units, exact bounds, methods, source, exclusions and angular deviations.
+
+## Browser flows verified
+
+- Home defaults to best 20 minutes; whole-session switch and zig-zag trend selection work. No fallback from a missing best effort to a session average.
+- Open session, choose a 20-minute interval, synchronize chart/map selection, return to whole-session scope, switch cadence/DPS.
+- Metric details open by click and Enter. Tab remains inside the native modal; Escape closes and returns focus to the trigger.
+- Chart keyboard arrows update elapsed cursor. Drift reveals five non-overlapping pairs and the planted −10% speed change; exact early/late buttons move the cursor.
+- Missing cadence, missing GPS and summary-only sessions remain usable. Missing GPS preserves distance/cadence evidence; absent cadence does not become zero or guessed DPS.
+- A separate synthetic low-speed/timer fixture displays neutral low-speed and recorded-timer markers alongside a distinct athlete note. Mouse and keyboard marker navigation reaches 5:00 and 25:00; details expose 5-second boundary uncertainty.
+- Phone details/drift dialogs fit the viewport and scroll internally. Primary new narrow-screen controls have 44 px height; interval controls remain larger.
+- Standalone Ask ChatGPT prepares a copyable bounded context containing the selected interval's exact evidence. It makes no model call or external message.
+- Browser error/warning log check returned no entries. This does not claim a new live ChatGPT-account integration test.
+
+## Validation and operational checks
+
+- `npm test`: **58 passing** tests, including new numerical/coverage/geometry/drift/import tests, UI/MCP evidence agreement, context invalidation, tenant isolation, source preservation and persistence.
+- `npm run build`: passes. Existing approximately 1.1 MB JS bundle warning and third-party annotation warnings remain; bundle splitting is already deferred.
+- Relative document link/anchor audit: 70 references passed. `git diff --check` passes.
+- Restarted the verified local app server with the same production database after completing the build. All five sessions expose `sup_deterministic_v2`; dashboard returned HTTP 200 (about 131 ms in the startup check).
+- Before/after hashes confirm persisted session records and uploaded original/FIT bytes unchanged. No production seeding or database reset. Synthetic fixtures use their own explicitly named database.
+- Independent on-water validation of zig-zag resolution/noise, cadence counting, low-speed thresholds and drift interpretation remains future work. Synthetic correctness is not field accuracy or a physiological claim.
+
+## Implementation checklist
+
+- [x] Shared current evidence, provenance, coverage and unavailable rules.
+- [x] Clean best-20 list; selected-interval inspector and chart band.
+- [x] DPS chart switch, conservative events, descriptive drift and experimental session/interval zig-zag.
+- [x] Desktop/narrow/missing-data/keyboard checks and visual correction loop.
+- [x] Methods, plan status, suspended research and todo references updated.
+
+final result: passed
+
+---
+
 # Prototype validation
 
 Checked locally on 2026-09-26. The built app runs at `http://127.0.0.1:3001` using the Node API/MCP server.

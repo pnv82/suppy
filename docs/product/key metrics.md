@@ -1,1867 +1,349 @@
-# SUP FIT Import and Derived Metrics Specification
+# SUP metrics: revised product and analysis plan
 
-## 1. Purpose
+Status: **implementation authorized and delivered for core metrics, conservative events, descriptive drift and experimental zig-zag**. Updated 2026-09-27, America/Los_Angeles. Synthetic validation establishes implementation behavior; independent on-water validation remains future work.
 
-Suppy should treat a Garmin FIT activity file as the canonical high-resolution source for SUP session analysis.
+This plan extends the existing local React/SQLite/MCP app. Numerical analysis belongs in app code; explanations, fatigue hypotheses and coaching belong in the external LLM, following [LLM versus app responsibilities](llm%20vs%20app.md).
 
-The importer must preserve raw FIT data rather than only extracting Garmin-style summary metrics. Derived metrics should be calculated separately so algorithms can evolve without re-importing the original activity.
+The active sequence is in [Part I](#part-i-active-plan). Experimental and suspended proposals are retained in [Part II](#part-ii-suspended-research-and-future-work), with references from [todo.md](../../todo.md). Their presence here does not authorize implementation. The companion [UI design plan](../design/metrics-ui-plan.md) describes placement and interactions; the user selected option 2’s interval inspector with option 1’s chart highlight, plus a cleaner best-20-minute session list. Option 3’s replacement table was rejected.
 
-The initial implementation should prioritize:
+## Development policy: backward compatibility is not required
 
-- GPS position and course
-- speed
-- distance
-- heart rate
-- stroke cadence
-- timer/start/stop events
-- lap/session boundaries
-- environmental fields when available
+The user explicitly permits dropping old app data to accelerate development. Future metric/schema work may reset SQLite state, discard old calculated results, remove legacy adapters and adopt a single current contract. Do not spend this stage building old-schema migrations, dual writes, parallel legacy DTOs or historical metric compatibility.
 
-The most important derived features are:
+This permits resets when needed; this implementation did not need a database reset. Original ZIP/FIT uploads remain immutable source material. If the only original bytes are inside a database to be reset, preserve and verify those bytes and checksums outside that database first. Re-importing source files is an acceptable development workflow. Old app records and caches need not survive the reset.
 
-1. tracking / zig-zag analysis
-2. fatigue / efficiency drift
-3. interruption / stop / probable-fall detection
-4. stroke efficiency
-5. effort-normalized speed
-6. interval segmentation
+Method versions, input provenance and tenant boundaries remain required: they explain results and prevent stale or cross-tenant evidence; they do not require old-format support. Existing runtime documentation describes the current app until implementation replaces it.
 
----
+# Part I: Active plan
 
-# 2. Data Model
+## 1. Product priorities
 
-## 2.1 Raw activity
+The first improvement should help an athlete inspect a sustained effort and answer:
 
-```text
-Activity
-  id
-  source
-  sport
-  sub_sport
-  start_time
-  end_time
-  elapsed_time
-  timer_time
-  total_distance
-  raw_fit_file_reference
-  device_info[]
-  laps[]
-  events[]
-  records[]
-```
-
-Do not discard unknown FIT fields.
-
-Preserve either:
-
-- the original FIT file, or
-- a normalized representation of all decoded fields
-
-Prefer preserving the original FIT file permanently.
-
----
-
-## 2.2 Raw record
-
-Each FIT `record` message should be normalized into approximately:
-
-```text
-Record
-  timestamp
-
-  position_lat
-  position_long
-
-  distance
-  speed
-  enhanced_speed
-
-  heart_rate
-  cadence
-
-  altitude
-  enhanced_altitude
-
-  temperature
-
-  gps_accuracy
-
-  raw_fields {}
-```
-
-Use `enhanced_speed` instead of `speed` when both are available and Garmin FIT semantics indicate it is the higher-resolution equivalent.
-
-Missing values must remain `null`; do not synthesize values during import.
-
----
-
-## 2.3 Event data
-
-Preserve all FIT event messages.
-
-Relevant fields include:
-
-```text
-Event
-  timestamp
-  event
-  event_type
-  event_group
-  data
-  data16
-  raw_fields {}
-```
-
-Particularly important events:
-
-- timer start
-- timer stop
-- timer stop_all
-- lap
-- session
-- activity
-- auto-pause related events if present
-
-Do not infer interruption state from GPS until explicit timer events have been processed.
-
----
-
-# 3. Preprocessing
-
-Derived metrics should operate on a cleaned analysis stream, while raw data remains untouched.
-
-## 3.1 Sort
-
-Sort records by timestamp ascending.
-
-Reject exact duplicate timestamps only in the derived analysis stream.
-
-Do not delete them from raw storage.
-
----
-
-## 3.2 Time delta
-
-For each pair of adjacent records:
-
-```text
-dt = timestamp[i] - timestamp[i-1]
-```
-
-Typical values:
-
-- 1 second: normal recording
-- 2–10 seconds: Smart Recording or missing samples
-- large gaps: pause, sensor outage, activity interruption
-
-Do not assume 1 Hz sampling.
-
-All calculations must use actual `dt`.
-
----
-
-## 3.3 Position delta
-
-Calculate geodesic distance:
-
-```text
-gps_delta_m =
-  haversine(
-    lat[i-1],
-    lon[i-1],
-    lat[i],
-    lon[i]
-  )
-```
-
-Do not derive primary session distance solely by summing raw GPS deltas if the FIT `distance` field is reliable.
-
-Use GPS deltas mainly for:
-
-- course
-- tracking analysis
-- stop detection
-- anomaly detection
-
----
-
-## 3.4 Speed source priority
-
-Recommended priority:
-
-1. FIT `enhanced_speed`
-2. FIT `speed`
-3. derived GPS speed
-
-```text
-gps_speed = gps_delta_m / dt
-```
-
-Use GPS-derived speed only as fallback or validation.
-
----
-
-## 3.5 Basic GPS filtering
-
-Mark a GPS sample unreliable when one or more apply:
-
-```text
-gps_accuracy > configured_threshold
-impossible speed jump
-impossible acceleration
-position jumps while recorded speed remains near zero
-large displacement across an unusually long recording gap
-```
-
-Recommended initial thresholds for SUP:
-
-```text
-maximum plausible speed:
-  15 km/h / 9.3 mph for normal analysis
-
-hard reject threshold:
-  25 km/h / 15.5 mph
-
-maximum plausible acceleration:
-  2.5 m/s²
-```
-
-These should be configurable.
-
-Prefer marking a sample as low-confidence rather than permanently deleting it.
-
----
-
-# 4. Core Derived Record Fields
-
-For every valid analysis sample derive:
-
-```text
-DerivedRecord
-  timestamp
-
-  dt
-
-  speed_mps
-  speed_smoothed_mps
-
-  heart_rate
-  heart_rate_smoothed
-
-  stroke_rate_spm
-  stroke_rate_smoothed
-
-  gps_delta_m
-
-  course_deg
-  course_smoothed_deg
-
-  acceleration_mps2
-
-  moving
-  timer_running
-
-  distance_per_stroke_m
-
-  tracking_deviation_deg
-
-  analysis_confidence
-```
-
----
-
-# 5. Smoothing
-
-GPS course and instantaneous speed are noisy.
-
-Never use unsmoothed per-sample course directly for tracking analysis.
-
-Recommended initial smoothing windows:
-
-```text
-speed:
-  3–5 seconds
-
-course:
-  use displacement across approximately 5–10 seconds
-
-cadence:
-  3–5 seconds
-
-heart rate:
-  5 seconds
-```
-
-Prefer time-based rolling windows rather than fixed sample counts.
-
-Example:
-
-```text
-course at t =
-  bearing(
-    position at approximately t - 5 s,
-    position at approximately t + 5 s
-  )
-```
-
-This substantially reduces GPS jitter.
-
----
-
-# 6. Stroke Metrics
-
-## 6.1 Stroke rate
-
-Garmin cadence for paddle sports should be treated as stroke rate only after validating the device/activity format.
-
-Store:
-
-```text
-stroke_rate_spm
-```
-
-Never assume cadence is valid while:
-
-- stationary
-- timer stopped
-- Garmin reports zero or null
-- speed is essentially zero
-
----
-
-## 6.2 Distance per stroke
-
-For valid moving samples:
-
-```text
-distance_per_stroke_m =
-    speed_mps * 60
-    /
-    stroke_rate_spm
-```
-
-Example:
-
-```text
-speed = 2.2 m/s
-stroke rate = 40 spm
-
-DPS = 3.3 m/stroke
-```
-
-Require:
-
-```text
-stroke_rate >= 10 spm
-speed >= 0.5 m/s
-```
-
-Otherwise return `null`.
-
-Do not calculate DPS across interruptions or turns.
-
----
-
-# 7. Tracking / Zig-Zag Analysis
-
-## 7.1 Objective
-
-Tracking analysis estimates how efficiently the board progresses along its intended local direction instead of wasting distance through repeated left-right course changes.
-
-This is not true board yaw.
-
-GPS measures:
-
-```text
-course over ground
-```
-
-not:
-
-```text
-board heading
-```
-
-Therefore wind, current, surf, turns and route geometry must be separated from actual paddling zig-zag.
-
----
-
-# 7.2 Main problem
-
-A naive implementation such as:
-
-```text
-difference between consecutive GPS bearings
-```
-
-will mostly measure GPS noise.
-
-Another naive implementation such as:
-
-```text
-straight-line distance / traveled distance
-```
-
-fails badly on legitimate curved routes.
-
-Tracking must therefore be calculated relative to a **local route direction**.
-
----
-
-# 7.3 Local intended direction
-
-For each point define a longer-window reference direction.
-
-Recommended initial implementation:
-
-```text
-reference_window = 30 seconds
-```
-
-Calculate:
-
-```text
-reference_course(t) =
-    bearing(
-      position at t - 15 s,
-      position at t + 15 s
-    )
-```
-
-This represents the approximate intended route direction.
-
-Then calculate a shorter-window actual course:
-
-```text
-actual_course(t) =
-    bearing(
-      position at t - 3 s,
-      position at t + 3 s
-    )
-```
-
-Then:
-
-```text
-course_error(t) =
-  smallest_angle_difference(
-    actual_course,
-    reference_course
-  )
-```
-
-Range:
-
-```text
--180° ... +180°
-```
-
-Positive and negative signs represent opposite sides of the route axis.
-
----
-
-# 7.4 Exclusions
-
-Do not score tracking during:
-
-- speed < 1.0 m/s
-- timer stopped
-- detected interruption
-- turns
-- launch/landing
-- probable fall
-- very tight route geometry
-- periods with invalid GPS
-
----
-
-# 7.5 Turn detection
-
-A legitimate turn must not be counted as poor tracking.
-
-Detect a turn when the longer-window course itself changes substantially.
-
-Example rule:
-
-```text
-abs(
-  reference_course(t + 10s)
-  -
-  reference_course(t - 10s)
-) > 20°
-```
-
-or:
-
-```text
-reference_course angular velocity
-> 1.5°/s
-for several seconds
-```
-
-Mark these segments:
-
-```text
-segment_type = TURN
-```
-
-Exclude them from tracking score.
-
-Thresholds should be configurable.
-
----
-
-# 7.6 Tracking error metrics
-
-For valid straight paddling segments calculate:
-
-```text
-mean_absolute_course_error_deg
-median_absolute_course_error_deg
-p90_absolute_course_error_deg
-course_error_stddev_deg
-```
-
-Example:
-
-```text
-median error: 4.8°
-P90 error: 11.2°
-```
-
-These metrics are directly interpretable and should always be retained even if a simplified user-facing score is added.
-
----
-
-# 7.7 Zig-zag oscillation
-
-Poor tracking often appears as repeated alternation:
-
-```text
-left
-right
-left
-right
-```
-
-Detect sign changes in smoothed `course_error`.
-
-Only count a sign change if the excursion exceeded a minimum magnitude.
-
-Example:
-
-```text
-minimum excursion = 3°
-```
-
-Algorithm:
-
-```text
-if previous meaningful error > +3°
-and current meaningful error < -3°:
-    oscillation += 1
-
-if previous meaningful error < -3°
-and current meaningful error > +3°:
-    oscillation += 1
-```
-
-Calculate:
-
-```text
-zigzag_cycles_per_minute
-median_zigzag_amplitude_deg
-p90_zigzag_amplitude_deg
-```
-
-One full cycle should ideally mean:
-
-```text
-left -> right -> left
-```
-
-rather than counting every zero crossing as a complete cycle.
-
----
-
-# 7.8 Path efficiency
-
-Within a locally straight segment calculate:
-
-```text
-actual_distance =
-  sum traveled distance
-
-forward_progress =
-  projection of each displacement
-  onto reference course axis
-```
-
-For each small displacement:
-
-```text
-forward_component =
-  gps_delta_m * cos(course_error)
-```
-
-Then:
-
-```text
-tracking_efficiency =
-    sum(forward_component)
-    /
-    sum(gps_delta_m)
-```
-
-Range:
-
-```text
-0 ... 1
-```
-
-User-facing:
-
-```text
-tracking_efficiency_pct =
-  tracking_efficiency * 100
-```
-
-Example:
-
-```text
-actual distance = 1000 m
-effective forward progress = 972 m
-
-tracking efficiency = 97.2%
-```
-
----
-
-# 7.9 Lateral waste
-
-Also calculate:
-
-```text
-lateral_component =
-  abs(
-    gps_delta_m * sin(course_error)
-  )
-```
-
-Then:
-
-```text
-lateral_distance_m =
-  sum(lateral_component)
-
-lateral_distance_per_km =
-  lateral_distance_m /
-  actual_distance_km
-```
-
-Example:
-
-```text
-38 m lateral movement / km
-```
-
-This can be easier to understand than an abstract score.
-
----
-
-# 7.10 Proposed user-facing Tracking Score
-
-Do not make the score the canonical metric.
-
-Store the underlying components.
-
-Possible normalized score:
-
-```text
-tracking_score = 100 * tracking_efficiency
-```
-
-Example:
-
-```text
-98.4 = very straight
-95.2 = noticeable inefficiency
-90.0 = substantial course waste
-```
-
-However, the product should preferably expose:
-
-```text
-Tracking efficiency: 97.4%
-Median course error: 5.2°
-Zig-zag amplitude: 8.1°
-Oscillation frequency: 3.4 cycles/min
-```
-
-instead of hiding everything behind one number.
-
----
-
-# 7.11 Paddle-side inference: future feature
-
-Repeated directional oscillation may eventually allow approximate paddle-side change detection.
-
-For example:
-
-```text
-several strokes
-course drifts right
-
-side switch
-
-course begins drifting left
-```
-
-Do not implement this in v1.
-
-GPS sampling and cadence alone may not support reliable stroke-side classification.
-
----
-
-# 8. Fatigue / Efficiency Drift
-
-## 8.1 Objective
-
-Fatigue analysis should detect performance deterioration during the session while separating fatigue from changes in:
-
-- effort
-- wind
-- current
-- chop
-- direction
-- intentional recovery paddling
-- intervals
-
-The key question is not:
-
-```text
-Did speed decline?
-```
-
-It is:
-
-```text
-Did performance decline at comparable effort?
-```
-
----
-
-# 8.2 Required signals
-
-Primary:
-
-```text
-speed
-heart_rate
-stroke_rate
-distance_per_stroke
-```
-
-Optional later:
-
-```text
-wind
-current
-wave/chop classification
-route direction
-```
-
----
-
-# 8.3 Do not compare entire session halves blindly
-
-This is invalid for interval workouts.
-
-Example:
-
-```text
-first half = warmup + hard intervals
-second half = recovery + easy paddle
-```
-
-A simple first-half / second-half comparison would falsely report fatigue.
-
-Fatigue analysis should operate on comparable effort segments.
-
----
-
-# 8.4 Stable-effort window detection
-
-Divide activity into rolling windows.
-
-Recommended:
-
-```text
-window = 3 minutes
-step = 30 seconds
-```
-
-A window is eligible if:
-
-```text
-moving >= 90% of window
-no interruptions
-no major turns
-no probable falls
-
-heart_rate_variability small enough
-OR
-stroke_rate_variability small enough
-```
-
-Possible initial stability limits:
-
-```text
-HR SD < 5 bpm
-stroke-rate SD < 5 spm
-```
-
-These should be configurable.
-
----
-
-# 8.5 Effort bins
-
-Group stable windows by approximate effort.
-
-Suggested HR bins:
-
-```text
-<120
-120–129
-130–139
-140–149
-150–159
-160+
-```
-
-or preferably relative zones when athlete thresholds are known.
-
-Stroke-rate bins can also be used:
-
-```text
-30–34
-35–39
-40–44
-45–49
-50+
-```
-
-The best comparison uses windows where both HR and stroke rate are reasonably similar.
-
----
-
-# 8.6 Comparable-window matching
-
-For an early window and later window to be comparable:
-
-```text
-abs(HR difference) <= 5 bpm
-
-AND
-
-abs(stroke rate difference) <= 3 spm
-```
-
-Optional future constraints:
-
-```text
-similar direction
-similar wind angle
-similar environmental conditions
-```
-
----
-
-# 8.7 Fatigue metrics
-
-For matched windows calculate:
-
-### Speed drift
-
-```text
-speed_drift_pct =
-    (late_speed - early_speed)
-    /
-    early_speed
-    * 100
-```
-
-Negative = deterioration.
-
----
-
-### Distance-per-stroke drift
-
-```text
-dps_drift_pct =
-    (late_DPS - early_DPS)
-    /
-    early_DPS
-    * 100
-```
-
-This is highly relevant for technique deterioration.
-
----
-
-### Stroke-rate compensation
-
-If:
-
-```text
-speed decreases
-stroke rate increases
-```
-
-the paddler is working harder mechanically for less board speed.
-
-Calculate:
-
-```text
-stroke_rate_drift_pct
-```
-
----
-
-### Heart-rate drift
-
-For approximately constant speed:
-
-```text
-HR_drift =
-  late_HR - early_HR
-```
-
-This captures cardiovascular drift.
-
----
-
-# 8.8 Efficiency indices
-
-Store several simple indices instead of prematurely choosing one universal score.
-
-### Speed per heart beat
-
-```text
-speed_hr_efficiency =
-  speed_mps / HR
-```
-
-Useful longitudinally, but HR response lag must be respected.
-
----
-
-### Speed per stroke rate
-
-```text
-speed_cadence_efficiency =
-  speed_mps / stroke_rate_spm
-```
-
-Equivalent conceptually to DPS.
-
----
-
-### Combined effort efficiency
-
-Optional:
-
-```text
-efficiency_index =
-  speed_mps /
-  (heart_rate * stroke_rate)
-```
-
-Do not expose this as an athlete-facing metric until validated.
-
----
-
-# 8.9 Session fatigue summary
-
-Example:
-
-```text
-Fatigue analysis
-
-Comparable effort:
-  early: HR 146, 42 spm
-  late:  HR 147, 43 spm
-
-Speed:
-  2.31 -> 2.18 m/s
-  -5.6%
-
-Distance/stroke:
-  3.30 -> 3.04 m
-  -7.9%
-
-Interpretation:
-  moderate late-session efficiency loss
-```
-
----
-
-# 8.10 Regression-based fatigue model
-
-Preferred future implementation.
-
-Instead of pairwise matching, predict expected speed from effort:
-
-```text
-speed =
-  f(
-    heart_rate,
-    stroke_rate,
-    direction,
-    environment
-  )
-```
-
-Calculate:
-
-```text
-performance_residual =
-  actual_speed - predicted_speed
-```
-
-Then detect whether residuals systematically decline with elapsed exercise time.
-
-Example:
-
-```text
-first 20 min residual: +0.05 m/s
-last 20 min residual:  -0.08 m/s
-```
-
-This is a much stronger fatigue detector once sufficient historical data exists.
-
-Do not implement this before the simpler window method works reliably.
-
----
-
-# 9. Interruption Detection
-
-## 9.1 Objective
-
-Suppy must distinguish:
-
-1. normal paddling
-2. Garmin timer pause
-3. stationary rest
-4. low-speed maneuver
-5. external interruption
-6. probable fall/remount
-7. GPS failure
-
-This matters because interruptions otherwise corrupt:
-
-- average speed
-- cadence
-- DPS
-- fatigue metrics
-- tracking metrics
-- interval detection
-
----
-
-# 9.2 Detection priority
-
-Use signals in this order:
-
-```text
-1. explicit FIT timer events
-2. speed
-3. distance progression
-4. cadence
-5. GPS movement
-6. heart rate
-```
-
-Explicit FIT timer state always has precedence.
-
----
-
-# 9.3 Explicit pause
-
-When FIT reports timer stop:
-
-```text
-state = PAUSED_EXPLICIT
-```
-
-until timer start.
-
-Do not run other paddling-analysis algorithms during this interval.
-
----
-
-# 9.4 Stationary interruption
-
-Candidate interruption:
-
-```text
-speed < 0.5 m/s
-for >= 5 seconds
-```
-
-and:
-
-```text
-stroke_rate == 0 or null
-```
-
-and:
-
-```text
-GPS displacement small
-```
-
-Classify as:
-
-```text
-STOPPED
-```
-
-if duration >= configured threshold.
-
-Recommended default:
-
-```text
-5 seconds
-```
-
----
-
-# 9.5 Short paddling gap
-
-Avoid calling every stroke break an interruption.
-
-Example:
-
-```text
-cadence = 0
-speed = 1.8 m/s
-duration = 3 seconds
-```
-
-The board may simply be gliding.
-
-Therefore cadence zero alone is insufficient.
-
----
-
-# 9.6 Maneuver detection
-
-A low-speed period may be intentional turning.
-
-Possible classification:
-
-```text
-speed < 1.2 m/s
-AND
-course changes > 30°
-AND
-duration < 20 seconds
-```
-
-Then:
-
-```text
-state = MANEUVER
-```
-
-Do not classify as interruption.
-
----
-
-# 9.7 Probable external interruption
-
-Example scenario:
-
-```text
-speed drops to near zero
-cadence becomes zero
-position remains nearly stationary
-HR remains elevated
-timer continues running
-duration 10–120 seconds
-then paddling resumes
-```
-
-Classify:
-
-```text
-INTERRUPTION_UNSPECIFIED
-```
+1. What speed did I sustain, and at what recorded cadence?
+2. How much ground distance did I cover per estimated stroke?
+3. How much of that interval supports the calculation?
+4. What pauses, low-speed periods or sensor gaps qualify the evidence?
+5. Later, how did measured performance change between sufficiently comparable windows?
 
-Examples:
+Primary display: **speed at recorded cadence**, for example `5.0 mph @ 40 spm`. Supporting display: **estimated ground distance per stroke**, for example `3.35 m/stroke · est.`. These are illustrative values, not a benchmark or an ideal cadence. Neither directly measures paddle force, mechanical work, energy expenditure or biomechanical efficiency.
 
-- lifeguard conversation
-- waiting for another paddler
-- equipment adjustment
-- traffic / boat avoidance
+Retain distance, elapsed/active time, maximum/average/median speed, HR and 5/10/20-minute windows. No universal efficiency or fatigue score is included. The user explicitly promoted an experimental GPS straightness score, with coverage and underlying deviation metrics, for both whole sessions and intervals.
 
-Do not claim a semantic cause unless user provides annotation.
+## 2. Start from the implemented foundation
 
----
+Read [FIT import](../engineering/fit-import.md), [metrics](../domain/metrics.md), [data audit](../data/data-audit.md) and [storage](../engineering/storage.md) before implementation.
 
-# 9.8 Probable fall detection
+| Capability | Current foundation | Planned change |
+|---|---|---|
+| FIT import | Official SDK, integrity checks, SUP validation, preview/save, immutable bytes/checksums | Expose only additional fields needed by the metrics |
+| Telemetry/timers | SI channels, UTC timestamps, source record indexes, explicit pauses | Channel-specific quality and support information |
+| Best continuous windows | Exact 300/600/1200-second elapsed windows and boundary evidence | Preserve definition; improve evidence presentation |
+| Interval statistics | Time-weighted speed/HR/cadence, coverage, matched-distance/cadence DPS | Refine the shared evidence contract |
+| Session DPS | Estimate from explicit SUP distance and total-stroke fields | Retain distinct session scope; investigate cadence semantics |
+| Weather/annotations | Separate station retrieval and timestamped athlete notes | Reuse as context without inferring local conditions or causes |
+| Latest-10 comparison | Descriptive chronological trends | Supported metric choices, without a normalized fitness score |
 
-A fall is not explicitly encoded in a normal Garmin FIT activity.
+The sample audit describes three detailed tracks with irregular sampling. Two sessions without timer pauses have gaps reaching 11–12 seconds; another has a roughly 160-second pause gap. Two sessions have a historical `Suspect early` HR warning without exact boundaries. These are limitations to test, not labels to tune against blindly. Summary-only sessions remain a required product state.
 
-Only infer a probable fall.
+## 3. Source data and normalization
 
-Useful pattern:
+### 3.1 Source retention and useful fields
 
-```text
-before:
-  normal paddling
-
-transition:
-  sudden speed loss
-
-during:
-  speed near zero
-  cadence zero
-  timer running
-
-after:
-  short irregular movement
-  then paddling resumes
-```
-
-Optional clues:
-
-```text
-HR stays high or increases
-GPS position wanders locally
-recovery takes several seconds
-```
-
-Initial rule:
-
-```text
-speed_before >= 1.5 m/s
-
-speed falls below 0.5 m/s
-within <= 5 seconds
-
-cadence becomes 0/null
-
-timer remains active
-
-stationary duration:
-  3–30 seconds
-
-followed by:
-  speed >= 1.0 m/s
-  and cadence resumes
-```
-
-Classify:
-
-```text
-PROBABLE_FALL
-```
-
-with confidence, not certainty.
-
----
-
-# 9.9 Fall confidence
-
-Example scoring:
-
-```text
-+2 sudden speed drop
-+2 cadence stops
-+1 HR remains elevated
-+1 timer remains running
-+1 short stationary period
-+1 rapid return to paddling
-```
-
-Possible output:
-
-```text
-0–2:
-  ordinary stop
-
-3–4:
-  possible fall
-
-5+:
-  probable fall
-```
-
-The exact scoring requires validation against annotated sessions.
-
----
-
-# 9.10 Long stationary event
-
-Example:
-
-```text
-speed < 0.3 m/s
-duration > 2 minutes
-```
-
-Classify:
-
-```text
-LONG_STOP
-```
-
-This is unlikely to be a normal fall/remount.
-
----
-
-# 9.11 GPS outage
-
-Do not mistake missing GPS for stopping.
-
-Possible GPS outage:
-
-```text
-GPS displacement = zero or invalid
-BUT
-
-recorded speed > 1 m/s
-OR
-cadence > 20 spm
-```
-
-Classify:
-
-```text
-GPS_DEGRADED
-```
-
-Do not feed this interval into tracking metrics.
-
----
-
-# 9.12 Interruption output
-
-Store:
-
-```text
-Interruption
-  start_time
-  end_time
-  duration_s
-
-  type
-
-  confidence
-
-  entry_speed
-  exit_speed
+Retain original ZIP/FIT bytes, checksums, filename/archive-member provenance, decoder version and source references. Original bytes preserve unknown/vendor fields; a second permanent copy of every decoded object is unnecessary.
 
-  HR_before
-  HR_during
-  HR_after
+Use tenant-scoped string session identity. Names refer to the confirmed launch point and never change identity. Domain units remain SI; timestamps remain UTC with explicit display timezone. Missing values remain `null`.
 
-  cadence_before
-  cadence_during
-  cadence_after
-```
-
-Types:
-
-```text
-PAUSED_EXPLICIT
-STOPPED
-MANEUVER
-INTERRUPTION_UNSPECIFIED
-PROBABLE_FALL
-LONG_STOP
-GPS_DEGRADED
-```
-
----
+Inspect and expose when useful and present:
 
-# 10. Moving Time
+- Session identity, sport/sub-sport, start/end, elapsed/timer duration, total distance and explicit SUP total strokes.
+- Record timestamps, coordinates, cumulative distance, speed/enhanced speed, HR, cadence, fractional cadence and GPS accuracy metadata.
+- Timer/other event messages, event type/group/data and source indexes; lap boundaries, lap trigger and workout-step relationship.
+- Device/sensor information sufficient to explain cadence/HR provenance and recording mode where supplied. Absence stays unknown; omit unnecessary serial numbers from model context.
+- Temperature, altitude, cycle-length and other richer fields remain available in the source. Watch temperature is not automatically ambient weather; cycle length is not validated stroke efficiency.
 
-Do not blindly trust one definition.
+Use Garmin profile scaling/subfields and validate device/activity cadence semantics. Do not invent a stroke/cycle multiplier. Preserve fractional cadence inputs and document whether/how the decoder combines them; avoid double-counting an already expanded field.
 
-Store separately:
-
-```text
-elapsed_time
-FIT_timer_time
-Suppy_moving_time
-```
+### 3.2 Ordering, gaps and speed sources
 
-Suppy moving state:
+Keep the existing strict import policy for missing, duplicate, decreasing and out-of-session record timestamps. Do not silently sort or discard records. A source-preserving repair mode is suspended in Part II. Backward-compatibility freedom does not justify ambiguous timestamps.
 
-```text
-moving =
-  timer_running
-  AND
-  not interruption
-  AND
-  (
-    speed >= 0.5 m/s
-    OR cadence >= 10 spm
-  )
-```
+Use actual positive timestamp differences, never sample count as duration. Time-based smoothing stays inside supported runs; no bridging pauses/unsupported sensor gaps or endpoint extrapolation. Display smoothing and numerical calculations must be distinguishable.
 
-Thresholds should be configurable.
+Prefer valid FIT enhanced speed, then valid FIT speed. GPS-derived speed is a separately labelled fallback with its own support/quality; never silently mix it into a device-recorded channel. Prefer reliable cumulative FIT distance for distance metrics. Geodesic GPS displacement supports geometry/anomaly inspection, not replacement of session distance by default.
 
----
+## 4. Shared evidence and eligibility contract
 
-# 11. Interval Detection
+Every derived metric or detected interval carries:
 
-Automatic interval detection is secondary to explicit laps.
+- Metric key, value or null, unit, source/evidence status and explicit interval/scope.
+- Method/version, decoder/input reference or hash, parameters and computation time.
+- Covered seconds, requested seconds, coverage percentage and included source ranges.
+- Excluded duration/reasons, missing-channel reasons and boundary uncertainty when applicable.
+- Context revision or equivalent dependency key when annotations/equipment/conditions affect matching or eligibility.
 
-Priority:
+Compute from full stored records before map simplification or model-visible downsampling. UI and REST/MCP use the same deterministic evidence. Recompute or discard stale results when inputs/methods change; old-cache compatibility is unnecessary.
 
-```text
-manual lap
-structured workout interval
-detected effort interval
-```
+| Separate concept | Meaning | Example |
+|---|---|---|
+| Data quality | Whether channels support the calculation | 94% matched coverage; HR warning |
+| Comparison quality | Whether intervals meet matching rules | Same board/direction; current unknown |
+| Interpretation confidence | Strength of an explanation | External LLM fatigue hypothesis |
 
-Detected effort may use:
+Do not collapse these into one HIGH/MEDIUM/LOW label. A derived classification is not an athlete report, a heuristic score is not a calibrated probability, and unavailable is not zero.
 
-```text
-speed
-cadence
-heart rate
-```
+Channel validity is independent. Missing GPS can invalidate course analysis while leaving recorded HR/cadence useful. Sensor disagreement is a quality flag, not proof that one channel is correct.
 
-Simple v1:
+The existing 15-second gap/interpolation policy and 8 m/s distance-jump guard are explicit prototype policies, not accuracy guarantees. Retain their documented behavior until a tested replacement is chosen. Metrics needing finer resolution require stricter eligibility. The original proposed universal 15 km/h warning, 25 km/h rejection and 2.5 m/s² acceleration thresholds are suspended hypotheses, not new active limits.
 
-```text
-hard interval candidate:
-
-stroke rate >= personal session P70
-AND
-speed >= session P70
-for >= 30 seconds
-```
+## 5. Speed, cadence and stroke-distance evidence
 
-Recovery:
+### 5.1 Paired speed and cadence
 
-```text
-cadence and speed fall below corresponding thresholds
-```
+For a selected best window, expose speed and cadence with scope/coverage. Best-window speed remains distance change divided by elapsed duration; do not substitute a mean of instantaneous speed samples.
 
-Do not use global fixed numbers for all athletes.
+Partial cadence coverage must not imply that full-window speed was achieved at a cadence observed only briefly. The proposed initial gate for a prominent paired value is at least 90% matched coverage, subject to validation. Below that, keep best speed visible and show cadence as insufficient coverage. Detailed evidence may retain a qualified partial estimate.
 
----
+For arbitrary interval relationship analysis, calculate distance-based speed and time-weighted cadence over identical supported edges. Return covered duration; do not pair independently covered averages without qualification.
 
-# 12. Segment Classification
+### 5.2 Estimated distance per stroke
 
-Every part of the session should eventually belong to one of:
+For interval totals:
 
 ```text
-PADDLING_STEADY
-PADDLING_HARD
-PADDLING_EASY
-
-TURN
-MANEUVER
-
-PAUSED_EXPLICIT
-INTERRUPTION
-PROBABLE_FALL
-LONG_STOP
-
-GPS_DEGRADED
-UNKNOWN
+estimated_strokes = sum(cadence_spm * supported_seconds / 60)
+DPS_m_per_stroke = matched_distance_m / estimated_strokes
 ```
-
-Derived metrics should declare which segment classes they accept.
 
-Example:
+Use identical eligible edges for distance and cadence, clipped to interval boundaries. The current method holds left cadence across each edge and linearly interpolates cumulative distance. Return its method/assumptions. Do not average instantaneous DPS ratios to obtain an aggregate.
 
-```text
-tracking analysis:
-  PADDLING_STEADY
-  PADDLING_HARD
-  PADDLING_EASY
-
-fatigue analysis:
-  stable PADDLING segments only
-
-DPS:
-  paddling segments only
-```
+Measured zero cadence is meaningful: supported glide distance contributes distance but no strokes. All-zero estimated strokes yield null; zero distance with positive strokes can yield zero. Missing cadence contributes no matched support and never means zero strokes.
 
----
+Session DPS from explicit SUP distance/total-stroke fields remains distinguishable from cadence-integral interval DPS. These are different scopes/input sources, not legacy compatibility formats. Neither becomes a validated stroke counter without independent counting.
 
-# 13. Session-Level Metrics
+For the DPS timeline, propose a time-based rolling matched-distance/cadence estimate with visible window length/coverage in details. Select its window from sampling and validation evidence, not assumed 1 Hz recording. Break the curve at unsupported spans and label it estimated. The point expression `60 * speed_mps / cadence_spm` may be a diagnostic when supported, but is not the aggregate definition.
 
-Store at least:
+A turn-excluded or steady-paddling-only DPS is a separate estimand requiring its own eligibility and name. It is suspended; do not silently apply it to ordinary interval DPS.
 
-```text
-distance
+### 5.3 Units and meaning
 
-elapsed_time
-timer_time
-moving_time
+Display speed in mph and DPS in metres/stroke, as requested. Retain miles and Fahrenheit elsewhere. Offer alternate speed/distance/temperature units and feet/stroke through keyboard-focusable, tappable metric details as well as hover. Cadence remains spm and HR bpm.
 
-avg_speed
-moving_avg_speed
-max_speed
+Use `Speed at recorded cadence` and `Estimated ground distance per stroke`. More cadence is not inherently better. Higher DPS can reflect glide, current or wind rather than improved technique.
 
-avg_HR
-max_HR
+## 6. Conservative interruption and movement evidence
 
-avg_stroke_rate
-max_stroke_rate
+### 6.1 Independent dimensions
 
-avg_distance_per_stroke
+Represent these separately, allowing overlap:
 
-speed_variability
-cadence_variability
+- Timer: explicit running/stopped or unresolved. Process events first and preserve summary/event mismatch handling.
+- Movement: supported movement, supported low-speed/stationary candidate, maneuver candidate or unknown.
+- Channel quality: supported/degraded/missing per channel, independently of movement.
+- Athlete annotations: reported fall/interruption/condition with stated timing confidence, separately from detections.
 
-tracking_efficiency_pct
-median_course_error_deg
-p90_course_error_deg
-zigzag_cycles_per_min
-zigzag_amplitude_deg
-lateral_distance_per_km
+An athlete may paddle while GPS is degraded. Do not force these facts into competing values of a single state field.
 
-speed_drift_pct
-DPS_drift_pct
-HR_drift
-cadence_drift_pct
+### 6.2 Initial candidates
 
-pause_count
-interruption_count
-probable_fall_count
-interruption_duration
+A low-speed candidate may use speed below 0.5 m/s for at least five supported seconds, with compatible distance/position evidence. These are provisional validation parameters, not established SUP limits. Require enough independent observations to support duration; a five-second data gap does not prove a five-second stop.
 
-GPS_quality_score
-```
+Measured zero cadence can corroborate an event. Missing cadence cannot. Cadence alone cannot prove a stop or classify a fall. A documented reduced-evidence method or unavailable result is required when channels are missing.
 
----
+Use distinct entry/exit criteria and minimum supported duration to avoid rapid toggling. Transitions lie between observations; retain time brackets/boundary uncertainty. Missing GPS with other active telemetry indicates disagreement/degradation, not a proven physical stop.
 
-# 14. Historical Comparison
+Label observed evidence, such as `Low-speed period`; do not infer lifeguard conversations, equipment adjustments or falls. Athlete annotations may supply a cause. A detection and annotation can refer to one event without double-counting.
 
-For progress tracking compare sessions at comparable effort.
+### 6.3 Time and performance denominators
 
-High-value long-term metrics:
+Keep elapsed time, FIT timer time and any future movement estimate distinct. Report supported moving/stopped/unknown durations; unknown must not silently count as stopped. Cadence can indicate paddling without ground progress; ground movement can include drift. Define the duration before naming it moving time.
 
-```text
-speed @ HR 130
-speed @ HR 140
-speed @ HR 150
+Preserve best-window policy: timer pauses and invalid runs break eligibility; recorded stationary portions within a valid window count in the elapsed denominator. Never remove inferred interruptions, turns or falls to inflate a best effort. Filtered segment evidence is a separately scoped calculation.
 
-speed @ 35 spm
-speed @ 40 spm
-speed @ 45 spm
-speed @ 50 spm
+## 7. Matched-window performance drift
 
-DPS @ 40 spm
-DPS @ 45 spm
+This follows core metric/quality work. App code reports changes under matching rules; it does not diagnose fatigue or technique deterioration.
 
-tracking efficiency
+### 7.1 Candidates and support
 
-median course error
+Start validation with 180-second windows evaluated every 30 seconds using actual timestamps. Proposed eligibility: at least 90% joint support for required channels, stable required channels, no explicit pause, unresolved interruption, major direction change or relevant quality warning. Validate and version these parameters.
 
-fatigue DPS drift
-fatigue speed drift
-```
+For the HR-and-cadence mode, both must be usable and stable: replace the original OR rule with AND. HR standard deviation/trend here concern recorded bpm, not beat-to-beat HRV. The initial SD limits of 5 bpm and 5 spm remain hypotheses requiring sensitivity tests, not physiological thresholds.
 
-Do not rely heavily on:
+Exclude known warmup/recovery/transitions when supported by workout context, annotations or a validated settling rule. Do not invent an early-HR interval from a session-level warning. Unresolved HR quality blocks an unqualified HR-matched summary; retain measurements and warnings for inspection.
 
-```text
-whole-session average speed
-whole-session average HR
-```
+### 7.2 Separate comparison modes
 
-because environmental conditions and workout structure strongly influence them.
+| Mode | Match on | Measure |
+|---|---|---|
+| Speed at similar recorded HR/cadence | HR/cadence, initially within 5 bpm and 3 spm | Speed and DPS change |
+| HR at similar speed | Speed and comparable direction/context | HR difference |
+| Cadence at similar speed | Speed and comparable direction/context | Cadence and DPS change |
 
----
+Do not tightly match the variable whose change is being measured. Set and validate relative speed tolerances for the latter modes before release; never invent them at runtime. Require stability/support in each mode's relevant channels and disclose missing optional context.
 
-# 15. Environmental Normalization — Future
+A strong comparison needs comparable route direction and the same known board. Expose station/athlete conditions, observation age and support. Unknown current/chop/local wind remain limitations; nearby-station weather does not normalize speed. Insufficient context permits descriptive inspection but not an unqualified comparable-effort conclusion.
 
-To make historical comparison substantially stronger, enrich sessions with:
+### 7.3 Selection and aggregation
 
-```text
-wind speed
-wind direction
-
-current estimate
-wave height
-wave period
-wave direction
-
-air temperature
-water temperature
-```
+Choose early/late regions before inspecting outcome changes; an initial candidate is the first and last thirds of session elapsed time, subject to eligibility. Reject overlapping pairs and do not reuse covered time across accepted pairs. A 30-second step does not create independent three-minute observations.
 
-Then calculate:
+Match deterministically by matching-channel/context differences with earliest-time tie-breaking. Do not select the greatest decline. Report exact windows, unique supported minutes, independent-pair count and rejection reasons. Release validation must set minimum unique duration/pair count; insufficient support returns unavailable. One pair may be shown descriptively without a session-level drift claim.
 
 ```text
-relative wind angle =
-  difference between course and wind direction
-
-relative swell angle =
-  difference between course and swell direction
+speed_change_pct   = 100 * (late_speed - early_speed) / early_speed
+DPS_change_pct     = 100 * (late_DPS - early_DPS) / early_DPS
+HR_change_bpm      = late_HR - early_HR
+cadence_change_pct = 100 * (late_cadence - early_cadence) / early_cadence
 ```
-
-This enables comparisons such as:
-
-```text
-speed at HR 145
-with 5–8 kt side wind
-
-vs
 
-speed at HR 145
-with 5–8 kt headwind
-```
+Unsupported/zero-denominator percentage changes return null. Lower speed means lower measured ground speed, not automatically deterioration. Higher cadence at lower speed does not establish greater mechanical work.
 
-Without this, Suppy must explicitly warn that speed-based comparisons may be environmentally biased.
+Define robust aggregation and show spread across independent pairs. Do not claim a population confidence interval from a few correlated windows. Matched-cadence speed and DPS changes are mathematically related, not independent confirmation.
 
----
+## 8. UI integration and evidence retrieval
 
-# 16. Analysis Confidence
+See [metrics UI design plan](../design/metrics-ui-plan.md). Extend the existing light map-led review:
 
-Every derived metric should support confidence.
+- Interval headline: speed at cadence; supporting value: estimated metres/stroke. Selection highlights the same exact interval.
+- Keep whole-session and selected-interval evidence visibly distinct.
+- Show DPS through a metric switch in existing chart space; no fourth permanently stacked chart is approved here.
+- Put coverage, alternate units/method and unavailable reasons in accessible details. Essential estimate/partial/unavailable qualifiers remain visible without hover.
+- Descriptive drift opens an overlay with independent matched windows, exact bounds, neutral changes and context limitations.
+- Weather stays inside the map's click/keyboard-open popover.
+- Experimental zig-zag is included for whole sessions, selected intervals and latest-10 tracking, with coverage and deviation details. Automatic fall labels and hard/easy classifications remain deferred.
 
-Example:
+Home retains automatic latest-10 descriptive trends, defaulting to best-20-minute evidence with an explicit whole-session switch. Speed/cadence, DPS, HR and zig-zag expose support, equipment/context and method through accessible details. Missing best-20 evidence never falls back to a whole-session value. A whole-session pair is not a standardized benchmark. Broad normalized historical comparison is suspended.
 
-```text
-HIGH
-MEDIUM
-LOW
-INVALID
-```
+Return bounded exact evidence through existing analysis-context tools. The external LLM interprets it; no in-app model, automatic analysis writes or coaching diagnosis is added.
 
-Factors reducing confidence:
+## 8.1 Experimental zig-zag promotion
 
-```text
-poor GPS
+User decision: implement a 0–100 experimental local GPS path-straightness score now, with whole-session and exact-interval scope, eligible coverage, median/P90 angular deviation, resolved oscillations and lateral motion. Higher means straighter eligible recorded path, not better technique or lower energy use. No quality bands or paddle-side inference.
 
-large recording gaps
+The implemented method uses non-overlapping 60-second local sections, 5-second smoothing, 10-second geometry steps and a fixed chord axis per section. Score is 100 × summed chord distance / summed smoothed path distance. Exclude pauses, unsupported GPS, reported accuracy over 20 m, insufficient displacement, speed below 1 m/s, implausible movement and major turns. Require 60 eligible seconds and 20% coverage. These are versioned experimental parameters, not validated SUP thresholds. See [implemented methods](../engineering/performance-metrics.md) for exact rules, dependencies and validation limits. S1 retains the unpromoted research alternatives and independent field-validation work.
 
-short analysis duration
+## 9. Validation and release gates
 
-missing cadence
+Build inspection alongside numerical work. Use existing map/charts or development-only overlays to inspect raw/processed channels, exclusions and boundaries; do not add permanent debugging sections.
 
-missing HR
+| Area | Required validation |
+|---|---|
+| Time/coverage | Irregular sampling, clipped boundaries, missing endpoints, pauses, timer mismatch/gaps; no extrapolation or stitching |
+| Cadence/DPS | Fractional/profile semantics, independent counted intervals, glide/zeros, disjoint support and ratio-of-totals checks |
+| Events | Known synthetic transitions and independently annotated sessions; false positives, missed events, boundary error and missing sensors |
+| Drift | No-change controls, known changes, direction/HR problems, independent matching and sensitivity to parameters |
+| Storage/evidence | Tenant-scoped dependencies, reproducibility, raw integrity, reset/re-import and stale results |
+| UI when implemented | Desktop/narrow/keyboard/touch, partial/missing sensors, summary-only state, synchronized selection and unchanged persistent vertical footprint |
 
-many turns
+Synthetic truth checks behavior; independently annotated held-out sessions assess validity. A map drawn from the same GPS is not ground truth for tracking accuracy. Three historical tracks with untimed event counts cannot validate fall precision or tracking scores.
 
-many interruptions
+Set error/false-positive targets, acceptance tolerances and minimum support before tuning/release. These remain explicit open validation decisions until evidence justifies them. Tests use synthetic fixtures and isolated databases, never production/private files.
 
-environmental variation
-```
+## 10. Delivery sequence and initial success criteria
 
-Example output:
+| Stage | Deliverable | Exit condition |
+|---|---|---|
+| A: foundation audit | Needed FIT fields, cadence semantics, sampling, shared contract; reset/re-import if simpler | Required channels and uncertainty documented; no compatibility work |
+| B: core experience | Paired interval speed/cadence, matched DPS, units/coverage and chart switching | Calculations validated; chosen UI passes desktop/narrow/keyboard checks |
+| C: conservative events | Pauses, supported low-speed candidates, independent movement/quality | Boundaries/missing-data behavior validated without cause claims |
+| D: descriptive drift | Separate modes, independent pairs, exact evidence/limitations | Matching/support thresholds validated; insufficient evidence unavailable |
+| E: research decision | Assess Part II proposals individually | Independent evidence and user selection justify bounded promotion |
 
-```text
-Tracking efficiency: 97.1%
-Confidence: HIGH
-
-Fatigue score: moderate efficiency loss
-Confidence: MEDIUM
-Reason: later segment entered more exposed water
-```
+Stages A–D and the bounded zig-zag promotion are implemented together under the user’s overnight authorization. Independent field validation, fall detection, hard/easy segmentation and physiological diagnosis are not implied by successful synthetic checks.
 
-This is preferable to presenting false precision.
+# Part II: Suspended research and future work
 
----
+These sections retain the original advanced topics with review corrections. They are **not release requirements or implementation instructions for the active stages**. Future work must identify its question, data, validation and promotion decision. See [future-work references](../../todo.md#suspended-metrics-research).
 
-# 17. Recommended Implementation Order
+## S1. Local course variability, tracking and zig-zag
 
-## Phase 1 — Import
+**Partly promoted:** the bounded local path-straightness experiment in §8.1 is active by explicit user request. The alternatives below, quality bands, paddle-side inference and claims of validated tracking accuracy remain suspended. GPS measures course over ground, not board heading or intended line. Current sampling has not been shown to resolve the proposed oscillations. Wind/current/chop, deliberate steering and geometry remain confounders.
 
-Implement:
+Retain the two-scale experiment:
 
 ```text
-FIT decode
-raw record persistence
-event persistence
-lap persistence
-device metadata
+reference_course(t) = bearing(position(t - 15s), position(t + 15s))
+local_course(t)     = bearing(position(t - 3s), position(t + 3s))
+course_error(t)     = circular_difference(local_course, reference_course)
 ```
-
-Validate against several Garmin SUP sessions.
-
----
-
-## Phase 2 — Core analysis stream
 
-Implement:
+Call the reference an estimated local route direction. The 30-second/six-second windows are experimental. Require independent positions and adequate displacement relative to uncertainty; interpolation creates no new directional information. Never cross pauses or unsupported GPS gaps. Angular averaging/differences must be circular, including turn detection around north.
 
-```text
-timestamps
-speed
-GPS displacement
-course
-cadence
-heart rate
-
-smoothing
-moving state
-basic GPS quality
-```
+Candidate exclusions: pauses, invalid GPS, inadequate displacement, supported low-speed periods, turns, launch/landing and tight geometry. Do not depend on an unvalidated fall detector. Proposed turn rules (20-degree reference change over 20 seconds or 1.5 degrees/second for several seconds) need validation and edge buffers covering smoothing support.
 
----
+Possible descriptive outputs: supported duration/distance, time-weighted median/P90 absolute course deviation, suitable circular dispersion, complete cycles/minute and excursion amplitude. Define one-sided versus peak-to-peak amplitude. Require hysteresis/minimum duration; left-right-left is one full cycle. The original sign-change counter counts half-cycles; its three-degree threshold is unvalidated.
 
-## Phase 3 — Interruptions
+Calculate displacement, direction and reference over consistent support. Do not multiply one-record raw GPS distance by an angle from a different multi-record smoothing window.
 
-Implement before advanced metrics:
-
 ```text
-explicit pause
-stationary stop
-maneuver
-unknown interruption
-probable fall
-GPS degradation
+projection_ratio = sum(delta_distance * cos(course_error_radians))
+                   / sum(delta_distance)
+lateral_motion_m = sum(abs(delta_distance * sin(course_error_radians)))
 ```
-
-Because bad interruption classification contaminates nearly every other metric.
 
----
+With a positive denominator, the ratio can range from -1 to 1. A forward-only 0–1 interpretation requires explicit eligibility, not silent clipping. A changing reference gives local alignment, not net progress toward a fixed destination. Zero distance yields unavailable. Lateral motion is not extra path length or recoverable wasted distance.
 
-## Phase 4 — Stroke efficiency
+Do not ship the old 98.4/95.2/90.0 quality bands or present the promoted experimental score as calibrated accuracy. The bounded score’s single decimal is display precision, not an accuracy guarantee. Paddle-side inference remains a separate study requiring independent stroke-side labels and appropriate sensor resolution.
 
-Implement:
+**Promotion gate:** identifiable signal across irregular sampling/noise/curvature using synthetic truth and independent reference observations; held-out error/sensitivity and minimum resolvable angle/event. Agreement with the same watch track is insufficient.
 
-```text
-DPS
-speed at cadence
-speed at HR
-cadence stability
-speed stability
-```
-
----
-
-## Phase 5 — Tracking
+## S2. Fall/remount and semantic interruption classification
 
-Implement:
+**Why suspended:** sudden speed loss, zero cadence, running timer and elevated HR can describe an ordinary intentional stop. Existing historical event counts lack precise labels.
 
-```text
-local reference course
-actual short-window course
-course error
-turn exclusion
-
-tracking efficiency
-lateral distance
-zig-zag amplitude
-zig-zag frequency
-```
+Retain the research pattern: previously moving, supported rapid decline, short low-speed interval, then resumed paddling. Original illustrative thresholds: entry at least 1.5 m/s; below 0.5 m/s within five seconds; 3–30-second stationary interval; resumed speed at least 1.0 m/s. They are unvalidated and may be unresolvable with Smart Recording. Null cadence cannot satisfy zero cadence. Duration alone cannot prove or exclude a fall.
 
-Validate visually against plotted GPS tracks.
+Drop the original +2/+1 points-to-probable-fall mapping as a probability claim. Until calibrated, expose neutral evidence; athlete reports or external interpretation can supply hypotheses. Keep candidates separate from athlete-reported falls and omit a probable-fall count from core summaries.
 
----
+**Promotion gate:** independently timed falls/rests/maneuvers/interruptions, held-out false alarms per hour, precision/recall, boundary error and missing-channel behavior. State whether confidence is calibrated or heuristic.
 
-## Phase 6 — Fatigue
+## S3. Automatic effort intervals and exhaustive segment labels
 
-Implement:
-
-```text
-stable-window detection
-effort binning
-comparable-window matching
-
-speed drift
-DPS drift
-cadence drift
-HR drift
-```
+**Why suspended:** session P70 speed/cadence can label an easy outing hard; conditions affect speed independently of effort.
 
----
+Preserve explicit laps, lap trigger and workout-step metadata first. Manual/automatic laps establish boundaries, not necessarily effort. Workout metadata can supply intended steps; measured performance stays separate. Inferred intervals never silently replace supplied boundaries.
 
-# 18. Critical Validation Requirement
+Retain `cadence >= session P70 AND speed >= session P70 for >=30s` only as a research baseline. A future method needs baseline/recovery contrast, hysteresis, support and independent labels. No invented HR zones or ideal cadence.
 
-Before relying on any derived algorithm, create a debugging visualization capable of plotting:
+Do not implement one exclusive list mixing PADDLING_HARD, TURN, PAUSED, PROBABLE_FALL and GPS_DEGRADED. Timer, geometry/movement, quality and effort hypotheses can overlap.
 
-```text
-map:
-  route
-  reference course
-  detected turns
-  interruptions
-  probable falls
-
-timeline:
-  speed
-  HR
-  cadence
-  DPS
-  tracking error
-```
+**Promotion gate:** no forced hard intervals in held-out easy sessions; measured false positives/boundary errors in interval sessions; turns/missing sensors do not manufacture intensity.
 
-Overlay detected events.
+## S4. Environmental normalization and historical benchmarks
 
-An algorithm such as fall detection or tracking analysis must not be tuned only by numerical summaries.
+**Why suspended:** station weather is not on-water wind; current, waves, shelter and drafting are not reliably measured. Similar HR/cadence does not establish equal effort/resistance.
 
-Its output should be visually inspectable against actual session behavior.
+Retain future contextual inputs: wind speed/from direction, current estimates with provenance, wave height/period/direction, air/water temperature and board/setup. Use circular angles and explicit from/toward conventions. Descriptive wind alignment is not a speed correction.
 
----
+Future benchmarks may show speed near specified HR/cadence bands or DPS near a cadence band. Expose actual bands/tolerances, unique support, equipment and conditions. No extrapolated values without observations; arbitrary HR bands are not physiological zones. Active latest-10 trends remain descriptive.
 
-# 19. Design Principle
+**Promotion gate:** sufficient supported comparisons/context and independent model evaluation before adjusted speed, causal fitness change or normalized scores. New current/wave services need explicit scope. Existing station retrieval remains a separate post-import service.
 
-Suppy should keep the following layers separate:
+## S5. Physiological fatigue models and composite indices
 
-```text
-RAW DATA
-    ↓
-NORMALIZED SENSOR DATA
-    ↓
-SEGMENT CLASSIFICATION
-    ↓
-DERIVED METRICS
-    ↓
-TRAINING INTERPRETATION
-```
+**Why suspended:** recorded HR/cadence/speed alone cannot identify fatigue, mechanical work or technique failure. More history alone does not resolve confounding.
 
-Do not mix interpretations into the raw metric layer.
+Retain regression as an experiment: predict ground speed using HR/cadence and available direction/environment; examine residuals against elapsed exercise time. Evaluate out of sample, handle correlated windows/equipment/session changes and test confounded/no-fatigue controls. Declining residuals remain descriptive without independent fatigue evidence.
 
-Example:
+`speed / cadence` is DPS divided by 60 with stated units, so adds no independent efficiency signal. `speed / HR` is a descriptive ratio with HR-response limitations, not automatically aerobic efficiency. Drop `speed / (HR * cadence)` from delivery unless future validation establishes a useful advantage over components.
 
-```text
-RAW:
-speed = 2.15 m/s
-
-DERIVED:
-DPS = 3.02 m
-tracking efficiency = 94.8%
-
-INTERPRETATION:
-efficiency declined late in session
-```
+**Promotion gate:** simpler matched-window evidence works, sufficient independent data exists, and a specified model demonstrates held-out validity. Coaching remains external.
 
-This separation is important because interpretation logic will change much faster than FIT decoding or metric definitions.
+## S6. Alternative estimands, generic thresholds and repair mode
 
----
+- **Steady-paddling-only DPS:** separately define/name restricted eligibility and support, validate it, and never silently change ordinary interval/glide DPS.
+- **Universal GPS score/hard SUP limits:** original speed/acceleration cutoffs lack validation across modes/conditions. Prefer per-channel reasons and preserve raw values; evaluate replacement policies against independently known examples.
+- **Timestamp repair:** preserve source sequence/indexes, define duplicate/conflict and event ordering rules, emit a repair report, test reproducibility. Keep strict rejection until explicitly selected.
+- **Permanent chart additions:** a fourth stacked DPS chart or persistent analysis panel needs a separate vertical-space decision. Active design uses existing space and disclosure.
 
-# 20. Initial Success Criteria
+## S7. Research promotion record
 
-The first useful Suppy FIT analyzer should be able to take one Garmin SUP FIT activity and reliably produce:
+For any suspended item, record the user question, method/parameters, inputs, independent reference, dataset split, minimum support, error/false-positive targets, confounders, unavailable behavior and UI footprint. Promote only that bounded feature after review. Unvalidated hypotheses must not become default filters contaminating other metrics.
 
-```text
-1. Clean route
-2. Moving time
-3. Interruption timeline
-4. Probable falls
-5. Speed timeline
-6. HR timeline
-7. Stroke-rate timeline
-8. Distance-per-stroke timeline
-9. Tracking efficiency
-10. Zig-zag metrics
-11. Comparable-effort fatigue drift
-12. Automatically identified hard/easy segments
-```
+## References and related decisions
 
-If those are reliable, Suppy will already provide substantially more useful SUP analysis than Garmin Connect's standard session report.
+- [Garmin Activity files](https://developer.garmin.com/fit/articles/file-types/activity.html): sampling, events, laps and workout relationships.
+- [Official Garmin JavaScript SDK](https://github.com/garmin/fit-javascript-sdk): scaling, expansion and unknown fields.
+- [Metric policy](../domain/metrics.md), [import/evidence contract](../engineering/fit-import.md), [data model](../data/data-model.md), [sample audit](../data/data-audit.md).
+- [UI design plan](../design/metrics-ui-plan.md), [UX brief](../design/ux-brief.md), [deferred work](../../todo.md), [feature decisions](proposals.md).

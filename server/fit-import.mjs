@@ -224,9 +224,12 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
       latitude_deg: lat,
       longitude_deg: lon,
       distance_m: distance,
-      speed_mps: finite(r.enhancedSpeed ?? r.speed),
+      speed_mps: finite(r.enhancedSpeed) ?? finite(r.speed),
       heart_rate_bpm: finite(r.heartRate, 1),
       cadence_raw: finite(r.cadence),
+      cadence_fractional_raw: finite(r.fractionalCadence),
+      cadence_256_raw: finite(r.cadence256),
+      gps_accuracy_m: finite(r.gpsAccuracy),
       source_record_index: index,
     };
   });
@@ -380,6 +383,9 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
       },
       raw_session: fitSession,
       raw_timer_events: messages.eventMesgs || [],
+      raw_laps: messages.lapMesgs || [],
+      raw_device_info: messages.deviceInfoMesgs || [],
+      raw_file_id: messages.fileIdMesgs || [],
     },
   };
 }

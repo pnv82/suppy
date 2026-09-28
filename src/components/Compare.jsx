@@ -1,10 +1,5 @@
 import React, { useState } from "react";
-import {
-  ArrowUpRight,
-  ArrowDownRight,
-  Minus,
-  Info,
-} from "@phosphor-icons/react";
+import { ArrowUpRight, Info } from "@phosphor-icons/react";
 import {
   ResponsiveContainer,
   LineChart,
@@ -14,32 +9,35 @@ import {
   CartesianGrid,
   Tooltip,
 } from "recharts";
-import {
-  WINDOW_COLORS,
-  latestSessions,
-  durationLabel,
-  mph,
-} from "../domain/metrics.mjs";
-import { fmt, shortDate, bearing } from "./SessionViews.jsx";
+import { latestSessions, mph, durationLabel } from "../domain/metrics.mjs";
+import { metricView } from "../domain/metric-view.mjs";
+import { fmt, shortDate } from "./SessionViews.jsx";
+import { MetricDetails } from "./MetricEvidence.jsx";
+
 export function Compare({ sessions, boards = [], onOpen }) {
-  const [metric, setMetric] = useState("avgSpeed");
-  const newest = latestSessions(sessions).map((s) => ({
-      ...s,
-      maxSpeed: mph(s.statistics?.speed_mps?.max),
-    })),
-    rows = [...newest]
-      .reverse()
-      .map((s) => ({ ...s, dateLabel: shortDate(s.date) }));
+  const [basis, setBasis] = useState("best20"),
+    [metric, setMetric] = useState("speed"),
+    [details, setDetails] = useState(null);
+  const duration = basis === "best20" ? 1200 : null;
+  const newest = latestSessions(sessions).map((session) => {
+    const view = metricView(session, duration);
+    return {
+      ...session,
+      view,
+      speed: mph(view.speed),
+      dps: view.dps,
+      cadenceValue: view.cadence,
+      zigzag: view.zigzag,
+      hr: view.hr,
+      dateLabel: shortDate(session.date),
+    };
+  });
   const options = {
-    maxSpeed: ["Maximum speed", "mph", 2, "#7952c7"],
-    avgSpeed: ["Average speed", "mph", 2, "#008996"],
-    best20: ["Best 20 min", "mph", 2, "#008996"],
-    best10: ["Best 10 min", "mph", 2, "#7952c7"],
-    best5: ["Best 5 min", "mph", 2, "#c9790b"],
-    avgHr: ["Heart rate", "bpm", 0, "#d54d72"],
-    cadence: ["Cadence", "spm", 0, "#6273c9"],
-    distance: ["Distance", "mi", 2, "#008996"],
-    active: ["Active time", "min", 1, "#008996"],
+    speed: ["Speed", "mph", 2, "#008591"],
+    dps: ["Estimated distance per stroke", "m/stroke", 2, "#7952c7"],
+    cadenceValue: ["Recorded cadence", "spm", 0, "#6273c9"],
+    zigzag: ["Zig-zag · experimental", "/100", 1, "#008591"],
+    hr: ["Heart rate", "bpm", 0, "#d54d72"],
   };
   const [title, unit, dp, color] = options[metric];
   return (
@@ -50,78 +48,54 @@ export function Compare({ sessions, boards = [], onOpen }) {
           <h1>Recent sessions</h1>
           <p>
             Latest 10 sessions, compared automatically.{" "}
-            <strong>{rows.length} available</strong> in your current data.
+            <strong>{newest.length} available</strong>.
           </p>
         </div>
-        <span className="quiet-badge">Saved in your app</span>
+        <div className="metric-scope" aria-label="Comparison basis">
+          <button
+            aria-pressed={basis === "best20"}
+            onClick={() => setBasis("best20")}
+          >
+            Best 20 min
+          </button>
+          <button
+            aria-pressed={basis === "session"}
+            onClick={() => setBasis("session")}
+          >
+            Whole session
+          </button>
+        </div>
       </div>
-      <div className="compare-summary">
-        {["avgSpeed", "maxSpeed", "best20", "avgHr", "cadence"].map((key) => {
-          const [label, u, d] = options[key],
-            first = rows[0]?.[key],
-            last = rows.at(-1)?.[key],
-            delta =
-              rows.length < 2 || first == null || last == null
-                ? null
-                : last - first;
-          return (
-            <button
-              className={`trend-summary ${metric === key ? "selected" : ""}`}
-              key={key}
-              aria-pressed={metric === key}
-              onClick={() => setMetric(key)}
-            >
-              <span>{label}</span>
-              <strong>
-                {fmt(last, d)} <small>{u}</small>
-              </strong>
-              <span className="delta">
-                {delta == null ? (
-                  "No comparison available"
-                ) : (
-                  <>
-                    {delta === 0 ? (
-                      <Minus size={16} />
-                    ) : delta > 0 ? (
-                      <ArrowUpRight size={16} />
-                    ) : (
-                      <ArrowDownRight size={16} />
-                    )}{" "}
-                    {delta > 0 ? "+" : ""}
-                    {fmt(delta, d)} {u} from {shortDate(rows[0].date)}
-                  </>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <section className="sessions-table-section">
+      <section className="sessions-table-section metrics-session-list">
         <div className="section-heading">
-          <h2>Your latest sessions</h2>
+          <h2>
+            {basis === "best20"
+              ? "Best 20-minute metrics"
+              : "Whole-session metrics"}
+          </h2>
           <span className="caption">Most recent first</span>
         </div>
         <div className="table-scroll">
-          <table className="home-sessions-table">
+          <table className="home-sessions-table clean-metrics-table">
             <caption className="sr-only">
-              Latest sessions, most recent first. Source: stored session
-              summaries. Board assignments are athlete reported.
+              Session metrics.{" "}
+              {basis === "best20"
+                ? "Exact continuous 20-minute efforts"
+                : "Supported whole-session averages"}
+              . Unavailable values are dashes. Open metric details for coverage
+              and source.
             </caption>
             <thead>
               <tr>
                 {[
                   "Session",
-                  "Distance",
-                  "Active",
-                  "Avg speed",
-                  "Max speed",
-                  "Best 5 / 10 / 20 min",
-                  "Heart rate",
-                  "Cadence",
-                  "Wind",
-                  "Board",
-                ].map((x) => (
-                  <th key={x}>{x}</th>
+                  "Speed @ cadence",
+                  "Distance / stroke",
+                  "Zig-zag · experimental",
+                  "HR",
+                  "Details",
+                ].map((label) => (
+                  <th key={label}>{label}</th>
                 ))}
               </tr>
             </thead>
@@ -131,7 +105,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   <td>
                     <button
                       className="session-link"
-                      aria-label={`Open ${shortDate(s.date)} · ${s.title}`}
+                      aria-label={"Open " + shortDate(s.date) + " · " + s.title}
                       onClick={() => onOpen(s.id)}
                     >
                       <strong>{s.title}</strong>
@@ -140,59 +114,58 @@ export function Compare({ sessions, boards = [], onOpen }) {
                       </span>
                     </button>
                     <small>
-                      {s.records?.length ? "FIT + summary" : "Summary only"}
+                      {fmt(s.distance, 2)} mi · {durationLabel(s.active)} ·{" "}
+                      {boards.find((b) => b.id === s.boardId)?.name ||
+                        "Board unknown"}
                     </small>
                   </td>
-                  <td data-label="Distance">{fmt(s.distance, 2)} mi</td>
-                  <td data-label="Active time">{durationLabel(s.active)}</td>
-                  <td data-label="Average speed">{fmt(s.avgSpeed, 2)} mph</td>
-                  <td data-label="Maximum speed">{fmt(s.maxSpeed, 2)} mph</td>
-                  <td data-label="Best 5 / 10 / 20 min">
-                    <span
-                      className="table-interval"
-                      style={{ color: WINDOW_COLORS[300] }}
-                    >
-                      {fmt(s.best5, 2)}
-                    </span>{" "}
-                    /{" "}
-                    <span
-                      className="table-interval"
-                      style={{ color: WINDOW_COLORS[600] }}
-                    >
-                      {fmt(s.best10, 2)}
-                    </span>{" "}
-                    /{" "}
-                    <span
-                      className="table-interval"
-                      style={{ color: WINDOW_COLORS[1200] }}
-                    >
-                      {fmt(s.best20, 2)}
-                    </span>{" "}
-                    mph
+                  <td data-label="Speed @ cadence">
+                    <strong>
+                      {fmt(s.speed, 2)} <span>mph</span> @ {fmt(s.view.cadence)}{" "}
+                      <span>spm</span>
+                    </strong>
+                    <small>
+                      {s.speed == null
+                        ? "No supported effort"
+                        : fmt(s.view.coverage) +
+                          "% matched" +
+                          (!s.view.paired ? " · cadence unavailable" : "")}
+                    </small>
+                  </td>
+                  <td data-label="Distance / stroke">
+                    <strong>
+                      {fmt(s.dps, 2)} <span>m/stroke</span>
+                    </strong>
+                    <small>
+                      estimated
+                      {s.dps != null && !s.view.paired ? " · partial" : ""}
+                    </small>
+                  </td>
+                  <td data-label="Zig-zag · experimental">
+                    <strong>
+                      {fmt(s.zigzag, 1)} <span>/ 100</span>
+                    </strong>
+                    <small>
+                      {fmt(s.view.evidence?.zigzag?.coverage_pct)}% eligible
+                    </small>
                   </td>
                   <td data-label="Heart rate">
-                    {fmt(s.avgHr)} bpm
-                    <small>
-                      {/suspect/i.test(s.hrQuality || "")
-                        ? "Early HR suspect"
-                        : ""}
-                    </small>
-                  </td>
-                  <td data-label="Cadence">{fmt(s.cadence)} spm</td>
-                  <td
-                    data-label="Wind"
-                    title={s.weatherQuality || "Source quality unknown"}
-                  >
-                    {s.wind == null
-                      ? "Unknown"
-                      : `${fmt(s.wind, 2)} mph ${bearing(s.windFrom)}`}
-                    {s.windSource === "athlete_reported" && (
-                      <small>On-water report</small>
+                    {fmt(s.hr)} bpm
+                    {(s.hrQuality ||
+                      (s.view.evidence?.heart_rate_bpm?.coverage_pct ?? 0) <
+                        90) && (
+                      <small>{s.hrQuality || "Partial / unavailable"}</small>
                     )}
                   </td>
-                  <td data-label="Board" className="board-cell">
-                    {boards.find((b) => b.id === s.boardId)?.name ||
-                      "Not recorded"}
+                  <td data-label="Metric details">
+                    <button
+                      className="text-button"
+                      aria-label={"Metric details for " + shortDate(s.date)}
+                      onClick={() => setDetails(s)}
+                    >
+                      <Info size={17} />
+                      <span className="mobile-detail-label">Details</span>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -205,21 +178,24 @@ export function Compare({ sessions, boards = [], onOpen }) {
           </p>
         )}
       </section>
-      <section className="trend-panel">
+      <section className="trend-panel compact-metric-trend">
         <div className="section-heading">
           <div>
             <h2>{title} over time</h2>
-            <p>Chronological order · stored summaries</p>
+            <p>
+              {basis === "best20" ? "Best 20 min" : "Whole session"} ·
+              chronological · derived telemetry
+            </p>
           </div>
           <label className="inline-label">
-            Parameter
+            Metric
             <select
               aria-label="Comparison parameter"
               value={metric}
               onChange={(e) => setMetric(e.target.value)}
             >
               {Object.entries(options).map(([key, [label]]) => (
-                <option value={key} key={key}>
+                <option key={key} value={key}>
                   {label}
                 </option>
               ))}
@@ -227,48 +203,52 @@ export function Compare({ sessions, boards = [], onOpen }) {
           </label>
         </div>
         <div className="compare-chart">
-          <ResponsiveContainer width="100%" height={270} minWidth={0}>
+          <ResponsiveContainer width="100%" height={210} minWidth={0}>
             <LineChart
-              data={rows}
-              margin={{ top: 20, right: 32, bottom: 8, left: 0 }}
+              data={[...newest].reverse()}
+              margin={{ top: 20, right: 24, bottom: 8, left: 0 }}
             >
               <CartesianGrid vertical={false} stroke="#e8edf1" />
               <XAxis
                 dataKey="dateLabel"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: "#708194" }}
+                tick={{ fontSize: 12, fill: "#63788d" }}
               />
               <YAxis
-                unit={` ${unit}`}
-                width={68}
-                domain={["auto", "auto"]}
-                allowDecimals={dp > 0}
-                tickFormatter={(value) => fmt(value, dp)}
+                width={70}
+                domain={metric === "zigzag" ? [0, 100] : ["auto", "auto"]}
+                tickFormatter={(v) => fmt(v, dp)}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: "#708194" }}
+                tick={{ fontSize: 12, fill: "#63788d" }}
               />
               <Line
                 type="linear"
                 dataKey={metric}
                 stroke={color}
-                strokeWidth={2.5}
-                dot={{ r: 5, fill: "white", strokeWidth: 2.5 }}
-                activeDot={{ r: 7 }}
+                strokeWidth={2}
+                dot={{ r: 4, fill: "white" }}
                 connectNulls={false}
                 isAnimationActive={false}
               />
-              <Tooltip formatter={(v) => [`${fmt(v, dp)} ${unit}`, title]} />
+              <Tooltip formatter={(v) => [fmt(v, dp) + " " + unit, title]} />
             </LineChart>
           </ResponsiveContainer>
         </div>
         <p className="caption">
-          <Info size={15} /> Conditions and session lengths vary. These are raw
-          trends; a change does not by itself establish improved fitness or
-          technique.
+          {unit} · Conditions, boards and coverage vary. These descriptive
+          trends do not establish improved fitness or technique. Zig-zag: higher
+          means a straighter eligible recorded path.
         </p>
       </section>
+      {details && (
+        <MetricDetails
+          session={details}
+          duration={duration}
+          onClose={() => setDetails(null)}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,10 @@
 import { bestWindows, interpolate, validRuns } from "./metrics.mjs";
+import { intervalRecords } from "./telemetry.mjs";
+import { trackingEvidence } from "./tracking.mjs";
+import { movementEvidence } from "./events.mjs";
+import { matchedWindowDrift } from "./drift.mjs";
 
-export const ANALYSIS_METHOD = "sup_deterministic_v1";
+export const ANALYSIS_METHOD = "sup_deterministic_v2";
 export const POLICY = Object.freeze({
   gap_limit_s: 15,
   distance_speed_limit_mps: 8,
@@ -9,7 +13,13 @@ export const POLICY = Object.freeze({
 
 // Hold the left sample to the next timestamp. Clip weighting, never invent
 // boundary observations or extrapolate through missing data, gaps or pauses.
-export function intervalStatistics(records, pauses, start, end) {
+export function intervalStatistics(
+  records,
+  pauses,
+  start,
+  end,
+  { tracking = true } = {},
+) {
   if (
     !Number.isFinite(start) ||
     !Number.isFinite(end) ||
@@ -17,6 +27,7 @@ export function intervalStatistics(records, pauses, start, end) {
     end < start
   )
     throw new Error("Invalid analysis interval.");
+  records = intervalRecords(records, start, end);
   const channels = {};
   for (const key of ["speed_mps", "heart_rate_bpm", "cadence_raw"]) {
     const valid = (v) =>
@@ -64,9 +75,19 @@ export function intervalStatistics(records, pauses, start, end) {
       .filter(valid);
     channels[key] = {
       mean,
+      standard_deviation: covered_s
+        ? Math.sqrt(
+            samples.reduce((n, s) => n + s.seconds * (s.value - mean) ** 2, 0) /
+              covered_s,
+          )
+        : null,
       median,
       max: values.length ? values.reduce((a, b) => Math.max(a, b)) : null,
       covered_s,
+      excluded_s: Math.max(0, end - start - covered_s),
+      reason: covered_s
+        ? null
+        : "No supported consecutive samples for this channel.",
       coverage_pct: end > start ? (100 * covered_s) / (end - start) : null,
       mean_method: "time_weighted_step_v1",
       median_method: "time_weighted_step_lower_v1",
@@ -74,14 +95,54 @@ export function intervalStatistics(records, pauses, start, end) {
     };
   }
   let distance = 0,
-    covered = 0;
+    covered = 0,
+    squaredSpeedSeconds = 0;
   for (const run of validRuns(records, pauses, false)) {
     const a = Math.max(start, run[0].elapsed_s),
       b = Math.min(end, run.at(-1).elapsed_s);
     if (b <= a) continue;
     distance += interpolate(run, b).distance_m - interpolate(run, a).distance_m;
     covered += b - a;
+    for (let i = 1; i < run.length; i++) {
+      const left = run[i - 1],
+        right = run[i];
+      const seconds = Math.max(
+        0,
+        Math.min(end, right.elapsed_s) - Math.max(start, left.elapsed_s),
+      );
+      squaredSpeedSeconds +=
+        seconds *
+        ((right.distance_m - left.distance_m) /
+          (right.elapsed_s - left.elapsed_s)) **
+          2;
+    }
   }
+  const stroke = intervalStrokeDistance(records, pauses, start, end);
+  const paused_s = pauses.reduce(
+    (n, p) => n + Math.max(0, Math.min(end, p.end) - Math.max(start, p.start)),
+    0,
+  );
+  const active_s = Math.max(0, end - start - paused_s);
+  const requiredRecords = records.map((p) => ({
+    ...p,
+    cadence_raw:
+      Number.isFinite(p.heart_rate_bpm) && p.heart_rate_bpm > 0
+        ? p.cadence_raw
+        : null,
+  }));
+  const joint = intervalStrokeDistance(requiredRecords, pauses, start, end);
+  const hrDistance = intervalStrokeDistance(
+    records.map((p) => ({
+      ...p,
+      cadence_raw:
+        Number.isFinite(p.heart_rate_bpm) && p.heart_rate_bpm > 0 ? 1 : null,
+    })),
+    pauses,
+    start,
+    end,
+  );
+  const firstIndex = records[0]?.source_record_index,
+    lastIndex = records.at(-1)?.source_record_index;
   return {
     method: ANALYSIS_METHOD,
     source: "derived",
@@ -93,19 +154,66 @@ export function intervalStatistics(records, pauses, start, end) {
       time: "s",
     },
     interval: { start_s: start, end_s: end },
+    source_record_range:
+      Number.isFinite(firstIndex) && Number.isFinite(lastIndex)
+        ? [firstIndex, lastIndex + 1]
+        : null,
+    joint_hr_cadence_distance: {
+      covered_s: joint.covered_s,
+      coverage_pct:
+        end > start ? (100 * joint.covered_s) / (end - start) : null,
+    },
+    joint_hr_distance: {
+      covered_s: hrDistance.covered_s,
+      coverage_pct:
+        end > start ? (100 * hrDistance.covered_s) / (end - start) : null,
+    },
     policy: POLICY,
     ...channels,
     distance: {
       value_m: covered ? distance : null,
       covered_s: covered,
       mean_speed_mps: covered ? distance / covered : null,
+      standard_deviation: covered
+        ? Math.sqrt(
+            Math.max(
+              0,
+              squaredSpeedSeconds / covered - (distance / covered) ** 2,
+            ),
+          )
+        : null,
       method: "sum_of_eligible_distance_segments_v1",
     },
-    distance_per_stroke: intervalStrokeDistance(records, pauses, start, end),
+    distance_per_stroke: stroke,
+    speed_cadence: {
+      speed_mps: stroke.covered_s ? stroke.distance_m / stroke.covered_s : null,
+      cadence_spm: stroke.covered_s
+        ? (stroke.estimated_strokes * 60) / stroke.covered_s
+        : null,
+      covered_s: stroke.covered_s,
+      requested_s: end - start,
+      timer_eligible_s: active_s,
+      coverage_pct: active_s > 0 ? (100 * stroke.covered_s) / active_s : null,
+      elapsed_coverage_pct: stroke.coverage_pct,
+      method: "matched_distance_cadence_v1",
+      source: "derived",
+      reason: stroke.covered_s
+        ? null
+        : "No matched distance and cadence support.",
+    },
+    ...(tracking
+      ? { zigzag: trackingEvidence(records, pauses, start, end) }
+      : {}),
   };
 }
 
-export function analyzeTelemetry(records, pauses, elapsed, sourceRef = null) {
+export function analyzeTelemetry(
+  records,
+  pauses,
+  elapsed,
+  sourceRef = null,
+  context = {},
+) {
   const windows = bestWindows(records, pauses, false).map((w) => ({
     ...w,
     method: "elapsed_continuous_v1",
@@ -120,13 +228,26 @@ export function analyzeTelemetry(records, pauses, elapsed, sourceRef = null) {
         ? null
         : intervalStatistics(records, pauses, w.start, w.end),
   }));
+  const movement = movementEvidence(records, pauses, elapsed);
   return {
     method: ANALYSIS_METHOD,
+    computed_at_utc: new Date().toISOString(),
     source: "derived",
     source_ref: sourceRef,
     policy: POLICY,
     summary: intervalStatistics(records, pauses, 0, elapsed),
     windows,
+    movement,
+    drift: matchedWindowDrift(
+      records,
+      pauses,
+      elapsed,
+      context,
+      (start, end) =>
+        intervalStatistics(records, pauses, start, end, { tracking: false }),
+      movement,
+    ),
+    dps_timeline: strokeDistanceTimeline(records, pauses),
   };
 }
 
@@ -182,8 +303,7 @@ export function intervalStrokeDistance(records, pauses, start, end) {
   };
 }
 
-// Lazy upgrade of old persisted evidence: preserve present values and other metrics.
-// A current-method null is a calculated missing-data result, not a stale cache.
+// One current contract. Old calculations are discarded, not maintained in parallel.
 export function ensureIntervalStatistics(
   records,
   pauses,
@@ -193,16 +313,8 @@ export function ensureIntervalStatistics(
 ) {
   if (start == null || end == null) return existing ?? null;
   if (!existing) return intervalStatistics(records, pauses, start, end);
-  const stroke = existing.distance_per_stroke;
-  if (
-    Number.isFinite(stroke?.value_m) ||
-    stroke?.method === INTERVAL_STROKE_METHOD
-  )
-    return existing;
-  return {
-    ...existing,
-    distance_per_stroke: intervalStrokeDistance(records, pauses, start, end),
-  };
+  if (existing.method === ANALYSIS_METHOD) return existing;
+  return intervalStatistics(records, pauses, start, end);
 }
 
 export function ensureWindowStatistics(windows, records, pauses) {
@@ -216,4 +328,48 @@ export function ensureWindowStatistics(windows, records, pauses) {
       w.statistics,
     ),
   }));
+}
+
+export function strokeDistanceTimeline(records, pauses, window_s = 30) {
+  return records.map((p, i) => {
+    const start = p.elapsed_s - window_s;
+    const previous = records[i - 1];
+    const endpointSupported =
+      previous &&
+      [previous, p].every(
+        (r) =>
+          Number.isFinite(r.cadence_raw) &&
+          r.cadence_raw >= 0 &&
+          Number.isFinite(r.distance_m),
+      ) &&
+      p.elapsed_s > previous.elapsed_s &&
+      p.elapsed_s - previous.elapsed_s <= 15 &&
+      p.distance_m >= previous.distance_m &&
+      (p.distance_m - previous.distance_m) /
+        (p.elapsed_s - previous.elapsed_s) <=
+        8;
+    if (
+      !endpointSupported ||
+      start < (records[0]?.elapsed_s ?? 0) ||
+      pauses.some((g) => p.elapsed_s >= g.start && p.elapsed_s <= g.end)
+    )
+      return {
+        elapsed_s: p.elapsed_s,
+        value_m: null,
+        coverage_pct: 0,
+        window_s,
+      };
+    const evidence = intervalStrokeDistance(
+      intervalRecords(records, start, p.elapsed_s),
+      pauses,
+      start,
+      p.elapsed_s,
+    );
+    return {
+      elapsed_s: p.elapsed_s,
+      value_m: evidence.coverage_pct >= 90 ? evidence.value_m : null,
+      coverage_pct: evidence.coverage_pct,
+      window_s,
+    };
+  });
 }

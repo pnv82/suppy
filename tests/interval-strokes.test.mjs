@@ -66,14 +66,15 @@ test("zero and absent sensor data stay unavailable while stationary distance is 
   );
   assert.throws(() => intervalStrokeDistance([], [], 5, 2));
 });
-test("lazy evidence upgrade replaces old nulls, preserves existing values and caches unavailable results", () => {
+test("current evidence replaces stale calculations and reuses current unavailable results", () => {
   const old = {
     cadence_raw: { mean: 30 },
     distance_per_stroke: { value_m: null, reason: "Legacy placeholder" },
   };
   const upgraded = ensureIntervalStatistics(points([0, 5, 10]), [], 0, 10, old);
   assert.equal(upgraded.distance_per_stroke.value_m, 4);
-  assert.equal(upgraded.cadence_raw, old.cadence_raw);
+  assert.equal(upgraded.cadence_raw.mean, old.cadence_raw.mean);
+  assert.notEqual(upgraded.cadence_raw, old.cadence_raw);
   assert.equal(old.distance_per_stroke.value_m, null);
   assert.equal(ensureIntervalStatistics([], [], 0, 10, upgraded), upgraded);
   const unavailable = ensureIntervalStatistics([], [], 0, 10, old);

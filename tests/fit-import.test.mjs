@@ -63,6 +63,26 @@ test("official decoder normalizes SI, UTC, nulls, strokes and deterministic best
   assert.equal(summary.windows[0].start, null);
 });
 
+test("import retains profile-scaled fractional cadence and GPS accuracy without double expansion", () => {
+  const decoded = decodeUpload(
+    uploadFixture({
+      record: (r) => ({
+        ...r,
+        fractionalCadence: 0.5,
+        cadence256: 30.5,
+        gpsAccuracy: 4,
+      }),
+    }),
+  );
+  assert.equal(decoded.session.records[0].cadence_raw, 30);
+  assert.equal(decoded.session.records[0].cadence_fractional_raw, 0.5);
+  assert.equal(decoded.session.records[0].cadence_256_raw, 30.5);
+  assert.equal(decoded.session.records[0].gps_accuracy_m, 4);
+  assert.ok(Array.isArray(decoded.provenance.raw_laps));
+  assert.ok(Array.isArray(decoded.provenance.raw_device_info));
+  assert.equal(decoded.provenance.raw_file_id[0].manufacturer, "development");
+});
+
 test("pause, gap, reset and unresolved timer boundaries never form continuous best efforts", () => {
   const paused = decodeUpload(uploadFixture({ paused: true })).session;
   assert.deepEqual(paused.pauses, [{ start: 500, end: 660 }]);

@@ -1,14 +1,12 @@
 import { readFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
+import { randomUUID, createHash } from "node:crypto";
 import { openDatabase } from "./database.mjs";
 import { decodeUpload, importMatches } from "./fit-import.mjs";
-import {
-  analyzeTelemetry,
-  ensureWindowStatistics,
-  ensureIntervalStatistics,
-} from "../src/domain/analysis.mjs";
+import { analyzeTelemetry, ANALYSIS_METHOD } from "../src/domain/analysis.mjs";
 import { validRuns } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
+// Reuse calculations across request-scoped stores, never across database or tenant boundaries.
+const databaseAnalysisCaches = new WeakMap();
 
 export function createStore({
   database,
@@ -26,6 +24,64 @@ export function createStore({
     ),
   ).issues;
   const get = repo.get;
+  if (!databaseAnalysisCaches.has(database))
+    databaseAnalysisCaches.set(database, new Map());
+  const tenantCaches = databaseAnalysisCaches.get(database);
+  if (!tenantCaches.has(tenantId)) tenantCaches.set(tenantId, new Map());
+  const analysisCache = tenantCaches.get(tenantId);
+  function withMetrics(session) {
+    if (!Number.isFinite(session.elapsed))
+      return {
+        ...session,
+        deterministic: null,
+        windows: (session.windows || []).map((w) => ({
+          ...w,
+          start: null,
+          end: null,
+          speed_mps: null,
+          statistics: null,
+          reason: "Session elapsed duration is unavailable.",
+        })),
+      };
+    const signature = createHash("sha256")
+      .update(
+        JSON.stringify([
+          ANALYSIS_METHOD,
+          session.elapsed,
+          session.records,
+          session.pauses,
+          session.boardId,
+          session.hrQuality,
+          session.annotations,
+          session.sourceRef,
+          session.revision,
+        ]),
+      )
+      .digest("hex");
+    let cached = analysisCache.get(session.id);
+    if (!cached || cached.signature !== signature) {
+      cached = {
+        signature,
+        value: analyzeTelemetry(
+          session.records,
+          session.pauses,
+          session.elapsed * 60,
+          session.sourceRef,
+          session,
+        ),
+      };
+      cached.value.input_hash = signature;
+      cached.value.context_revision = session.revision;
+      analysisCache.set(session.id, cached);
+      if (analysisCache.size > 30)
+        analysisCache.delete(analysisCache.keys().next().value);
+    }
+    return {
+      ...session,
+      deterministic: cached.value,
+      windows: cached.value.windows,
+    };
+  }
   function inspectImport(args) {
     const upload = decodeUpload(args);
     const matches = importMatches(upload.session, repo.sessions());
@@ -124,7 +180,7 @@ export function createStore({
     return { status: "imported", session_id: session.id };
   }
   function dashboard() {
-    const sessions = repo.sessions().map(presentWeather);
+    const sessions = repo.sessions().map(withMetrics).map(presentWeather);
     return {
       sessions,
       boards: repo.boards().map((b) => ({
@@ -200,30 +256,15 @@ export function createStore({
     });
   }
   function context(id) {
-    const s = presentWeather(get(id));
+    const s = presentWeather(withMetrics(get(id)));
     const { records, hashes, ...summary } = s;
-    const deterministic = s.deterministic
-      ? {
-          ...s.deterministic,
-          summary: ensureIntervalStatistics(
-            records,
-            s.pauses,
-            0,
-            s.elapsed == null ? null : s.elapsed * 60,
-            s.deterministic.summary,
-          ),
-          windows: ensureWindowStatistics(
-            s.deterministic.windows,
-            records,
-            s.pauses,
-          ),
-        }
-      : s.elapsed == null
-        ? null
-        : analyzeTelemetry(records, s.pauses, s.elapsed * 60, s.sourceRef);
+    const deterministic = compactAnalysis(s.deterministic);
     return {
       ...summary,
-      windows: ensureWindowStatistics(s.windows, records, s.pauses),
+      windows: (s.windows || []).map((w) => ({
+        ...w,
+        statistics: compactInterval(w.statistics),
+      })),
       deterministic,
       board: s.boardId
         ? {
@@ -258,6 +299,8 @@ export function createStore({
         "Session stroke distance uses FIT totals; interval stroke distance may be a cadence-integral estimate with explicit coverage and assumptions. Neither is validated biomechanical efficiency.",
         "Wind is nearby-station context, not an on-water measurement.",
         "Watch telemetry cannot diagnose stroke faults.",
+        "Zig-zag is experimental local GPS straightness; inspect eligible coverage and underlying deviations. Higher is not proof of better technique.",
+        "Matched-window changes are descriptive, with independent pairs and no normalization for current, chop or local wind.",
       ],
     };
   }
@@ -419,5 +462,42 @@ export function createStore({
         (args) => repo.transaction(() => fn(args)),
       ]),
     ),
+  };
+}
+
+export function compactInterval(evidence) {
+  if (!evidence?.zigzag) return evidence;
+  const { segments, ...zigzag } = evidence.zigzag;
+  return { ...evidence, zigzag };
+}
+
+function compactAnalysis(evidence) {
+  if (!evidence) return null;
+  const { dps_timeline, ...rest } = evidence;
+  return {
+    ...rest,
+    summary: compactInterval(rest.summary),
+    windows: rest.windows.map((w) => ({
+      ...w,
+      statistics: compactInterval(w.statistics),
+    })),
+    movement: {
+      ...rest.movement,
+      events: rest.movement.events.slice(0, 100),
+      omitted_event_count: Math.max(0, rest.movement.events.length - 100),
+    },
+    drift: {
+      ...rest.drift,
+      modes: Object.fromEntries(
+        Object.entries(rest.drift.modes).map(([key, value]) => [
+          key,
+          {
+            ...value,
+            pairs: value.pairs.slice(0, 12),
+            omitted_pair_count: Math.max(0, value.pairs.length - 12),
+          },
+        ]),
+      ),
+    },
   };
 }

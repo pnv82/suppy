@@ -7,6 +7,7 @@ import {
   Plus,
   NotePencil,
   MapPin,
+  Diamond,
 } from "@phosphor-icons/react";
 import {
   MapContainer,
@@ -34,6 +35,7 @@ import {
 } from "recharts";
 import "leaflet/dist/leaflet.css";
 import { WeatherPanel } from "./WeatherPanel.jsx";
+import { DriftDetails } from "./MetricEvidence.jsx";
 import {
   WINDOW_COLORS,
   mph,
@@ -476,18 +478,24 @@ export function BestWindows({ session, selected, onSelect }) {
                 title={detail}
                 aria-description={detail}
               >
-                <span>{fmt(stats?.cadence_raw?.mean)} spm</span>
                 <span>
+                  @{" "}
                   {fmt(
-                    stats?.distance_per_stroke?.value_m == null
-                      ? null
-                      : stats.distance_per_stroke.value_m / 0.3048,
-                    1,
+                    stats?.speed_cadence?.coverage_pct >= 90
+                      ? stats.speed_cadence.cadence_spm
+                      : null,
                   )}{" "}
-                  ft/stroke
+                  spm
+                </span>
+                <span>
+                  {fmt(stats?.distance_per_stroke?.value_m, 2)} m/stroke
                   {stroke?.status === "cadence_estimate" &&
                   stroke?.value_m != null
                     ? " est."
+                    : ""}
+                  {stroke?.value_m != null &&
+                  stats?.speed_cadence?.coverage_pct < 90
+                    ? " · partial"
                     : ""}
                 </span>
               </span>
@@ -495,160 +503,6 @@ export function BestWindows({ session, selected, onSelect }) {
           );
         })}
       </div>
-    </section>
-  );
-}
-
-function SummaryValue({
-  value,
-  unit,
-  detail,
-  duration = false,
-  hideUnit = false,
-}) {
-  return (
-    <dd className="summary-value" title={detail} aria-description={detail}>
-      {value === "—" ? (
-        <strong>
-          <span aria-hidden="true">—</span>
-          <span className="sr-only">Unavailable</span>
-        </strong>
-      ) : duration ? (
-        value.split(" ").map((part, i, parts) =>
-          i % 2 === 0 ? (
-            <span className="summary-duration-part" key={i}>
-              <strong>{part}</strong> <span>{parts[i + 1]}</span>
-            </span>
-          ) : null,
-        )
-      ) : (
-        <strong>{value}</strong>
-      )}
-      {unit && <span className={hideUnit ? "sr-only" : undefined}>{unit}</span>}
-    </dd>
-  );
-}
-
-export function MetricStrip({ session }) {
-  const speed = session.statistics?.speed_mps;
-  const stroke = session.statistics?.distance_per_stroke;
-  const showElapsed =
-    Number.isFinite(session.elapsed) &&
-    (!Number.isFinite(session.active) ||
-      Math.abs(session.elapsed - session.active) > 1 / 60);
-  const maxDetail =
-    speed?.max_source === "fit_session"
-      ? "Maximum speed from the FIT session summary; unfiltered watch value."
-      : speed?.max_source === "fit_records"
-        ? "Maximum recorded FIT speed; unfiltered watch value."
-        : "Maximum speed unavailable: no detailed FIT data.";
-  return (
-    <section
-      className="session-metrics"
-      aria-labelledby="session-metrics-title"
-    >
-      <h2 id="session-metrics-title">Session overview</h2>
-      <section
-        className="summary-group"
-        aria-labelledby="summary-general-title"
-      >
-        <h3 id="summary-general-title">General</h3>
-        <dl className="summary-pair summary-general">
-          <div className="summary-metric">
-            <dt>Distance</dt>
-            <SummaryValue
-              value={fmt(session.distance, 2)}
-              unit="mi"
-              detail="Distance from the stored session summary."
-            />
-          </div>
-          <div className="summary-metric">
-            <dt>Duration · active</dt>
-            <SummaryValue
-              value={durationLabel(session.active)}
-              duration
-              detail={`Active: ${fmt(session.active, 2)} min from the stored summary. Elapsed: ${fmt(session.elapsed, 2)} min. Display rounded to the nearest minute.`}
-            />
-            {showElapsed && (
-              <dd className="summary-secondary">
-                Elapsed {durationLabel(session.elapsed)}
-              </dd>
-            )}
-          </div>
-        </dl>
-      </section>
-      <section
-        className="summary-group summary-speed"
-        aria-labelledby="summary-speed-title"
-      >
-        <div className="summary-group-heading">
-          <h3 id="summary-speed-title">Speed</h3>
-          <span aria-hidden="true">mph</span>
-        </div>
-        <dl className="summary-speed-grid">
-          {[
-            ["Maximum", mph(speed?.max), maxDetail],
-            [
-              "Average",
-              session.avgSpeed,
-              "Average speed from the stored session summary.",
-            ],
-            [
-              "Median",
-              mph(speed?.median),
-              speed?.median != null
-                ? "Time-weighted median over valid recorded FIT intervals. Pauses and gaps over 15 seconds are excluded; a local display estimate."
-                : "Median speed unavailable: no supported recorded FIT intervals.",
-            ],
-          ].map(([label, value, detail]) => (
-            <div className="summary-metric" key={label}>
-              <dt>{label}</dt>
-              <SummaryValue
-                value={fmt(value, 2)}
-                unit="mph"
-                hideUnit
-                detail={detail}
-              />
-            </div>
-          ))}
-        </dl>
-      </section>
-      <section
-        className="summary-group"
-        aria-labelledby="summary-performance-title"
-      >
-        <h3 id="summary-performance-title">Performance</h3>
-        <dl className="summary-pair summary-performance">
-          <div className="summary-metric">
-            <dt>Avg. heart rate</dt>
-            <SummaryValue
-              value={fmt(session.avgHr)}
-              unit="bpm"
-              detail="Average heart rate from the stored session summary. Source quality is available in Wind and source details."
-            />
-          </div>
-          <div className="summary-metric">
-            <dt>Cadence</dt>
-            <SummaryValue
-              value={fmt(session.cadence)}
-              unit="spm"
-              detail="Average cadence from the stored session summary."
-            />
-          </div>
-          <div className="summary-metric summary-stroke">
-            <dt>Distance per stroke</dt>
-            <SummaryValue
-              value={fmt(feet(stroke?.value_m), 1)}
-              unit={`ft/stroke${stroke?.value_m != null ? " · est." : ""}`}
-              detail={
-                stroke?.value_m != null
-                  ? `Watch estimate: ${fmt(stroke.value_m, 2)} m/stroke. FIT distance ${fmt(stroke.distance_m, 2)} m ÷ ${stroke.strokes} watch-counted strokes. Ground distance includes glide and conditions; not a measure of biomechanical efficiency.`
-                  : "Distance per stroke unavailable: a SUP FIT session with recorded distance and total strokes is required."
-              }
-            />
-          </div>
-        </dl>
-      </section>
     </section>
   );
 }
@@ -662,7 +516,20 @@ export function Timeline({
   onEdit,
 }) {
   const [hover, setHover] = useState(null);
-  const rows = useMemo(() => chartRows(session.records), [session.records]);
+  const [third, setThird] = useState("cadence");
+  const [driftOpen, setDriftOpen] = useState(false);
+  const rows = useMemo(() => {
+    const dps = new Map(
+      (session.deterministic?.dps_timeline || []).map((p) => [
+        p.elapsed_s / 60,
+        p.value_m,
+      ]),
+    );
+    return chartRows(session.records).map((p) => ({
+      ...p,
+      dps: dps.get(p.t) ?? null,
+    }));
+  }, [session.records, session.deterministic]);
   const max = session.elapsed,
     ticks = Array.from({ length: Math.floor(max / 20) + 1 }, (_, i) => i * 20);
   const w = session.windows.find((w) => w.duration === selected);
@@ -709,13 +576,26 @@ export function Timeline({
     <section className="timeline-section" aria-labelledby="timeline-title">
       <div className="section-heading">
         <h2 id="timeline-title">Performance</h2>
-        <button
-          className="text-button"
-          onClick={() => onAnnotate(rows.length ? cursor : 0)}
-        >
-          <NotePencil size={16} />{" "}
-          {rows.length ? "Annotate " + timeLabel(cursor) : "Add annotation"}
-        </button>
+        <div className="performance-actions">
+          {w?.start != null && (
+            <span
+              className="selection-caption"
+              style={{ color: WINDOW_COLORS[w.duration] }}
+            >
+              {w.duration / 60} min · {timeLabel(w.start)}–{timeLabel(w.end)}
+            </span>
+          )}
+          <button className="text-button" onClick={() => setDriftOpen(true)}>
+            Drift details
+          </button>
+          <button
+            className="text-button"
+            onClick={() => onAnnotate(rows.length ? cursor : 0)}
+          >
+            <NotePencil size={16} />{" "}
+            {rows.length ? "Annotate " + timeLabel(cursor) : "Add annotation"}
+          </button>
+        </div>
       </div>
       <p id="chart-keyboard-help" className="sr-only">
         Elapsed time. Arrow keys move one second, Shift + arrow ten seconds.
@@ -726,7 +606,15 @@ export function Timeline({
           {[
             ["Speed", "mph", "speed", "#008996", [0, "auto"]],
             ["Heart rate", "bpm", "hr", "#d54d72", [60, 180]],
-            ["Cadence", "spm", "cadence", "#6273c9", [0, "auto"]],
+            third === "dps"
+              ? [
+                  "Distance / stroke",
+                  "m/stroke · est.",
+                  "dps",
+                  "#6273c9",
+                  [0, "auto"],
+                ]
+              : ["Cadence", "spm", "cadence", "#6273c9", [0, "auto"]],
           ].map(([title, unit, key, color, domain], i) => {
             const stats =
               key === "speed"
@@ -740,7 +628,18 @@ export function Timeline({
             return (
               <div className="timeline-row chart-row" key={key}>
                 <div className="track-label" style={{ color }}>
-                  {title}
+                  {i === 2 ? (
+                    <select
+                      aria-label="Third chart metric"
+                      value={third}
+                      onChange={(e) => setThird(e.target.value)}
+                    >
+                      <option value="cadence">Cadence</option>
+                      <option value="dps">DPS (est.)</option>
+                    </select>
+                  ) : (
+                    title
+                  )}
                   <small>{unit}</small>
                 </div>
                 <div
@@ -760,8 +659,14 @@ export function Timeline({
                         ? mph(current?.speed_mps)
                         : key === "hr"
                           ? current?.heart_rate_bpm
-                          : current?.cadence_raw,
-                      key === "speed" ? 2 : 0,
+                          : key === "dps"
+                            ? rows.findLast(
+                                (p) =>
+                                  p.t <= cursor / 60 &&
+                                  p.t >= (cursor - 15) / 60,
+                              )?.dps
+                            : current?.cadence_raw,
+                      key === "speed" || key === "dps" ? 2 : 0,
                     ) +
                     " " +
                     unit +
@@ -797,11 +702,13 @@ export function Timeline({
                       </span>
                       <span>
                         {fmt(current?.cadence_raw)} spm
+                        {key === "dps" &&
+                          ` · ${fmt(rows.findLast((p) => p.t <= cursor / 60 && p.t >= (cursor - 15) / 60)?.dps, 2)} m/stroke · trailing 30 s`}
                         {!current ? " · No sample" : ""}
                       </span>
                     </div>
                   )}
-                  {key !== "cadence" && (
+                  {(key === "speed" || key === "hr") && (
                     <div
                       className="chart-statistics"
                       aria-label={`${title} session statistics`}
@@ -870,7 +777,9 @@ export function Timeline({
                           x1={w.start / 60}
                           x2={w.end / 60}
                           fill={WINDOW_COLORS[w.duration]}
-                          fillOpacity={0.07}
+                          fillOpacity={0.11}
+                          stroke={WINDOW_COLORS[w.duration]}
+                          strokeDasharray="3 3"
                         />
                       )}{" "}
                       {session.pauses.map((p, n) => (
@@ -942,15 +851,29 @@ export function Timeline({
         </div>
       ) : (
         <div className="timeline-empty">
-          No time-series data available. Stored summaries are shown above.
+          No time-series data available. Stored summary values are available in
+          Metric details.
         </div>
       )}
       <div className="timeline-row annotation-track">
-        <span className="track-label">Annotations</span>
+        <span className="track-label">Events & notes</span>
         <div className="annotation-lane">
-          {!session.annotations.length && (
-            <span className="empty-annotation">No annotations</span>
-          )}
+          {!session.annotations.length &&
+            !session.deterministic?.movement?.events?.length && (
+              <span className="empty-annotation">No annotations</span>
+            )}
+          {(session.deterministic?.movement?.events || []).map((event, i) => (
+            <button
+              key={`detected-${i}`}
+              className="annotation-marker detected-event"
+              style={{ left: `${(event.start_s / 60 / max) * 100}%` }}
+              onClick={() => setCursor(event.start_s)}
+              aria-label={`${event.type === "timer_pause" ? "Recorded timer pause" : "Low-speed candidate"} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}`}
+              title={`${event.type === "timer_pause" ? "Timer pause" : "Low-speed candidate; cause unknown"} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)}`}
+            >
+              <Diamond size={14} aria-hidden="true" />
+            </button>
+          ))}
           {session.annotations.map((a) => (
             <button
               className="annotation-marker"
@@ -965,6 +888,13 @@ export function Timeline({
           ))}
         </div>
       </div>
+      {driftOpen && (
+        <DriftDetails
+          session={session}
+          onClose={() => setDriftOpen(false)}
+          onInspect={setCursor}
+        />
+      )}
     </section>
   );
 }

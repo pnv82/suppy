@@ -23,6 +23,8 @@ Run `npm test` and `npm run build`. Consult root `design-qa.md` for browser evid
 
 ## Next work
 
+The [revised metrics plan](../product/key%20metrics.md) is implemented for paired speed/cadence, matched DPS, conservative low-speed evidence, descriptive independent-window drift and experimental zig-zag. See [performance metric contracts](performance-metrics.md). The selected UI combines the interval inspector and clean chart band, with a compact best-20-minute Home list. Old calculated evidence is discarded in favor of one current contract; no migration or database reset was necessary. Original uploads remain unchanged.
+
 Use [todo.md](../../todo.md) as the deferred-work list. SUP FIT decoding and deterministic evidence are implemented under [LLM versus app responsibilities](../product/llm%20vs%20app.md). Reviewed LLM-result ingestion, advanced metric validation and multi-session feature requests remain future work. Authentication, sharing, broader activity formats and in-app model execution remain outside this slice.
 
 P03 is automatic latest-10 comparison, superseding the initial two-session selection idea. P05 is explicit timed annotations. P01/P02/P04/P06 remain discarded.
@@ -42,6 +44,6 @@ Completed SQLite storage with transaction-based saves and schema versioning; ten
 
 Training focus and the separate context panel are removed from session review for now. The existing Edit session dialog holds source notes and additional observations, saved atomically with name and board. Deletion requires confirmation inside the dialog and navigates to a remaining session, or Home when empty. Original uploads/provenance remain privately archived; re-upload is permitted. Saved legacy goals and technique reports remain preserved for compatibility.
 
-The top row has previous (older) / next (newer) controls, disabled at the ends. A single session-selection popover contains full date, local start/end, explicit timezone, distance, active duration, type and source availability. The separate info disclosure is removed. Home includes maximum speed in cards, table and chronological trends using the same FIT maximum as session review, with nulls kept as gaps.
+The top row has previous (older) / next (newer) controls, disabled at the ends. A single session-selection popover contains full date, local start/end, explicit timezone, distance, active duration, type and source availability. The separate info disclosure is removed. Home now defaults to supported best-20-minute metrics; the existing FIT maximum remains in session chart references and metric details.
 
-Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Missing interval stroke distance now calculates lazily as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.
+Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Current interval evidence is calculated as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.

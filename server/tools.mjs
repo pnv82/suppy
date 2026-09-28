@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { latestSessions } from "../src/domain/metrics.mjs";
 import { intervalStatistics } from "../src/domain/analysis.mjs";
+import { compactInterval } from "./store.mjs";
 import { summarizeWeather } from "../src/domain/weather.mjs";
 
 const uploadFields = {
@@ -185,7 +186,9 @@ export function executeTool(store, name, input) {
       question: args.question,
       session: store.context(s.id),
       interval: { start_s: start, end_s: end },
-      evidence: intervalStatistics(s.records, s.pauses, start, end),
+      evidence: compactInterval(
+        intervalStatistics(s.records, s.pauses, start, end),
+      ),
       weather_evidence: s.weather?.data
         ? {
             status: s.weather.status,

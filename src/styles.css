@@ -2899,3 +2899,411 @@ td small {
     font-size: 8px;
   }
 }
+
+/* Shared metrics: compact list and an inspector in the existing map-side space. */
+.session-overview {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+.metrics-inspector {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+  background: white;
+}
+.metric-scope {
+  display: flex;
+  border: 1px solid #cfdee5;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+.metric-scope button {
+  padding: 8px 12px;
+  border: 0;
+  background: #f6f9fb;
+  color: #456278;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.metric-scope button[aria-pressed="true"] {
+  background: var(--teal);
+  color: white;
+}
+.metric-scope button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.metrics-inspector .metric-scope {
+  width: 100%;
+}
+.metrics-inspector .metric-scope button {
+  flex: 1;
+}
+.metrics-inspector h2 {
+  font-size: 16px;
+  margin: 0 0 9px;
+}
+.paired-headline {
+  margin: 0;
+  font-size: 25px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.6px;
+}
+.paired-headline span {
+  white-space: nowrap;
+}
+.paired-headline small {
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+.dps-headline {
+  color: var(--muted);
+  font-size: 16px;
+  margin: 6px 0 0;
+}
+.inspector-properties,
+.evidence-properties {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  margin: 0;
+  font-size: 13px;
+}
+.inspector-properties dt,
+.evidence-properties dt {
+  color: var(--muted);
+}
+.inspector-properties dd,
+.evidence-properties dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.inspector-properties small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+.inspector-zigzag {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 13px;
+}
+.inspector-zigzag > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.inspector-zigzag small {
+  font-size: 11px;
+  font-weight: 400;
+}
+.inspector-zigzag p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 6px 0 0;
+  line-height: 1.5;
+}
+.inspector-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+.inspector-actions .text-button {
+  font-size: 12px;
+  gap: 5px;
+  padding: 4px 0;
+}
+.performance-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.selection-caption {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.track-label select {
+  max-width: 100%;
+  width: 100%;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 0;
+  border: 0;
+  color: inherit;
+  background: white;
+}
+.evidence-dialog {
+  width: min(680px, calc(100vw - 32px));
+}
+.evidence-dialog p {
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 14px 0;
+}
+.evidence-dialog h3 {
+  font-size: 15px;
+  margin: 20px 0 10px;
+}
+.evidence-properties {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  margin: 18px 0;
+}
+.evidence-properties dd {
+  overflow-wrap: anywhere;
+}
+.evidence-dialog summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--teal);
+  padding: 8px 0;
+}
+.evidence-reason {
+  padding: 10px 12px;
+  background: var(--pale);
+  border-radius: 5px;
+}
+.evidence-source {
+  overflow-wrap: anywhere;
+  font-size: 11px !important;
+}
+.drift-mode + .drift-mode {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+}
+.drift-result {
+  font-size: 22px !important;
+  font-variant-numeric: tabular-nums;
+}
+.drift-result span {
+  font-size: 12px;
+  color: var(--muted);
+}
+.drift-pair {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.drift-pair > div {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.drift-pair p {
+  margin: 6px 0;
+}
+.detected-event {
+  color: #677b8c;
+  background: white;
+  font-size: 20px;
+}
+.clean-metrics-table {
+  min-width: 760px;
+}
+.clean-metrics-table td {
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+.clean-metrics-table td strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.clean-metrics-table td strong span {
+  font-size: 12px;
+  font-weight: 400;
+}
+.clean-metrics-table small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.clean-metrics-table th {
+  white-space: normal;
+}
+.mobile-detail-label {
+  display: none;
+}
+.compact-metric-trend {
+  margin-top: 24px;
+}
+@media (max-width: 1100px) and (min-width: 901px) {
+  .session-overview {
+    grid-template-columns: minmax(0, 1fr) 280px;
+    gap: 12px;
+  }
+  .metrics-inspector {
+    padding: 12px;
+  }
+  .paired-headline {
+    font-size: 22px;
+  }
+}
+@media (max-width: 900px) {
+  .session-overview {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .metrics-inspector {
+    gap: 12px;
+  }
+  .metrics-inspector .metric-scope {
+    max-width: 340px;
+  }
+  .inspector-properties {
+    grid-template-columns: 1fr auto 1fr auto;
+    gap: 8px 16px;
+  }
+}
+@media (max-width: 600px) {
+  .page-heading {
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .metric-scope {
+    align-self: auto;
+  }
+  .performance-actions {
+    gap: 7px;
+  }
+  .performance-actions .text-button {
+    font-size: 11px;
+  }
+  .selection-caption {
+    display: none;
+  }
+  .inspector-properties {
+    grid-template-columns: 1fr auto;
+  }
+  .clean-metrics-table {
+    min-width: 0;
+    width: 100%;
+  }
+  .mobile-detail-label {
+    display: inline;
+  }
+  .clean-metrics-table td:first-child small {
+    white-space: normal;
+  }
+  .clean-metrics-table td strong {
+    font-size: 13px;
+  }
+  .evidence-dialog {
+    padding: 16px;
+  }
+  .evidence-properties {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .evidence-properties dd {
+    margin-bottom: 8px;
+  }
+  .compact-metric-trend .section-heading {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+}
+
+/* Readable interval evidence without adding overview height. */
+@media (min-width: 901px) {
+  .session-overview .route-map {
+    height: 340px;
+  }
+  .best-window-bar .window-button {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    min-height: 64px;
+  }
+  .app-workspace .best-window-bar .window-time {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    gap: 8px;
+    padding-left: 17px;
+  }
+  .best-window-bar .window-button b {
+    margin-left: auto;
+    font-size: 16px;
+  }
+  .paired-headline {
+    font-size: 30px;
+  }
+}
+
+@media (max-width: 600px) {
+  .app-workspace .best-window-bar .window-time {
+    font-size: 10.5px;
+    letter-spacing: 0;
+    line-height: 1.5;
+  }
+  .best-window-bar .window-button {
+    min-height: 64px;
+  }
+  .session-overview .route-map {
+    height: 290px;
+  }
+  .metrics-inspector .text-button,
+  .metric-scope button {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 800px) {
+  .clean-metrics-table td {
+    padding: 0;
+  }
+  .clean-metrics-table td:first-child {
+    padding: 0 0 10px;
+  }
+  .clean-metrics-table tr {
+    gap: 12px 16px;
+  }
+  .clean-metrics-table td:last-child {
+    grid-column: 1/-1;
+  }
+  .clean-metrics-table td:last-child::before {
+    display: none;
+  }
+  .clean-metrics-table td:last-child .text-button {
+    min-height: 36px;
+  }
+}
+
+@media (max-width: 800px) {
+  .clean-metrics-table {
+    min-width: 0;
+    width: 100%;
+  }
+  .mobile-detail-label {
+    display: inline;
+  }
+}
+
+@media (max-width: 600px) {
+  .compact-metric-trend .inline-label {
+    min-width: 0;
+    width: 100%;
+  }
+  .compact-metric-trend select {
+    min-width: 0;
+    max-width: 100%;
+    flex: 1;
+  }
+}
+
+@media(min-width:901px){.app-workspace .best-window-bar .window-time{flex-direction:row;}}
+
+@media(max-width:600px){.metrics-inspector .text-button,.metric-scope button,.performance-actions .text-button,.track-label select,.evidence-dialog .icon-button,.clean-metrics-table td:last-child .text-button{min-height:44px;}.evidence-dialog .icon-button{min-width:44px;}}

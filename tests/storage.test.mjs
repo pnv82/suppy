@@ -22,6 +22,14 @@ function seed(db, tenant) {
   db.importState(tenant, fixtureState());
   return createStore({ database: db, tenantId: tenant });
 }
+// Recomputed evidence has a new computation timestamp after reopening; persisted
+// source facts, method, dependency hash and all numeric results must be identical.
+const withoutComputationTime = (value) =>
+  JSON.parse(
+    JSON.stringify(value, (key, v) =>
+      key === "computed_at_utc" ? undefined : v,
+    ),
+  );
 const note = (id) => ({
   session_id: id,
   start_s: 10,
@@ -67,7 +75,10 @@ test("SQLite preserves all edits, SI data, provenance and deletions after reopen
   db.close();
   db = openDatabase(path);
   store = createStore({ database: db, tenantId: "alice" });
-  assert.deepEqual(store.dashboard(), expected);
+  assert.deepEqual(
+    withoutComputationTime(store.dashboard()),
+    withoutComputationTime(expected),
+  );
   assert.equal(store.context(id).board.name, "Race renamed");
   assert.equal(store.context(id).annotations[0].note, "Edited note");
   assert.equal(store.context(id).goal.speed_mph, 5);
@@ -95,8 +106,10 @@ test("SQLite preserves all edits, SI data, provenance and deletions after reopen
   db.close();
   const restored = openDatabase(join(dir, "backup.sqlite"));
   assert.deepEqual(
-    createStore({ database: restored, tenantId: "alice" }).dashboard(),
-    expected,
+    withoutComputationTime(
+      createStore({ database: restored, tenantId: "alice" }).dashboard(),
+    ),
+    withoutComputationTime(expected),
   );
   restored.close();
 });
