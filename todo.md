@@ -2,7 +2,7 @@
 
 - [x] add maximum speed attribute to the main page and graphs
 - [x] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
-- [ ] allow to delete sessions, so i can test the uploads
+- [x] allow to delete sessions, so i can test the uploads
 - [ ] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
 - [ ] move additional session data into session edit dialog
 - [x] Integrate `docs/product/llm vs app.md` into architecture and agent principles. App-owned FIT import and deterministic interval evidence are implemented; remaining multi-session evidence, advanced features and reviewed LLM-result persistence are listed below.

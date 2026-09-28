@@ -263,3 +263,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Maximum speed: verified Home table/cards and keyboard-operable trend selector using synthetic next-qa.sqlite on port 3011. Missing max remains unavailable; at 390 px there is no horizontal overflow. Build and six session/interval tests passed. Whole-session max is explicitly independent of best-20 basis.
 
 - Training focus removal already implemented; confirmed absent from session review at desktop and phone widths. Stored historical reports remain preserved.
+- Session deletion already implemented: browser confirmation/Keep session checked; 11 FIT tests pass including byte-preserving archives, tenant isolation and re-import.
