@@ -265,3 +265,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Training focus removal already implemented; confirmed absent from session review at desktop and phone widths. Stored historical reports remain preserved.
 - Session deletion already implemented: browser confirmation/Keep session checked; 11 FIT tests pass including byte-preserving archives, tenant isolation and re-import.
 - Interval tile task already implemented: cadence and estimated metres/stroke visible at desktop/390 px; keyboard selection updates inspector to Best 5 min. Six interval/session tests pass.
+- Additional context already moved into Edit: saved a synthetic observation at 390 px, reopened at desktop, checked Escape dismissal. Atomic detail-save test passes.

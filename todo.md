@@ -4,7 +4,7 @@
 - [x] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
 - [x] allow to delete sessions, so i can test the uploads
 - [x] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
-- [ ] move additional session data into session edit dialog
+- [x] move additional session data into session edit dialog
 - [x] Integrate `docs/product/llm vs app.md` into architecture and agent principles. App-owned FIT import and deterministic interval evidence are implemented; remaining multi-session evidence, advanced features and reviewed LLM-result persistence are listed below.
 - [ ] if we have sufficient horizontal space - show the names of the sections in the left toolbar
 - [ ] update how i'm using the markers on the graphs - let's have to states - current position and selected spot (last clicked position, i.e. some persistency). Selected spot will allow to add annotations better, right now it is hard to attach annotation to a specific spot because it moves with any mouse move. This also mean couple of different markers on the map - one is lights, following the active position of the mouse on the graphs. Second - last selected position.
