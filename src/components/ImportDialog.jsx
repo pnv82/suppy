@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { UploadSimple, File, Check, X } from "@phosphor-icons/react";
 import { callTool } from "../services/client.mjs";
 import { uploadArguments } from "../services/fit-import.mjs";
 import { fmt } from "./SessionViews.jsx";
@@ -38,7 +39,7 @@ function RoutePreview({ runs }) {
           points={run
             .map(
               ([a, b]) =>
-                `${20 + (b - minLon) * xScale * scale},${150 - (a - minLat) * scale}`,
+                `${(320 - width * scale) / 2 + (b - minLon) * xScale * scale},${(170 + height * scale) / 2 - (a - minLat) * scale}`,
             )
             .join(" ")}
         />
@@ -124,7 +125,7 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
       <form onSubmit={submit}>
         <div className="dialog-heading">
           <h2 id="import-title" tabIndex={-1}>
-            Import FIT
+            {preview ? "Review your paddle" : "Import a paddle"}
           </h2>
           <button
             type="button"
@@ -133,18 +134,31 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
             disabled={busy}
             onClick={onClose}
           >
-            ×
+            <X size={20} />
           </button>
         </div>
+        <ol className="import-steps" aria-label="Import progress">
+          <li aria-current={!preview ? "step" : undefined}>
+            <span>{preview ? <Check size={14} /> : 1}</span>Choose file
+          </li>
+          <li aria-current={preview ? "step" : undefined}>
+            <span>2</span>Review & save
+          </li>
+        </ol>
         {!preview ? (
           <>
             <p>
               Choose a SUP activity to preview its route and metrics before
               saving.
             </p>
-            <label>
-              Garmin activity
+            <label className="import-file-card">
+              <UploadSimple size={30} aria-hidden="true" />
+              <strong>Choose your Garmin activity</strong>
+              <span className="caption">
+                SUP FIT or single-FIT ZIP · up to 30 MB
+              </span>
               <input
+                aria-label="Garmin activity"
                 autoFocus
                 type="file"
                 accept=".fit,.zip"
@@ -152,6 +166,12 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                 disabled={busy}
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
               />
+              {file && (
+                <span className="import-file-name">
+                  <File size={16} />
+                  {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+                </span>
+              )}
             </label>
             <label>
               Display timezone
@@ -181,19 +201,47 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
               </strong>{" "}
               · {s.timezone}
             </p>
-            <p>
-              {fmt(s.distance, 2)} mi · {durationLabel(s.active)} active ·{" "}
-              {durationLabel(s.elapsed)} elapsed
-            </p>
+            <dl className="import-metrics">
+              <div>
+                <dt>Distance</dt>
+                <dd>
+                  {fmt(s.distance, 2)} <small>mi</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Active time</dt>
+                <dd>{durationLabel(s.active)}</dd>
+              </div>
+              <div>
+                <dt>Elapsed time</dt>
+                <dd>{durationLabel(s.elapsed)}</dd>
+              </div>
+            </dl>
             <RoutePreview runs={runs} />
             <p>
               {preview.record_count.toLocaleString()} records ·{" "}
               {preview.gps_count.toLocaleString()} GPS points
             </p>
-            <p>
-              FIT averages: {fmt(s.avgSpeed, 2)} mph · {fmt(s.avgHr)} bpm ·{" "}
-              {fmt(s.cadence)} raw cadence
-            </p>
+            <dl className="import-metrics">
+              <div>
+                <dt>FIT avg. speed</dt>
+                <dd>
+                  {fmt(s.avgSpeed, 2)} <small>mph</small>
+                </dd>
+              </div>
+              <div>
+                <dt>FIT avg. HR</dt>
+                <dd>
+                  {fmt(s.avgHr)} <small>bpm</small>
+                </dd>
+              </div>
+              <div>
+                <dt>Recorded cadence</dt>
+                <dd>
+                  {fmt(s.cadence)} <small>spm</small>
+                </dd>
+              </div>
+            </dl>
             <p>
               Calculated best 5 / 10 / 20 min:{" "}
               {s.windows.map((w) => fmt(mph(w.speed_mps), 2)).join(" / ")} mph
@@ -328,7 +376,7 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
           )}
           <button
             className="button primary"
-            disabled={busy || target === "choose"}
+            disabled={busy || target === "choose" || (!preview && !file)}
           >
             {preview
               ? preview.duplicate_session_id

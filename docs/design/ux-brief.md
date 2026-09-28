@@ -121,3 +121,5 @@ The session picker initially lists the latest ten. Search covers the complete st
 Home now presents its chronological trend above the latest-ten grid, in both desktop and phone reading order.
 
 Goals is a separate navigation section for adding/editing/deleting explicit athlete targets. The Home chart selector includes all requested speed scopes and saved cadence thresholds. Matching goals use light dashed lines and text labels. This does not restore the removed training-focus panel or next-outing technique pinning.
+
+Import uses a two-step Choose file / Review & save dialog, with a native accessible file chooser, filename/size confirmation, centered route preview and grouped distance/time/sensor metrics. The phone modal scrolls internally; action buttons wrap. Existing duplicate, candidate, missing-data and error behavior is retained.
