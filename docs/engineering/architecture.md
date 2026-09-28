@@ -15,6 +15,10 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 | set_session_wind | Save/clear athlete-reported whole-session wind in SI, retaining history and original station evidence |
 | fetch_session_weather | Start/retry independent IEM retrieval; return immediately after recording status |
 | get_session_weather | Read status and saved SI weather evidence without contacting the provider |
+| upsert_goal / delete_goal | Persist explicit SI athlete targets with tenant isolation |
+| set_session_summary | Save revision-checked external LLM highlight/summary as unreviewed interpretation |
+| suggest_launch_name | Offline candidate names near supported start GPS; no external lookup |
+| recalculate_session | Refresh deterministic evidence from full stored telemetry |
 | get_dashboard | Latest 10 summaries and UI data |
 | get_session_context | Source metrics, annotations, goal, technique evidence and limitations |
 | upsert_annotation | Create/edit a point or interval, validated against elapsed duration |
@@ -43,7 +47,7 @@ Boards, defaults and assignments persist in tenant-scoped tables with composite 
 
 `src/App.jsx` owns navigation and selected session/cursor/window. `src/components/` contains the present screen-level components. `src/services/` isolates host/HTTP operations. The previously reserved feature folders may be used when a feature grows; do not add abstractions solely to fill them.
 
-`src/services/useNavigation.jsx` synchronizes the page and string session ID with `?page=home|sessions|boards|chatgpt&session=<id>`. Initial load and browser history restore those values. Navigation pushes history entries; initial default-session resolution replaces the entry. A session without a page opens Sessions; unrecognized pages fall back to Sessions when a session is supplied, otherwise Home. Unknown session IDs remain explicit unavailable states on session-dependent pages. Other query parameters and hashes are preserved. Explicit MCP session results use the same navigation path; sandboxed hosts that deny history changes retain in-memory navigation. This does not change the parent ChatGPT conversation URL or select a tenant.
+`src/services/useNavigation.jsx` synchronizes the page and string session ID with `?page=home|sessions|boards|goals|chatgpt&session=<id>`. Initial load and browser history restore those values. Navigation pushes history entries; initial default-session resolution replaces the entry. A session without a page opens Sessions; unrecognized pages fall back to Sessions when a session is supplied, otherwise Home. Unknown session IDs remain explicit unavailable states on session-dependent pages. Other query parameters and hashes are preserved. Explicit MCP session results use the same navigation path; sandboxed hosts that deny history changes retain in-memory navigation. This does not change the parent ChatGPT conversation URL or select a tenant.
 
 Home reuses `Compare.jsx`: latest-10 summary changes, newest-first session rows/cards and chronological charts. `Boards.jsx` contains the equipment list and session picker. Explicit session results from MCP open that session review. Direction arrows are deterministic GPS bearings in `metrics.mjs`; Leaflet handles selection emphasis and zoom-dependent marker spacing.
 

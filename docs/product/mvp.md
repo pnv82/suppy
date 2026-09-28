@@ -34,16 +34,16 @@ The app supports validated SUP FIT/one-FIT ZIP import and deterministic 5/10/20-
 
 ## Defaults and unresolved decisions
 
-- Session names follow the **start/launch point**, not the destination, finish point or the whole route. Prefer a user-confirmed specific launch name; use a known start-point mapping when available. Until a launch point is confirmed, retain the source location as an explicitly unconfirmed fallback rather than inventing a more precise place. Display the date separately to distinguish repeat visits. Naming never changes the string session ID. Automatic reverse geocoding and remembered launch-point mappings are deferred.
+- Session names follow the **start/launch point**, not the destination, finish point or the whole route. Prefer a user-confirmed specific launch name; use a known start-point mapping when available. Until a launch point is confirmed, retain the source location as an explicitly unconfirmed fallback rather than inventing a more precise place. Display the date separately to distinguish repeat visits. Naming never changes the string session ID. Offline suggestions use nearby athlete-confirmed starts and a small source-labelled beach catalog. Automatic reverse geocoding remains deferred.
 - Desktop-first session review, with usable phone layouts; no live-on-water navigation UI.
-- Main route: session list → session review. Goals, technique selection and the prompt are contextual panels.
+- Main route: Home session grid → session review. Goals has a separate navigation section; annotations, editing and the analysis prompt use contextual dialogs.
 - Default best efforts: continuous elapsed-time 300/600/1200-second windows, specified in the metric contract. Historical imported values have an unverified method and must retain that label.
 - Detailed track is optional. The fourth stored session, `24162211256`, intentionally exercises a summary-only state.
 - The selected direction is light/simple concept 1 with annotations from concept 2. P03 and P05 are approved; P01, P02, P04 and P06 are discarded.
 
 ## Initial slice versus full feature depth
 
-The app has a speed target scoped to 5/10/20 minutes, self-reported dictionary selection, and validated single-session SUP FIT/ZIP import. General metric targets, richer technique evidence editing, broader activity formats and typed LLM-result import remain in root `todo.md`.
+The app has a separate Goals section for maximum/average/best-5/10/20 speed and continuous cadence-duration targets, plus validated SUP FIT/ZIP import. Small versioned external highlights/summaries are supported. Richer technique editing, broader activity formats and full typed analysis-envelope ingestion remain in root `todo.md`.
 
 ## Session management refinement (2026-09-27)
 

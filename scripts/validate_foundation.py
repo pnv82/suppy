@@ -5,6 +5,7 @@ Optionally validate another analysis: python scripts/validate_foundation.py --an
 from pathlib import Path
 from hashlib import sha256
 from datetime import datetime
+from urllib.parse import unquote
 import argparse
 import json
 import math
@@ -157,7 +158,7 @@ def main():
             for target in re.findall(r'\[[^\]]+\]\(([^)]+)\)', path.read_text(encoding='utf-8')):
                 if re.match(r'^[a-z]+://', target) or target.startswith('#'):
                     continue
-                destination = target.split('#')[0].strip('<>')
+                destination = unquote(target.split('#')[0].strip('<>'))
                 require((path.parent / destination).exists(), f'Broken local link in {path}: {target}')
     print(f'PASS: schema + analysis semantics; {len(dictionary["issues"])} issues; '
           f'{len(manifest["samples"])} sample hash/ZIP/track checks; '

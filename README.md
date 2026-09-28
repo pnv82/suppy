@@ -14,7 +14,7 @@ npm start
 
 Open **http://127.0.0.1:3001**. Keep that terminal open. Stop it with Ctrl+C.
 
-The address bar tracks the page and selected session. Copy it to bookmark a view, for example `http://127.0.0.1:3001/?page=sessions&session=24162211256`. Supported pages are `home`, `sessions`, `boards`, and `chatgpt`. A session-only link opens its review. Refresh and browser Back/Forward restore the view; unknown session IDs show an unavailable message. Links require this local app and its source data to be available; saved edits survive server restarts.
+The address bar tracks the page and selected session. Copy it to bookmark a view, for example `http://127.0.0.1:3001/?page=sessions&session=24162211256`. Supported pages are `home`, `sessions`, `boards`, `goals`, and `chatgpt`. A session-only link opens its review. Refresh and browser Back/Forward restore the view; unknown session IDs show an unavailable message. Links require this local app and its source data to be available; saved edits survive server restarts.
 
 For UI development, use `npm run dev` instead: Vite runs on port 5173, with the local API/MCP server on 3001. Do not run both start and dev at once. Rebuild before testing the embedded ChatGPT UI: it uses the built bundle.
 
@@ -22,8 +22,8 @@ This workspace’s four historical summaries and three Garmin tracks have been m
 
 ## What works now
 
-- **Home:** the previous Compare view is now the landing page. It lists the latest 10 sessions newest first (four currently available), with key metrics, board assignments and chronological parameter trends. Open any row to review that session; phone layouts show the rows as readable cards.
-- **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a labelled current map point. Hover a chart to explore; click/tap or press Enter to annotate. Arrow keys move the shared cursor.
+- **Home:** chronological trends above the latest-ten session grid, with maximum speed and changes over 5% versus the preceding three sessions. Row menus offer Edit, Delete, Recalculate and Refresh weather. Open any row to review that session; phone layouts show the rows as readable cards.
+- **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a labelled current map point. Hover a chart to explore; click/tap or press Enter to pin a point. Shift-click/Shift-Enter extends to an interval; Annotate uses the fixed selection. Arrow keys move the independent current cursor.
 - **Metric inspector:** switch between whole-session and selected-interval evidence: speed at recorded cadence, estimated metres/stroke, HR and coverage. Accessible details show alternate units, source summaries and methods. Existing median/max chart references remain.
 - **Stroke distance:** matched distance/cadence estimates with explicit support; choose DPS in the third chart lane for a trailing 30-second estimate. Missing sensors remain unavailable.
 - **Best sections:** select one 5/10/20-minute window to display its map highlight, travel arrows and start/end labels, with matching chart highlights and exact elapsed boundaries. Unselected windows are hidden; the full route, current point and annotation markers remain visible. Local FIT estimates stay separate from stored historical values.
@@ -31,8 +31,11 @@ This workspace’s four historical summaries and three Garmin tracks have been m
 - **Comparison on Home:** compact latest-10 metrics default to best 20 minutes, with a whole-session switch and speed, DPS, cadence, HR and zig-zag trends. A missing best effort never substitutes session data.
 - **Zig-zag and drift:** experimental 0–100 local GPS straightness for sessions/intervals, with eligible coverage and underlying deviations. Drift details show independent matched early/late windows and descriptive changes, without a fatigue diagnosis. See [method contracts](docs/engineering/performance-metrics.md).
 - **Boards:** add or rename boards, choose a default, and assign a board on each session. The default offers a one-click shortcut for unassigned sessions; it never backfills history. Delete unused boards; reassign sessions first if a board is in use. Board names and assignments are athlete reports and are included in ChatGPT context.
+- **Goals:** explicit speed and continuous cadence-duration targets, saved per tenant and shown as dashed lines on matching Home charts.
+- **Session summaries:** external ChatGPT can save a highlight and summary with model, evidence references and input revision. Unreviewed interpretations open from the header icon; later edits mark them stale.
+- **Launch suggestions:** offline matching to nearby athlete-confirmed starts and six historical Mission Bay beach references. Review in Edit before saving; no private coordinates are sent to a naming provider.
 - **Session editing:** use the pencil beside the title to edit the launch-point name and board together. Use the nearby chevron to select another session. Names refer to the start/launch point. Source locations remain a fallback until the specific launch point is confirmed; see the [naming rule](docs/product/mvp.md#defaults-and-unresolved-decisions).
-- **Session management:** add observations in Edit session and delete a session after confirmation to test re-uploading. Training focus is hidden for now; saved historical goals and technique reports remain preserved. Previous/next controls step through sessions; the session picker includes time, timezone and data availability.
+- **Session management:** add observations in Edit session and delete a session after confirmation to test re-uploading. Training focus is hidden for now; saved historical goals and technique reports remain preserved. Previous/next controls step through sessions; the session picker lists the latest ten and searches all history, retaining time, timezone and data availability.
 - **ChatGPT:** a working local MCP server exposes session tools and an embeddable copy of the UI. Saved notes and context are included when requesting fresh analysis. Standalone mode produces a copyable prompt.
 - **Weather:** independent post-import retrieval of historical IEM station observations, with manual retrieval/retry, cursor-linked conditions, station distance, UTC timestamps and per-channel coverage in the map widget’s click-open popover. Adjust on-water wind as a separate athlete report; remove it to restore station values. No API key. See [weather contracts](docs/engineering/weather.md).
 - **FIT import:** preview and save a SUP FIT or one-FIT ZIP (up to 30 MB), with Garmin integrity checks, route/metric preview, duplicate recognition, explicit matching to existing summaries, and original-byte preservation. Missing GPS or sensors remain unavailable. See [import and calculation contracts](docs/engineering/fit-import.md).
@@ -150,6 +153,6 @@ Historical import capture: 2026-09-26 03:24:26 UTC. Original source ranges, refe
 
 The map uses OpenStreetMap with visible attribution and normal browser tile caching. Only the visible map area is requested; no offline tile download. See the [tile policy](https://operations.osmfoundation.org/policies/tiles/). A production map service decision is deferred.
 
-Navigation uses a compact left icon rail. Hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail.
+Navigation uses a compact left icon rail. Labels are persistent from 1400 px upward. On smaller screens, hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail.
 
 The app is named Suppy. Existing SUP_DB_PATH/SUP_PORT environment names, local storage paths and operator-created tunnel profile names remain valid. Refresh ChatGPT connection metadata after this release; the embedded resource now uses ui://suppy/dashboard.html.
