@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "scope": "Selected Mission Bay beaches and coves",
+  "source": "City of San Diego, Mission Bay Clean Beaches Initiative, Table 2-4",
+  "source_date": "2004-09-15",
+  "source_url": "https://www.sandiego.gov/sites/default/files/mbayfinal04.pdf#page=45",
+  "coordinate_datum": "NAD83",
+  "limitations": "Historical beach monitoring locations, not surveyed launch facilities. Approximate proximity only; confirm the actual launch. Catalog is not comprehensive and does not describe current access or water conditions.",
+  "places": [
+    {"id":"MB-170","name":"Bonita Cove","latitude":32.7717,"longitude":-117.2467},
+    {"id":"MB-160","name":"Bahia Point","latitude":32.7750,"longitude":-117.2450},
+    {"id":"MB-120","name":"Fanuel Park","source_name":"Fanual Park (table spelling; report section 5 uses Fanuel)","latitude":32.7917,"longitude":-117.2450},
+    {"id":"MB-110","name":"Riviera Shores","latitude":32.7833,"longitude":-117.2400},
+    {"id":"MB-070","name":"De Anza Cove","latitude":32.7933,"longitude":-117.2117},
+    {"id":"MB-050","name":"Leisure Lagoon","latitude":32.7850,"longitude":-117.2083}
+  ]
+}

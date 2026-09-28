@@ -8,6 +8,7 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { EvidenceDialog } from "./MetricEvidence.jsx";
+import { callTool } from "../services/client.mjs";
 import { durationLabel, latestSessions } from "../domain/metrics.mjs";
 import { fullDate, fmt } from "./SessionViews.jsx";
 
@@ -29,6 +30,9 @@ export function SessionEditDialog({
   const [boardId, setBoardId] = useState(session.boardId ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [suggestions, setSuggestions] = useState(null),
+    [finding, setFinding] = useState(false),
+    [launchReference, setLaunchReference] = useState(null);
   const preferred = boards.find((b) => b.id === defaultBoardId);
   useEffect(() => {
     const element = dialog.current;
@@ -77,6 +81,7 @@ export function SessionEditDialog({
               name: name.trim(),
               board_id: boardId || null,
               note,
+              launch_source_ref: launchReference,
             });
             onClose();
           } catch (e) {
@@ -105,13 +110,76 @@ export function SessionEditDialog({
             maxLength={100}
             value={name}
             disabled={busy}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              setLaunchReference(null);
+            }}
             aria-describedby="session-name-help"
           />
         </label>
         <p id="session-name-help" className="caption">
           Use the start or launch point. Original location: {session.location}.
         </p>
+        <div className="launch-suggestions">
+          <button
+            type="button"
+            className="text-button"
+            disabled={finding || busy}
+            onClick={async () => {
+              setFinding(true);
+              setError("");
+              try {
+                const result = await callTool("suggest_launch_name", {
+                  session_id: session.id,
+                });
+                setSuggestions(result.structuredContent);
+              } catch (e) {
+                setError(e.message);
+              } finally {
+                setFinding(false);
+              }
+            }}
+          >
+            {finding ? "Finding nearby launches…" : "Suggest nearby launch"}
+          </button>
+          <p className="caption">
+            Uses local names near the recorded start. Review the suggestion
+            before saving.
+          </p>
+          {suggestions?.reason && <p role="status">{suggestions.reason}</p>}
+          {suggestions?.candidates.map((c) => (
+            <div key={c.source_ref}>
+              <button
+                type="button"
+                className="text-button"
+                onClick={() => {
+                  setName(c.name);
+                  setLaunchReference(c.source_ref);
+                }}
+              >
+                {c.name} · {Math.round(c.distance_m)} m · use name
+              </button>
+              <small>
+                {c.source === "historical_city_beach_reference" ? (
+                  <a
+                    href={suggestions.catalog.source_url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    City beach reference · {suggestions.catalog.source_date}
+                  </a>
+                ) : (
+                  "Previously confirmed nearby start"
+                )}
+              </small>
+            </div>
+          ))}
+          {suggestions?.catalog && (
+            <p className="caption">
+              {suggestions.catalog.scope}. {suggestions.catalog.limitations}
+            </p>
+          )}
+        </div>
         <label>
           Board
           <select

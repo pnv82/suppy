@@ -5,6 +5,7 @@ import { decodeUpload, importMatches } from "./fit-import.mjs";
 import { analyzeTelemetry, ANALYSIS_METHOD } from "../src/domain/analysis.mjs";
 import { validRuns } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
+import { launchSuggestions } from "./launch-names.mjs";
 import { longestCadenceRun } from "../src/domain/goals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
@@ -18,6 +19,12 @@ export function createStore({
   database ??= openDatabase(dbPath);
   if (owned) database.createTenant(tenantId);
   const repo = database.forTenant(tenantId);
+  const launchCatalog = JSON.parse(
+    readFileSync(
+      new URL("../data/reference/launch-places.json", import.meta.url),
+      "utf8",
+    ),
+  );
   const issues = JSON.parse(
     readFileSync(
       new URL("../data/reference/technique-issues.json", import.meta.url),
@@ -394,18 +401,44 @@ export function createStore({
     });
     return context(session_id);
   }
-  function updateDetails({ session_id, name, board_id, note }) {
+  function updateDetails({
+    session_id,
+    name,
+    board_id,
+    note,
+    launch_source_ref,
+  }) {
     const clean = name.trim();
     if (!clean || clean.length > 100)
       throw new Error("Enter a launch name of 1–100 characters.");
     if (board_id !== null) requireBoard(board_id);
+    if (
+      launch_source_ref &&
+      !launchSuggestions(
+        get(session_id),
+        repo.sessions(),
+        launchCatalog.places,
+      ).candidates.some(
+        (c) => c.source_ref === launch_source_ref && c.name === clean,
+      )
+    )
+      throw new Error(
+        "Launch suggestion is no longer available. Search again or enter the name manually.",
+      );
     changeSession(session_id, (s) => {
       if (
         s.title !== clean ||
         s.boardId !== board_id ||
         (note !== undefined && note !== s.additionalContext)
       ) {
-        if (s.title !== clean) s.titleSource = "athlete_reported";
+        if (s.title !== clean) {
+          s.titleSource = "athlete_reported";
+          s.launchNameProvenance = {
+            source: "athlete_reported",
+            reference: launch_source_ref ?? null,
+            confirmed_at_utc: new Date().toISOString(),
+          };
+        }
         s.title = clean;
         if (note !== undefined) s.additionalContext = note;
         s.boardId = board_id;
@@ -439,14 +472,20 @@ export function createStore({
         updated_at_utc: new Date().toISOString(),
       };
       repo.saveGoal(result);
-      for(const s of repo.sessions()){s.revision++;repo.save(s);}
+      for (const s of repo.sessions()) {
+        s.revision++;
+        repo.save(s);
+      }
       return result;
     },
     deleteGoal({ goal_id }) {
       if (!repo.goals().some((g) => g.id === goal_id))
         throw new Error("Goal not found.");
       repo.deleteGoal(goal_id);
-      for(const s of repo.sessions()){s.revision++;repo.save(s);}
+      for (const s of repo.sessions()) {
+        s.revision++;
+        repo.save(s);
+      }
       return { deleted: goal_id };
     },
     setSessionSummary({ session_id, expected_revision, analysis }) {
@@ -540,6 +579,23 @@ export function createStore({
   };
   return {
     get,
+    suggestLaunchName({ session_id }) {
+      return {
+        session_id,
+        ...launchSuggestions(
+          get(session_id),
+          repo.sessions(),
+          launchCatalog.places,
+        ),
+        catalog: {
+          scope: launchCatalog.scope,
+          source: launchCatalog.source,
+          source_date: launchCatalog.source_date,
+          source_url: launchCatalog.source_url,
+          limitations: launchCatalog.limitations,
+        },
+      };
+    },
     recalculateSession({ session_id }) {
       get(session_id);
       analysisCache.delete(session_id);

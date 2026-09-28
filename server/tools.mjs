@@ -11,6 +11,7 @@ const uploadFields = {
 };
 
 export const toolSchemas = {
+  suggest_launch_name: z.object({ session_id: z.string() }),
   upsert_goal: z
     .object({
       goal_id: z.string().optional(),
@@ -78,6 +79,12 @@ export const toolSchemas = {
   delete_session: z.object({ session_id: z.string() }),
   recalculate_session: z.object({ session_id: z.string() }),
   update_session_details: z.object({
+    launch_source_ref: z
+      .string()
+      .max(300)
+      .regex(/^(session:[^\s]+|catalog:MB-\d+)$/)
+      .nullable()
+      .optional(),
     note: z.string().max(4000).optional(),
     session_id: z.string(),
     name: z.string().trim().min(1).max(100),
@@ -127,6 +134,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  suggest_launch_name:
+    "Suggest specific launch names offline from prior athlete-confirmed starts within 100 m or the bundled public catalog within 750 m. No coordinates leave the app. Results are unconfirmed nearby candidates, not proof of the launch; review before update_session_details. Never name after the finish point.",
   upsert_goal:
     "Create or edit an explicit athlete target. Speed targets are m/s; cadence-duration targets are seconds with a strict above-X recorded cadence threshold in spm. Tenant-wide goals, at least comparator. Do not invent goals or infer achievement from incompatible windows.",
   delete_goal: "Delete a user-selected goal from this tenant.",
@@ -176,6 +185,7 @@ export function executeTool(store, name, input) {
   const args = toolSchemas[name].parse(input);
   let result;
   let importRoute;
+  if (name === "suggest_launch_name") result = store.suggestLaunchName(args);
   if (name === "upsert_goal") result = store.upsertGoal(args);
   if (name === "delete_goal") result = store.deleteGoal(args);
   if (name === "set_session_summary") result = store.setSessionSummary(args);
