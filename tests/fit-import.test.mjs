@@ -307,7 +307,14 @@ test("explicit matching attaches telemetry atomically while preserving historica
 
 test("REST and MCP expose the same import flow and calculated interval evidence, rejecting tenant arguments", async (t) => {
   const { store } = setup(t),
-    server = createHttpServer(store);
+    server = createHttpServer(store, {
+      weatherProvider: {
+        retrieve: async () => ({
+          status: "unavailable",
+          message: "No synthetic weather.",
+        }),
+      },
+    });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const base = `http://127.0.0.1:${server.address().port}`;
   const client = new Client({ name: "import-test", version: "1" });

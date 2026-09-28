@@ -83,7 +83,7 @@ export function openDatabase(path = databasePath()) {
     );
     transaction(() => {
       const version = db.prepare("PRAGMA user_version").get().user_version;
-      if (version > 2)
+      if (version > 3)
         throw new Error(
           "Database schema is newer than this app. Upgrade the app before opening it.",
         );
@@ -127,6 +127,16 @@ export function openDatabase(path = databasePath()) {
         CREATE INDEX fit_import_identity ON fit_imports(tenant_id, fit_sha256);
         PRAGMA user_version = 2;
       `);
+      if (version < 3)
+        db.exec(`
+        CREATE TABLE weather_sources (
+          tenant_id TEXT NOT NULL, session_id TEXT NOT NULL, attempt_id TEXT NOT NULL,
+          provenance_json TEXT NOT NULL CHECK (json_valid(provenance_json)),
+          PRIMARY KEY (tenant_id, session_id, attempt_id),
+          FOREIGN KEY (tenant_id, session_id) REFERENCES sessions(tenant_id, id)
+        ) STRICT;
+        PRAGMA user_version = 3;
+      `);
     });
   } catch (error) {
     db.close();
@@ -150,6 +160,10 @@ export function openDatabase(path = databasePath()) {
     return {
       tenantId: id,
       transaction,
+      saveWeatherSource: (sessionId, attemptId, provenance) =>
+        db
+          .prepare("INSERT INTO weather_sources VALUES (?, ?, ?, ?)")
+          .run(id, sessionId, attemptId, JSON.stringify(provenance)),
       insertSession: (s, source) => {
         db.prepare("INSERT INTO sessions VALUES (?, ?, ?, ?, ?, ?)").run(
           id,

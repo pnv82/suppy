@@ -2,6 +2,8 @@
 
 The app owns ingestion, normalization, calculations and evidence retrieval, following [LLM versus app responsibilities](../product/llm%20vs%20app.md). ChatGPT interprets that evidence. No model is called during import, no inferred coaching fault is stored, and no spreadsheet is involved.
 
+Weather retrieval is a separate post-commit operation in `server/operations.mjs`. The FIT decoder and synchronous commit have no provider dependency. Import returns without waiting for weather; retry, status and provenance are owned by the [weather service](weather.md).
+
 ## Supported input and validation
 
 `server/fit-import.mjs` uses the [official Garmin JavaScript SDK](https://github.com/garmin/fit-javascript-sdk), pinned to `@garmin/fitsdk@21.217.0`. CRC/integrity checks and decoding must succeed. Exactly one activity file ID and one SUP session are required. Non-SUP and multisport activities are rejected. FIT start time and positive elapsed duration (at most seven days) are required. Missing optional sensors or GPS remain null; summary-only FITs are accepted. Missing, duplicate, decreasing or out-of-session record timestamps are rejected with a re-export message; records are never silently reordered.

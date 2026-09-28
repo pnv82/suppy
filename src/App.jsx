@@ -261,7 +261,7 @@ export function App() {
           {page === "Sessions" && session && (
             <>
               <SessionHeader
-                key={session.id}
+                key={`header-${session.id}`}
                 session={session}
                 sessions={data.sessions}
                 boards={data.boards || []}

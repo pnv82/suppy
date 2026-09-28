@@ -2625,9 +2625,7 @@ td small {
 .wind-source-popover p {
   margin: 0 0 5px;
 }
-.wind-overlay[open] .wind-source-popover,
-.wind-overlay:hover .wind-source-popover,
-.wind-overlay:focus-within .wind-source-popover {
+.wind-overlay[open] .wind-source-popover {
   display: block;
 }
 .map-empty {
@@ -2643,5 +2641,136 @@ td small {
   }
   .session-title-row h1 {
     font-size: 24px;
+  }
+}
+
+/* Weather stays inside the map; only explicit disclosure opens it. */
+.wind-overlay {
+  max-width: calc(100% - 30px);
+  text-align: left;
+}
+.wind-overlay[open] {
+  width: 370px;
+  z-index: 450;
+}
+.wind-summary {
+  gap: 8px;
+}
+.wind-summary > div {
+  min-width: 0;
+}
+.wind-summary > svg {
+  flex-shrink: 0;
+}
+.wind-chevron {
+  margin-left: auto;
+}
+.wind-overlay[open] .wind-chevron {
+  transform: rotate(180deg);
+}
+.wind-source-popover {
+  max-width: none;
+  max-height: 255px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-right: 3px;
+}
+.weather-panel {
+  min-width: 0;
+}
+.weather-panel .section-heading {
+  margin: 0 0 8px;
+  gap: 8px;
+}
+.weather-panel h2 {
+  font-size: 13px;
+}
+.weather-panel p {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #526678;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+  max-width: none;
+}
+.weather-panel .text-button {
+  font-size: 11px;
+}
+.weather-at-time {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  margin: 8px 0;
+}
+.weather-at-time strong {
+  grid-column: 1 / -1;
+  color: #006d78;
+}
+.weather-details summary {
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.weather-table-scroll {
+  overflow: auto;
+  margin-top: 6px;
+}
+.weather-table-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.weather-table-scroll th,
+.weather-table-scroll td {
+  text-align: left;
+  padding: 6px;
+  border-bottom: 1px solid #e8edf1;
+}
+.weather-table-scroll caption {
+  text-align: left;
+  padding: 6px;
+}
+.wind-adjustment {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 6px;
+  margin-bottom: 6px;
+}
+.wind-form-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.wind-adjustment label {
+  display: block;
+  font-size: 11px;
+  margin: 6px 0;
+}
+.wind-adjustment input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 12px;
+}
+.wind-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+}
+@media (max-width: 600px) {
+  .wind-overlay {
+    left: 10px;
+    top: 10px;
+    max-width: calc(100% - 20px);
+  }
+  .wind-source-popover {
+    max-height: 215px;
+  }
+  .wind-summary .wind-chevron {
+    width: 16px;
   }
 }

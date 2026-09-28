@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ArrowUp, Wind, Plus, NotePencil, MapPin } from "@phosphor-icons/react";
+import {
+  ArrowUp,
+  Wind,
+  CaretDown,
+  Plus,
+  NotePencil,
+  MapPin,
+} from "@phosphor-icons/react";
 import {
   MapContainer,
   TileLayer,
@@ -25,6 +32,7 @@ import {
   ReferenceLine,
 } from "recharts";
 import "leaflet/dist/leaflet.css";
+import { WeatherPanel } from "./WeatherPanel.jsx";
 import {
   WINDOW_COLORS,
   mph,
@@ -85,26 +93,15 @@ function FitBounds({ points, reset }) {
   }, [map, reset]);
   return null;
 }
-function WindDigest({ session }) {
+function WindDigest({ session, cursor }) {
   return (
     <details
       className="wind-overlay"
-      onPointerEnter={(e) => {
-        if (e.pointerType === "mouse") e.currentTarget.open = true;
-      }}
-      onPointerLeave={(e) => {
-        if (
-          e.pointerType === "mouse" &&
-          !e.currentTarget.contains(document.activeElement)
-        )
-          e.currentTarget.open = false;
-      }}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget))
-          e.currentTarget.open = false;
-      }}
       onKeyDown={(e) => {
-        if (e.key === "Escape") e.currentTarget.open = false;
+        if (e.key === "Escape") {
+          e.currentTarget.open = false;
+          e.currentTarget.querySelector("summary")?.focus();
+        }
       }}
     >
       <summary className="wind-summary" aria-label="Wind and source details">
@@ -119,25 +116,27 @@ function WindDigest({ session }) {
         )}
         <div>
           <strong>
-            {session.windFrom == null
-              ? "Wind unavailable"
-              : `From ${bearing(session.windFrom)} · ${fmt(session.wind, 2)} mph`}
+            {session.wind == null
+              ? session.windFrom == null
+                ? "Wind unavailable"
+                : `From ${bearing(session.windFrom)} · speed unknown`
+              : session.wind === 0
+                ? "Calm · 0 mph"
+                : `${session.windFrom == null ? "Direction unknown" : `From ${bearing(session.windFrom)}`} · ${fmt(session.wind, 2)} mph`}
           </strong>
           <span>
-            {session.windFrom == null
-              ? "No station observation in source"
-              : `${session.station || "Station"} · ${session.windFrom}° from · air flows ${bearing((session.windFrom + 180) % 360)}`}
+            {session.windSource === "athlete_reported"
+              ? "On-water report · session summary"
+              : session.wind == null
+                ? "No station observation in source"
+                : `${session.windSource === "athlete_reported" ? "On-water report" : session.station || "Station"} · session summary`}
           </span>
         </div>
+        <CaretDown className="wind-chevron" size={16} aria-hidden="true" />
       </summary>
 
       <div className="wind-source-popover">
-        <p>HR: {session.hrQuality || "quality unknown"}</p>
-        <p>Wind: {session.weatherQuality || "quality unknown"}</p>
-        <p>
-          Source: stored session summary. Original provenance is retained in the
-          app.
-        </p>
+        <WeatherPanel key={session.id} session={session} cursor={cursor} />
       </div>
     </details>
   );
@@ -160,7 +159,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
   if (!all.length)
     return (
       <div className="map-empty">
-        <WindDigest session={session} />
+        <WindDigest key={session.id} session={session} cursor={cursor} />
         <MapPin size={32} />
         <h3>No track for this session</h3>
         <p>
@@ -378,7 +377,7 @@ export function SessionMap({ session, selected, onSelect, cursor }) {
           GPS unavailable at {timeLabel(cursor)}
         </div>
       )}
-      <WindDigest session={session} />
+      <WindDigest key={session.id} session={session} cursor={cursor} />
       <div className="map-north" aria-label="North is up">
         <span>N</span>
         <ArrowUp size={21} weight="fill" />

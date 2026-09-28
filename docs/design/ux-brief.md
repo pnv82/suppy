@@ -16,6 +16,8 @@ The user selected concept 1's light/simple map-led direction, with concept 2's t
 6. **ChatGPT:** embedded UI plus tools inside the conversation; save annotations/additional context and request fresh analysis. Standalone mode provides the connection guide and a copyable prompt.
 7. **Boards:** add/rename a named board, choose/clear a default, and delete only unused boards. The session Edit dialog has a board picker and a “Use default” shortcut when unassigned. Show “Not recorded” initially, and identify selections as athlete reported. Default changes never rewrite past sessions. All board edits persist across server restarts.
 
+Vertical space is precious: do not add below-map sections or increase persistent vertical footprint without user confirmation. Weather lives in the map widget’s chevron disclosure, opened only by explicit click/keyboard action, never hover. Its scrollable popover contains retrieval, evidence and a whole-session on-water wind adjustment with restore.
+
 ## Review screen behavior
 
 | Region | Content and interaction |

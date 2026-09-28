@@ -4,6 +4,7 @@ import { openDatabase } from "./database.mjs";
 import { decodeUpload, importMatches } from "./fit-import.mjs";
 import { analyzeTelemetry } from "../src/domain/analysis.mjs";
 import { validRuns } from "../src/domain/metrics.mjs";
+import { presentWeather } from "../src/domain/weather.mjs";
 
 export function createStore({
   database,
@@ -119,7 +120,7 @@ export function createStore({
     return { status: "imported", session_id: session.id };
   }
   function dashboard() {
-    const sessions = repo.sessions();
+    const sessions = repo.sessions().map(presentWeather);
     return {
       sessions,
       boards: repo.boards().map((b) => ({
@@ -195,7 +196,7 @@ export function createStore({
     });
   }
   function context(id) {
-    const s = get(id);
+    const s = presentWeather(get(id));
     const { records, hashes, ...summary } = s;
     return {
       ...summary,
@@ -318,6 +319,50 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    updateWind({ session_id, wind }) {
+      return changeSession(session_id, (s) => {
+        const direction =
+          wind?.wind_speed_mps === 0 ? null : wind?.wind_from_deg;
+        if (
+          (!wind && !s.windAdjustment) ||
+          (wind &&
+            s.windAdjustment &&
+            wind.wind_speed_mps === s.windAdjustment.wind_speed_mps &&
+            direction === s.windAdjustment.wind_from_deg &&
+            wind.note === s.windAdjustment.note)
+        )
+          return { session_id, windAdjustment: s.windAdjustment ?? null };
+        const reported_at_utc = new Date().toISOString();
+        const adjustment = wind
+          ? {
+              ...wind,
+              wind_from_deg:
+                wind.wind_speed_mps === 0 ? null : wind.wind_from_deg,
+              source: "athlete_reported",
+              scope: "session",
+              reported_at_utc,
+            }
+          : null;
+        s.windAdjustment = adjustment;
+        (s.windAdjustmentHistory ??= []).push({
+          reported_at_utc,
+          wind: adjustment,
+        });
+        s.revision++;
+        return { session_id, windAdjustment: adjustment };
+      });
+    },
+    saveWeather({ session_id, weather, expected_attempt_id, provenance }) {
+      const s = get(session_id);
+      if (expected_attempt_id && s.weather?.attempt?.id !== expected_attempt_id)
+        return false;
+      s.weather = weather;
+      s.revision++;
+      if (provenance)
+        repo.saveWeatherSource(s.id, weather.attempt.id, provenance);
+      repo.save(s);
+      return true;
+    },
     commitImport,
     addAnnotation,
     removeAnnotation,

@@ -1,12 +1,12 @@
 # Persistent storage and tenant boundaries
 
-SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 2 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage; existing sessions and edits are preserved.
+SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 3 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage. Version 3 adds immutable weather response provenance per tenant, session and attempt; existing sessions and edits are preserved.
 
 ## Files and environments
 
 `npm start` defaults to `data/storage/production.sqlite`. `npm run dev` sets `NODE_ENV=development` for its server and uses `data/storage/development.sqlite`. `SUP_DB_PATH` explicitly overrides either path (relative paths resolve against the working directory). SQLite files and their WAL/SHM sidecars are ignored by Git and never served as client assets. Use a persistent local disk/volume with appropriate OS permissions. A static Sites worker cannot host this Node/SQLite backend.
 
-An empty database starts with no sessions or boards. There is no automatic seeding from personal files, no network data fetch, and no Google Sheets integration. The original four summaries and three detailed tracks in this workspace were migrated once into the production `local` tenant. A saved recovery snapshot also restored the existing board/default and two timed annotations, keeping their IDs and revisions. Historical ranges, source URLs, capture metadata, SHA-256 and raw track/timer data remain archived inside `session_sources`; original FITs/ZIPs remain unchanged. Those historical references are provenance only. Startup, tests, and normal use do not read the old snapshot or derived files.
+An empty database starts with no sessions or boards. There is no automatic seeding from personal files and no Google Sheets integration. Weather fetches run separately after FIT commit or on explicit refresh; startup never fetches weather. The original four summaries and three detailed tracks in this workspace were migrated once into the production `local` tenant. A saved recovery snapshot also restored the existing board/default and two timed annotations, keeping their IDs and revisions. Historical ranges, source URLs, capture metadata, SHA-256 and raw track/timer data remain archived inside `session_sources`; original FITs/ZIPs remain unchanged. Those historical references are provenance only. Startup, tests, and normal use do not read the old snapshot or derived files.
 
 For a separate synthetic development history, in PowerShell:
 
@@ -28,6 +28,7 @@ Seeding refuses a populated tenant. Tests use isolated in-memory or temporary fi
 | sessions | Composite `(tenant_id, id)` key; local date index; board FK; revision; versioned-by-schema JSON aggregate |
 | preferences | One row per tenant with a nullable default board FK |
 | session_sources | Immutable import provenance/raw payload per tenant and session |
+| weather_sources | Immutable provider response/source metadata per tenant, session and attempt, with owning session FK; never returned by tools |
 | fit_imports | Tenant-scoped immutable original upload/FIT blobs, checksums and decoder/source provenance; FK to the owning session |
 
 Session aggregates contain summaries, records, pauses, display estimates, annotations, additional context, goals and technique selections. SI summary and goal fields are stored in `data_si`; the presentation adapter converts them to the existing mph/miles/minutes DTO. Telemetry stays SI/UTC, with explicit IANA session timezone and original local time strings. Nulls and elapsed/active time remain distinct. Raw historical payloads retain their original units. Keeping complex track/annotation payloads together is deliberate for this small app; relational ownership and board references are enforced by SQLite.

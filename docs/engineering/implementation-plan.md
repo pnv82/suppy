@@ -15,13 +15,15 @@
 - Shared local REST/MCP operations and embedded ChatGPT UI resource.
 - Validated SUP FIT/one-FIT ZIP preview and import, immutable source bytes, duplicate recognition and explicit candidate matching; copyable calculated evidence and README connection instructions.
 
+Historical station weather retrieval is implemented independently after FIT commit, with persisted SI observations, coverage, provenance, retry and cursor-linked display. See [weather.md](weather.md).
+
 ## Validation
 
 Run `npm test` and `npm run build`. Consult root `design-qa.md` for browser evidence and acceptance status. Validate live account connection separately; it requires the user's developer-mode/tunnel setup. Do not describe local protocol tests as a completed ChatGPT account connection.
 
 ## Next work
 
-Use [todo.md](../../todo.md) as the deferred-work list. SUP FIT decoding and deterministic evidence are implemented under [LLM versus app responsibilities](../product/llm%20vs%20app.md). Reviewed LLM-result ingestion, timed weather, advanced metric validation and multi-session feature requests remain future work. Authentication, sharing, broader activity formats and in-app model execution remain outside this slice.
+Use [todo.md](../../todo.md) as the deferred-work list. SUP FIT decoding and deterministic evidence are implemented under [LLM versus app responsibilities](../product/llm%20vs%20app.md). Reviewed LLM-result ingestion, advanced metric validation and multi-session feature requests remain future work. Authentication, sharing, broader activity formats and in-app model execution remain outside this slice.
 
 P03 is automatic latest-10 comparison, superseding the initial two-session selection idea. P05 is explicit timed annotations. P01/P02/P04/P06 remain discarded.
 

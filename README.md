@@ -32,6 +32,7 @@ This workspace’s four historical summaries and three Garmin tracks have been m
 - **Session editing:** use the pencil beside the title to edit the launch-point name and board together. Use the nearby chevron to select another session. Names refer to the start/launch point. Source locations remain a fallback until the specific launch point is confirmed; see the [naming rule](docs/product/mvp.md#defaults-and-unresolved-decisions).
 - **Context and focus:** add observations, choose a duration-scoped speed goal, and select from the SUP technique dictionary. Technique selections are athlete reports, never watch-confirmed faults.
 - **ChatGPT:** a working local MCP server exposes session tools and an embeddable copy of the UI. Saved notes and context are included when requesting fresh analysis. Standalone mode produces a copyable prompt.
+- **Weather:** independent post-import retrieval of historical IEM station observations, with manual retrieval/retry, cursor-linked conditions, station distance, UTC timestamps and per-channel coverage in the map widget’s click-open popover. Adjust on-water wind as a separate athlete report; remove it to restore station values. No API key. See [weather contracts](docs/engineering/weather.md).
 - **FIT import:** preview and save a SUP FIT or one-FIT ZIP (up to 30 MB), with Garmin integrity checks, route/metric preview, duplicate recognition, explicit matching to existing summaries, and original-byte preservation. Missing GPS or sensors remain unavailable. See [import and calculation contracts](docs/engineering/fit-import.md).
 
 SQLite stores sessions, tracks, original uploads, annotations, boards/defaults, names, goals and context. Google Sheets has no runtime, test, or ongoing workflow role. Production and development use separate database files; all private data is tenant-scoped. The app owns deterministic analysis: time-weighted metrics, coverage and exact continuous best windows. ChatGPT owns interpretation and coaching, following [LLM versus app responsibilities](docs/product/llm%20vs%20app.md). The app makes no model calls. See [todo.md](todo.md) for deferred work and [design-qa.md](design-qa.md) for validation.
@@ -85,7 +86,7 @@ Environment variables set in one terminal may not be available in another proces
 1. Open **Settings → Security and login → Developer mode**.
 2. Open **Plugins**, select **+**, and name the connection **SUP Training**.
 3. Under **Connection**, choose **Tunnel**, then select your tunnel or enter its ID.
-4. Create the connection and review the fourteen discovered tools.
+4. Create the connection and review the seventeen discovered tools.
 5. Start a conversation and add SUP Training from the tools menu.
 
 Account/workspace policy controls availability; labels may vary by client. If Developer mode is absent, first check your workspace access. These steps follow the [official connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt), checked 2026-09-26.
@@ -113,7 +114,10 @@ src/domain/metrics.mjs       Pure selectors, interpolation and display estimates
 src/services/client.mjs     REST / MCP Apps bridge
 server/database.mjs         SQLite schema, transactions and tenant repositories
 server/store.mjs            Persistent domain operations and presentation adapter
-server/tools.mjs            Validated, shared tool operations
+server/tools.mjs            Validated synchronous domain tools
+server/operations.mjs       Shared post-commit orchestration
+server/weather/             Independent provider and retrieval lifecycle
+src/domain/weather.mjs      Pure observation matching and coverage
 server/index.mjs            Local HTTP server, MCP tools and embedded UI resource
 scripts/                    Dev runner, build packaging and offline FIT utilities
 tests/                      Numeric/domain and MCP integration checks

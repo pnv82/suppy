@@ -4,7 +4,7 @@ React 19 + Vite, Leaflet for actual route geometry, Recharts for telemetry/trend
 
 ## Shared operations
 
-The standalone UI reads `/api/dashboard` and posts named operations to `/api/tools`. In a ChatGPT iframe, `src/services/client.mjs` uses the MCP Apps bridge instead. Both paths call `server/tools.mjs` against the same tenant-scoped SQLite store. Browser refresh reads current state; tool results refresh the active embedded UI. Cross-client live push is deferred.
+The standalone UI reads `/api/dashboard` and posts named operations to `/api/tools`. In a ChatGPT iframe, `src/services/client.mjs` uses the MCP Apps bridge instead. Both paths call `server/operations.mjs`, which delegates synchronous domain operations to `server/tools.mjs` against the same tenant-scoped SQLite store. Browser refresh reads current state; tool results refresh the active embedded UI. Cross-client live push is deferred.
 
 `server/index.mjs` exposes a stateless Streamable HTTP endpoint at `/mcp`, using the MCP SDK v1 server. It registers standard MCP Apps metadata directly. The browser uses `@modelcontextprotocol/ext-apps` v2's protocol bridge; it does not import the v2 server helpers. The exact package versions are locked.
 
@@ -12,6 +12,9 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 |---|---|
 | preview_fit_import | Validate user-selected FIT/ZIP and calculate a preview, without persistence |
 | commit_fit_import | Revalidate and transactionally save a reviewed import, retaining originals and tenant-scoped identity |
+| set_session_wind | Save/clear athlete-reported whole-session wind in SI, retaining history and original station evidence |
+| fetch_session_weather | Start/retry independent IEM retrieval; return immediately after recording status |
+| get_session_weather | Read status and saved SI weather evidence without contacting the provider |
 | get_dashboard | Latest 10 summaries and UI data |
 | get_session_context | Source metrics, annotations, goal, technique evidence and limitations |
 | upsert_annotation | Create/edit a point or interval, validated against elapsed duration |
@@ -44,7 +47,7 @@ Boards, defaults and assignments persist in tenant-scoped tables with composite 
 
 Home reuses `Compare.jsx`: latest-10 summary changes, newest-first session rows/cards and chronological charts. `Boards.jsx` contains the equipment list and session picker. Explicit session results from MCP open that session review. Direction arrows are deterministic GPS bearings in `metrics.mjs`; Leaflet handles selection emphasis and zoom-dependent marker spacing.
 
-The map requests standard OpenStreetMap tiles, preserves attribution and browser caching, and displays the recorded route independently. No map key is embedded. Wind labels use meteorological from; the arrow points toward from + 180°. Current wind is a stored session summary, not a spatial weather field.
+The map requests standard OpenStreetMap tiles, preserves attribution and browser caching, and displays the recorded route independently. No map key is embedded. Wind labels use meteorological from; the arrow points toward from + 180°. The legend uses retrieved time-weighted wind when available, preserving historical summaries separately. `WeatherPanel.jsx` follows the shared cursor. `server/weather/service.mjs` owns retrieval outside FIT transactions; `server/weather/iem.mjs` owns provider I/O; `src/domain/weather.mjs` owns pure matching/coverage. No spatial wind field is inferred. See [weather.md](weather.md).
 
 ## Running and testing
 

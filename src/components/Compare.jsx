@@ -173,10 +173,16 @@ export function Compare({ sessions, boards = [], onOpen }) {
                     </small>
                   </td>
                   <td data-label="Cadence">{fmt(s.cadence)} spm</td>
-                  <td data-label="Wind">
+                  <td
+                    data-label="Wind"
+                    title={s.weatherQuality || "Source quality unknown"}
+                  >
                     {s.wind == null
                       ? "Unknown"
                       : `${fmt(s.wind, 2)} mph ${bearing(s.windFrom)}`}
+                    {s.windSource === "athlete_reported" && (
+                      <small>On-water report</small>
+                    )}
                   </td>
                   <td data-label="Board" className="board-cell">
                     {boards.find((b) => b.id === s.boardId)?.name ||

@@ -40,7 +40,7 @@ test("MCP handshake, UI resource, tool calls and REST share persistent tenant st
       new StreamableHTTPClientTransport(new URL(base + "/mcp")),
     );
     const { tools } = await client.listTools();
-    assert.equal(tools.length, 14);
+    assert.equal(tools.length, 17);
     const read = tools.find((t) => t.name === "get_dashboard");
     assert.equal(read.annotations.readOnlyHint, true);
     assert.equal(

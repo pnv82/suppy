@@ -6,7 +6,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createStore } from "./store.mjs";
 import { openDatabase, validateTenantId } from "./database.mjs";
-import { descriptions, toolSchemas, executeTool } from "./tools.mjs";
+import { descriptions, toolSchemas } from "./tools.mjs";
+import { dispatchTool } from "./operations.mjs";
+import { createWeatherService } from "./weather/service.mjs";
 
 const clientRoot = resolve(
   fileURLToPath(new URL("../dist/client/", import.meta.url)),
@@ -32,7 +34,10 @@ function widgetHtml() {
     );
 }
 
-export function createMcpServer(store) {
+export function createMcpServer(
+  store,
+  weatherService = createWeatherService(),
+) {
   const server = new McpServer({ name: "sup-training", version: "0.1.0" });
   server.registerResource(
     "sup-dashboard",
@@ -69,6 +74,8 @@ export function createMcpServer(store) {
       "set_default_board",
       "assign_session_board",
       "commit_fit_import",
+      "fetch_session_weather",
+      "set_session_wind",
     ].includes(name);
     server.registerTool(
       name,
@@ -83,13 +90,16 @@ export function createMcpServer(store) {
           readOnlyHint: readOnly,
           destructiveHint: ["delete_annotation", "delete_board"].includes(name),
           idempotentHint: !["upsert_annotation", "upsert_board"].includes(name),
-          openWorldHint: false,
+          openWorldHint: [
+            "fetch_session_weather",
+            "commit_fit_import",
+          ].includes(name),
         },
         _meta: { ui: { resourceUri }, "openai/outputTemplate": resourceUri },
       },
       async (args) => {
         try {
-          return executeTool(store, name, args);
+          return dispatchTool(store, name, args, weatherService);
         } catch (error) {
           return {
             isError: true,
@@ -120,6 +130,9 @@ function json(res, status, body) {
 }
 
 export function createHttpServer(store, options = {}) {
+  const weatherService =
+    options.weatherService ??
+    createWeatherService({ provider: options.weatherProvider });
   if (store && options.resolveTenant)
     throw new Error(
       "A fixed store cannot be combined with a request tenant resolver.",
@@ -164,7 +177,7 @@ export function createHttpServer(store, options = {}) {
             error: "This stateless MCP endpoint accepts POST requests.",
           });
         }
-        const mcp = createMcpServer(requestStore);
+        const mcp = createMcpServer(requestStore, weatherService);
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,
@@ -180,7 +193,11 @@ export function createHttpServer(store, options = {}) {
         return json(res, 200, requestStore.dashboard());
       if (path === "/api/tools" && req.method === "POST") {
         const { name, arguments: args } = await readJson(req);
-        return json(res, 200, executeTool(requestStore, name, args));
+        return json(
+          res,
+          200,
+          dispatchTool(requestStore, name, args, weatherService),
+        );
       }
       if (path.startsWith("/api/"))
         return json(res, 404, { error: "Unknown endpoint" });
@@ -216,7 +233,10 @@ export function createHttpServer(store, options = {}) {
       else res.end();
     }
   });
-  if (owned) server.on("close", () => database.close());
+  if (owned)
+    server.on("close", () =>
+      weatherService.idle().then(() => database.close()),
+    );
   return server;
 }
 
