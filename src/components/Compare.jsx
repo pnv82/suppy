@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ArrowUpRight, Info } from "@phosphor-icons/react";
+import { ArrowUpRight, ArrowUp, ArrowDown, Info } from "@phosphor-icons/react";
+import { previousThreeChange } from "../domain/trends.mjs";
 import {
   ResponsiveContainer,
   LineChart,
@@ -19,7 +20,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
     [metric, setMetric] = useState("speed"),
     [details, setDetails] = useState(null);
   const duration = basis === "best20" ? 1200 : null;
-  const newest = latestSessions(sessions).map((session) => {
+  const history = latestSessions(sessions, sessions.length).map((session) => {
     const view = metricView(session, duration);
     return {
       ...session,
@@ -33,6 +34,23 @@ export function Compare({ sessions, boards = [], onOpen }) {
       dateLabel: shortDate(session.date),
     };
   });
+  const newest = history.slice(0, 10);
+  const change = (index, key) => {
+    const delta = previousThreeChange(history, index, key);
+    if (!delta) return null;
+    const label = `${delta.percent > 0 ? "Up" : "Down"} ${Math.abs(delta.percent).toFixed(1)}% versus mean of previous three sessions; numerical direction, not a fitness assessment`;
+    const Icon = delta.percent > 0 ? ArrowUp : ArrowDown;
+    return (
+      <span
+        className={`metric-change ${delta.percent > 0 ? "increase" : "decrease"}`}
+        title={label}
+        role="img"
+        aria-label={label}
+      >
+        <Icon size={12} weight="bold" />
+      </span>
+    );
+  };
   const options = {
     speed: ["Speed", "mph", 2, "#008591"],
     maxSpeed: ["Session maximum speed", "mph", 2, "#327aa6"],
@@ -171,7 +189,7 @@ export function Compare({ sessions, boards = [], onOpen }) {
               </tr>
             </thead>
             <tbody>
-              {newest.map((s) => (
+              {newest.map((s, index) => (
                 <tr key={s.id}>
                   <td>
                     <button
@@ -192,8 +210,10 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   </td>
                   <td data-label="Speed @ cadence">
                     <strong>
-                      {fmt(s.speed, 2)} <span>mph</span> @ {fmt(s.view.cadence)}{" "}
+                      {fmt(s.speed, 2)} <span>mph</span>
+                      {change(index, "speed")} @ {fmt(s.view.cadence)}{" "}
                       <span>spm</span>
+                      {change(index, "cadenceValue")}
                     </strong>
                     <small>
                       {s.speed == null
@@ -209,12 +229,14 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   >
                     <strong>
                       {fmt(s.maxSpeed, 2)} <span>mph</span>
+                      {change(index, "maxSpeed")}
                     </strong>
                     <small>whole-session maximum</small>
                   </td>
                   <td data-label="Distance / stroke">
                     <strong>
                       {fmt(s.dps, 2)} <span>m/stroke</span>
+                      {change(index, "dps")}
                     </strong>
                     <small>
                       estimated
@@ -224,13 +246,14 @@ export function Compare({ sessions, boards = [], onOpen }) {
                   <td data-label="Zig-zag · experimental">
                     <strong>
                       {fmt(s.zigzag, 1)} <span>/ 100</span>
+                      {change(index, "zigzag")}
                     </strong>
                     <small>
                       {fmt(s.view.evidence?.zigzag?.coverage_pct)}% eligible
                     </small>
                   </td>
                   <td data-label="Heart rate">
-                    {fmt(s.hr)} bpm
+                    {fmt(s.hr)} bpm{change(index, "hr")}
                     {(s.hrQuality ||
                       (s.view.evidence?.heart_rate_bpm?.coverage_pct ?? 0) <
                         90) && (

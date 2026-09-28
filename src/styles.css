@@ -3315,3 +3315,7 @@ td small {
 @media(min-width:901px){.app-workspace .best-window-bar .window-time{flex-direction:row;}}
 
 @media(max-width:600px){.metrics-inspector .text-button,.metric-scope button,.performance-actions .text-button,.track-label select,.evidence-dialog .icon-button,.clean-metrics-table td:last-child .text-button{min-height:44px;}.evidence-dialog .icon-button{min-width:44px;}}
+
+.metric-change { display:inline-flex; vertical-align:middle; margin-left:3px; }
+.metric-change.increase { color:#197b53; }
+.metric-change.decrease { color:#b13c4b; }
