@@ -35,9 +35,10 @@ const parseTime = (value) =>
   /^\d{1,3}:[0-5]\d$/.test(value)
     ? Number(value.split(":")[0]) * 60 + Number(value.split(":")[1])
     : NaN;
-const defaultDraft = (t) => ({
+const defaultDraft = (t, end = t) => ({
   start: timeLabel(t),
-  end: timeLabel(t),
+  end: timeLabel(end),
+  mode: end > t ? "interval" : "point",
   kind: "condition",
   timing: "approximate",
   note: "",
@@ -54,6 +55,7 @@ export function App() {
     [selected, setSelected] = useState(null),
     [cursor, setCursor] = useState(0),
     [spot, setSpot] = useState(null),
+    [rangeEnd, setRangeEnd] = useState(null),
     [draft, setDraft] = useState(null),
     [prepared, setPrepared] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -110,6 +112,7 @@ export function App() {
     );
     setSelected(null);
     setSpot(null);
+    setRangeEnd(null);
     setDraft(null);
     setPrepared("");
   }, [session?.id]);
@@ -153,10 +156,12 @@ export function App() {
     navigate({ sessionId: id, page: "Sessions" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const annotate = (t) => setDraft(defaultDraft(t));
+  const annotate = (t, end = t) =>
+    setDraft(defaultDraft(Math.min(t, end), Math.max(t, end)));
   const editAnnotation = (a) =>
     setDraft({
       id: a.id,
+      mode: a.end_s > a.start_s ? "interval" : "point",
       start: timeLabel(a.start_s),
       end: timeLabel(a.end_s),
       kind: a.kind,
@@ -165,7 +170,7 @@ export function App() {
     });
   async function saveAnnotation(ask = false) {
     const start = parseTime(draft.start),
-      end = parseTime(draft.end);
+      end = draft.mode === "point" ? start : parseTime(draft.end);
     if (!Number.isFinite(start) || !Number.isFinite(end))
       throw new Error("Use mm:ss for the start and end times.");
     if (!draft.note.trim()) throw new Error("Add a note before saving.");
@@ -322,6 +327,8 @@ export function App() {
                 cursor={cursor}
                 spot={spot}
                 setSpot={setSpot}
+                rangeEnd={rangeEnd}
+                setRangeEnd={setRangeEnd}
                 setCursor={setCursor}
                 onAnnotate={annotate}
                 onEdit={editAnnotation}

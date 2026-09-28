@@ -17,6 +17,16 @@ export function AnnotationForm({
       </div>
       <div className="editor-fields">
         <label>
+          Selection
+          <select
+            value={draft.mode || "point"}
+            onChange={(e) => setDraft({ ...draft, mode: e.target.value })}
+          >
+            <option value="point">Point</option>
+            <option value="interval">Interval</option>
+          </select>
+        </label>
+        <label>
           Start
           <input
             value={draft.start}
@@ -26,16 +36,18 @@ export function AnnotationForm({
             onChange={(e) => setDraft({ ...draft, start: e.target.value })}
           />
         </label>
-        <label>
-          End
-          <input
-            value={draft.end}
-            placeholder="mm:ss"
-            pattern="[0-9]{1,3}:[0-5][0-9]"
-            required
-            onChange={(e) => setDraft({ ...draft, end: e.target.value })}
-          />
-        </label>
+        {draft.mode === "interval" && (
+          <label>
+            End
+            <input
+              value={draft.end}
+              placeholder="mm:ss"
+              pattern="[0-9]{1,3}:[0-5][0-9]"
+              required
+              onChange={(e) => setDraft({ ...draft, end: e.target.value })}
+            />
+          </label>
+        )}
         <label>
           Type
           <select

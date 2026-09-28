@@ -268,3 +268,4 @@ All 45 tests pass; production build succeeds (existing bundle-size warning). In 
 - Additional context already moved into Edit: saved a synthetic observation at 390 px, reopened at desktop, checked Escape dismissal. Atomic detail-save test passes.
 - Wide navigation: browser checked at 1440 px (persistent labels, keyboard Home) and 390 px (44 px icon buttons, hidden idle labels). Build passed.
 - Persistent point: at 390 px used Home, Right, Enter, Right; cursor moved to 2 s, annotation stayed at 1 s. Verified prefilled Start, cancel, both map marker classes at 1440 px. Build passed.
+- Interval selection: actual clicks at 3:20 then Shift-click at 8:40 produced 3:20–8:40. Keyboard Home/Enter/Shift+Right/Shift+Enter produced 0:00–0:10. Phone Point mode hides End. Build passed. Map point distinction inspected visually (SVG class queries are not available through the browser DOM projection).

@@ -109,3 +109,5 @@ Interval tiles replace start/end text with time-weighted interval cadence and di
 At 1400 px and wider the navigation expands to 168 px with persistent section names. Smaller widths retain the compact icon rail and focus/hover labels; vertical footprint is unchanged.
 
 Chart selection now persists independently of the hover/keyboard cursor. Click/Enter/Space pins a point; Annotate uses that point until cleared. The map shows a light current dot and outlined selected dot; charts use a solid light cursor and dark dashed selection. Selection resets when switching sessions. Gaps have no interpolated map marker.
+
+Shift+Click extends the pinned point to an interval, including backwards selection. Shift+Enter/Space is the keyboard equivalent. The Annotate action prefills sorted bounds. The editor offers explicit Point/Interval modes and editable bounds for touch users; point mode saves equal start/end timestamps.

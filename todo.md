@@ -14,7 +14,7 @@
 - [ ] make arrows of the direction smaller - they take to much space and obstruct the view. Ideally if they will fit into the widths of the track and will be draw a bit more frequently - right now 5min segment with default zoom usually has only one arrow.
 - [ ] let's make session selector popover riacher - show last 10 session and allow to search rest.
 - [ ] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.
-- [ ] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
+- [x] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
 - [ ] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
 - [ ] make upload dialog pretty
 - [ ] Rename app to Suppy in all places. Also add the icon fro the web-site.

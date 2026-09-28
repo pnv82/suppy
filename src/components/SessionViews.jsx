@@ -539,6 +539,8 @@ export function Timeline({
   setCursor,
   spot,
   setSpot,
+  rangeEnd,
+  setRangeEnd,
   onAnnotate,
   onEdit,
 }) {
@@ -574,11 +576,18 @@ export function Timeline({
     const seconds = pointTime(event);
     if (seconds != null) setCursor(seconds);
   };
-  const annotatePoint = (event) => {
+  const selectPoint = (seconds, extend) => {
+    if (extend && spot != null) setRangeEnd(seconds);
+    else {
+      setSpot(seconds);
+      setRangeEnd(null);
+    }
+  };
+  const annotatePoint = (event, nativeEvent) => {
     const seconds = pointTime(event);
     if (seconds == null) return;
     setCursor(seconds);
-    setSpot(seconds);
+    selectPoint(seconds, nativeEvent?.shiftKey);
   };
   const keyboardCursor = (event) => {
     if (event.key === "Escape") setHover(null);
@@ -596,7 +605,7 @@ export function Timeline({
       setCursor(Math.max(0, Math.min(Math.floor(max * 60), next)));
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      setSpot(cursor);
+      selectPoint(cursor, event.shiftKey);
     }
   };
   return (
@@ -617,17 +626,30 @@ export function Timeline({
           </button>
           <button
             className="text-button"
-            onClick={() => onAnnotate(spot ?? (rows.length ? cursor : 0))}
+            onClick={() =>
+              onAnnotate(
+                spot ?? (rows.length ? cursor : 0),
+                rangeEnd ?? spot ?? (rows.length ? cursor : 0),
+              )
+            }
           >
             <NotePencil size={16} />{" "}
             {rows.length
-              ? "Annotate " + timeLabel(spot ?? cursor)
+              ? "Annotate " +
+                (rangeEnd != null && spot != null
+                  ? timeLabel(Math.min(spot, rangeEnd)) +
+                    "–" +
+                    timeLabel(Math.max(spot, rangeEnd))
+                  : timeLabel(spot ?? cursor))
               : "Add annotation"}
           </button>
           {spot != null && (
             <button
               className="text-button"
-              onClick={() => setSpot(null)}
+              onClick={() => {
+                setSpot(null);
+                setRangeEnd(null);
+              }}
               aria-label="Clear selected point"
             >
               Clear selection
@@ -638,7 +660,8 @@ export function Timeline({
       <p id="chart-keyboard-help" className="sr-only">
         Elapsed time. Arrow keys move one second, Shift + arrow ten seconds.
         Home/End jump to limits. Click or Enter selects a persistent point.
-        Annotate uses the selected point; hover only moves the current position.
+        Shift+Click or Shift+Enter extends to an interval. Annotate uses the
+        selection; hover only moves the current position.
       </p>
       {rows.length ? (
         <div className="chart-stack">
@@ -880,6 +903,16 @@ export function Timeline({
                         stroke="#80a9ae"
                         strokeWidth={1}
                       />
+                      {spot != null && rangeEnd != null && (
+                        <ReferenceArea
+                          x1={Math.min(spot, rangeEnd) / 60}
+                          x2={Math.max(spot, rangeEnd) / 60}
+                          fill="#183c50"
+                          fillOpacity={0.09}
+                          stroke="#183c50"
+                          strokeDasharray="4 2"
+                        />
+                      )}
                       {spot != null && (
                         <ReferenceLine
                           x={spot / 60}
