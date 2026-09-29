@@ -309,6 +309,7 @@ export function App() {
             <>
               <SessionHeader
                 key={`header-${session.id}`}
+                connected={connected}
                 session={session}
                 sessions={data.sessions}
                 boards={data.boards || []}

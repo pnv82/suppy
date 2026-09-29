@@ -2,7 +2,9 @@
 - [x] Resolve launch names during import preview, preselect for review, preserve confirmed source provenance, and automatically offer suggestions when editing coordinate-fallback sessions.
 - [x] Show faint travel chevrons within the full track, with gap-aware geometry and zoom-dependent spacing beneath interval highlights.
 - [x] Convert event candidates into reviewed annotations: activation pins their range and opens an approximate note draft without confirming a fall.
-- [ ] when session highlight clicked in the context of ChatGPT session (i.e. app is a widget) and there is no previous analysis saved - initiate analysys in the host session (from what I understood via sendFollowUpMessage). Carefully select a good prompt that will be sent to a ChatGPT, make sure full context of the session (with annotations, notes, calculated metrics etc.) is available to the ChatGPT (i assume via MCP?). If same is called in the web app and has not data yet - show an instruction to call it from the context of the ChatGPT.
+- [x] Request fresh whole-session analysis and a saved summary from an empty highlight in the ChatGPT widget; show standalone instructions and host error/retry states.
+- [ ] find a way to filter out unresonable speed metrics - for example "Mission Bay to La Jolla beach" session has a speed 18mph which is clearly and error.
+- [ ] add integration with Garmin, so i can load sessions data directly from there, omitting export/import step fo the fit files.
 
 # Deferred work
 
@@ -41,14 +43,11 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 
 ## Data, imports and richer display
 
-- [ ] Optionally expand the offline launch catalog beyond six historical Mission Bay references. On-demand OpenStreetMap lookup and nearby athlete-confirmed starts are implemented; keep unconfirmed fallbacks and stable session IDs. Review provider hosting before public deployment.
-- [x] Preselect the default board for review in new-session imports; duplicate/attached sessions retain their existing board.
 - [ ] On a specific session page, show similar sessions and allow comparison with the top five matches. Define similarity criteria (such as duration, distance, session type and available conditions), explain why each session matches, and handle missing context before implementing ranking. This session-specific feature is deferred; the global Compare screen continues to show automatic latest-10 trends.
-- [x] Decode valid single-session SUP FIT / one-FIT ZIP uploads, preview identity/route/metrics, explicitly match by time/distance, retain originals and reject malformed/unsupported activities. See `docs/engineering/fit-import.md`.
 - [ ] Profile large-import decoding and histories before adding worker scheduling, streaming/chunked uploads or lazy telemetry loading; verify actual ChatGPT host file-selection/payload limits. Current limits: 30 MB and 100,000 FIT messages.
 - [ ] Expand comparison history after more sessions arrive; explicitly validate partial/null metrics and dates across locales.
 - [ ] Split/lazy-load the current UI bundle while preserving self-contained ChatGPT resource packaging; current production JS is roughly 1 MB uncompressed.
-- [ ] add integration with Garmin, so i can load sessions data directly from there, omitting export/import step fo the fit files.
+
 
 ## Infrustructure
 - [ ] Before public multi-user hosting, implement authentication and bind validated identities to the existing tenant resolver; add user-facing concurrent-edit conflict handling.

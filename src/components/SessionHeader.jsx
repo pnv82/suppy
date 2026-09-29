@@ -8,7 +8,8 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 import { EvidenceDialog } from "./MetricEvidence.jsx";
-import { callTool } from "../services/client.mjs";
+import { callTool, askChatGPT } from "../services/client.mjs";
+import { requestSessionSummary } from "../services/session-analysis.mjs";
 import { durationLabel, latestSessions } from "../domain/metrics.mjs";
 import { fullDate, fmt } from "./SessionViews.jsx";
 
@@ -353,9 +354,29 @@ export function SessionHeader({
   onSave,
   onDelete,
   onManage,
+  connected,
 }) {
   const [editing, setEditing] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryRequest, setSummaryRequest] = useState("idle");
+  const [summaryError, setSummaryError] = useState("");
+  const requesting = useRef(false);
+  async function requestSummary() {
+    if (!connected || requesting.current) return;
+    requesting.current = true;
+    setSummaryRequest("pending");
+    setSummaryError("");
+    try {
+      setSummaryRequest(
+        await requestSessionSummary(session.id, { callTool, askChatGPT }),
+      );
+    } catch (e) {
+      setSummaryRequest("error");
+      setSummaryError(e.message);
+    } finally {
+      requesting.current = false;
+    }
+  }
   const [search, setSearch] = useState("");
   const query = search.trim().toLocaleLowerCase();
   const choices = query
@@ -378,7 +399,11 @@ export function SessionHeader({
               className="icon-button"
               aria-label="Session highlight and summary"
               title="Session highlight and summary"
-              onClick={() => setSummaryOpen(true)}
+              onClick={() => {
+                setSummaryOpen(true);
+                if (!session.llmSummary && summaryRequest === "idle")
+                  void requestSummary();
+              }}
             >
               <Sparkle
                 size={19}
@@ -516,11 +541,46 @@ export function SessionHeader({
                 Evidence: {session.llmSummary.evidence_refs.join(", ")}
               </p>
             </>
-          ) : (
+          ) : !connected ? (
             <p>
-              No analysis saved yet. Ask ChatGPT to analyze this session and
-              save a highlight and summary through Suppy.
+              No analysis saved yet. Open Suppy inside a ChatGPT conversation
+              and click this session’s highlight icon to request analysis and
+              save a summary. The standalone web app cannot start a ChatGPT
+              conversation.
             </p>
+          ) : (
+            <>
+              <p role="status">
+                {summaryRequest === "pending"
+                  ? "Preparing the latest session evidence and requesting analysis in ChatGPT…"
+                  : summaryRequest === "sent"
+                    ? "Analysis requested in this ChatGPT conversation. The saved highlight will appear after ChatGPT saves its result."
+                    : "No analysis saved yet."}
+              </p>
+              {summaryError && <p role="alert">{summaryError}</p>}
+              {summaryRequest === "error" && (
+                <button className="button primary" onClick={requestSummary}>
+                  Retry analysis request
+                </button>
+              )}
+              {summaryRequest === "sent" && (
+                <button
+                  className="button secondary"
+                  onClick={async () => {
+                    try {
+                      await callTool("get_session_context", {
+                        session_id: session.id,
+                      });
+                      setSummaryError("");
+                    } catch (e) {
+                      setSummaryError(e.message);
+                    }
+                  }}
+                >
+                  Refresh saved summary
+                </button>
+              )}
+            </>
           )}
         </EvidenceDialog>
       )}

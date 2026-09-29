@@ -344,3 +344,7 @@ Checked the synthetic curved route at 1440×1000 and 390×844, keyboard zoom and
 ## Next items: candidate annotations (2026-09-29)
 
 Synthetic temperature-supported possible fall at 6:39–7:30: keyboard activation pins the range and opens a Note/Approximate draft. Moving the speed cursor to session end preserves both bounds. Reviewed interruption saves to the annotation lane and replaces the linked candidate; reload retains the note. Desktop and phone editor layouts, cancellation, and summary-only annotation access checked. Event/domain tests and production build pass.
+
+## Next items: highlight analysis (2026-09-29)
+
+Browser-tested the built widget inside a synthetic host using the installed MCP Apps AppBridge and actual postMessage transport. Verified latest context (including saved annotation/source notes/calculated metrics), context-before-message order, rejected-message feedback, successful retry, no duplicate on dialog reopen, and a synthetic saved result delivered back through the bridge. Standalone missing-summary instructions and Escape/focus return checked on phone; desktop and narrow layouts checked. Local service tests cover missing duration, already-saved summaries, revision freshness and failure propagation. This is a protocol/UI check, not a live ChatGPT account or model-quality test.

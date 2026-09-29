@@ -1,4 +1,5 @@
 import { App } from "@modelcontextprotocol/ext-apps";
+import { sendAnalysisToHost } from "./session-analysis.mjs";
 
 let bridge = null,
   connecting = null;
@@ -75,24 +76,14 @@ export async function callTool(name, args = {}) {
   publish(result);
   return result;
 }
-export async function askChatGPT(result) {
+export async function askChatGPT(result, message) {
   const context = JSON.stringify(result.structuredContent, null, 2);
   if (!embedded) return context;
-  await bridge.updateModelContext({
-    content: [{ type: "text", text: context }],
-  });
-  const sent = await bridge.sendMessage({
-    role: "user",
-    content: [
-      {
-        type: "text",
-        text: `Please analyze this SUP session using the current app context, including my latest annotations and additional data. My question: ${result.structuredContent.question}`,
-      },
-    ],
-  });
-  if (sent?.isError)
-    throw new Error(
-      "ChatGPT did not accept the message. Copy the prepared context and send it in chat.",
-    );
+  await sendAnalysisToHost(
+    bridge,
+    result,
+    message ??
+      `Please analyze this SUP session using the current app context, including my latest annotations and additional data. My question: ${result.structuredContent.question}`,
+  );
   return null;
 }
