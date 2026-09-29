@@ -77,9 +77,10 @@ export function matchedWindowDrift(
   const exclusions = [
     ...pauses,
     ...annotations,
-    ...movement.events
-      .filter((e) => e.type === "low_speed")
-      .map((e) => ({ start: e.start_s, end: e.end_s })),
+    ...movement.low_speed_intervals.map((e) => ({
+      start: e.start_s,
+      end: e.end_s,
+    })),
   ];
   const early = [],
     late = [];

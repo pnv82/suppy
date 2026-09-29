@@ -268,6 +268,12 @@ export function openDatabase(path = databasePath()) {
             "SELECT session_id FROM fit_imports WHERE tenant_id = ? AND fit_sha256 = ? LIMIT 1",
           )
           .get(id, fitHash)?.session_id ?? null,
+      fitSource: (sessionId) =>
+        db
+          .prepare(
+            "SELECT fit_sha256, fit_bytes FROM fit_imports WHERE tenant_id = ? AND session_id = ? ORDER BY original_sha256 LIMIT 1",
+          )
+          .get(id, sessionId) ?? null,
       get: (sessionId) =>
         decodeSession(
           db

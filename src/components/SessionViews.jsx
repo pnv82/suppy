@@ -1,4 +1,8 @@
 import { ensureWindowStatistics } from "../domain/analysis.mjs";
+import {
+  detectedEventLabel,
+  detectedEventDescription,
+} from "../domain/events.mjs";
 import { TrackingScore } from "./TrackingScore.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1064,20 +1068,24 @@ export function Timeline({
         <div className="annotation-lane">
           {!session.annotations.length &&
             !session.deterministic?.movement?.events?.length && (
-              <span className="empty-annotation">No annotations</span>
+              <span className="empty-annotation">
+                No detected events or notes
+              </span>
             )}
-          {(session.deterministic?.movement?.events || []).map((event, i) => (
-            <button
-              key={`detected-${i}`}
-              className="annotation-marker detected-event"
-              style={{ left: `${(event.start_s / 60 / max) * 100}%` }}
-              onClick={() => setCursor(event.start_s)}
-              aria-label={`${event.type === "timer_pause" ? "Recorded timer pause" : "Low-speed candidate"} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}`}
-              title={`${event.type === "timer_pause" ? "Timer pause" : "Low-speed candidate; cause unknown"} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)}`}
-            >
-              <Diamond size={14} aria-hidden="true" />
-            </button>
-          ))}
+          {(session.deterministic?.movement?.events || [])
+            .filter((event) => !event.annotation_ids?.length)
+            .map((event, i) => (
+              <button
+                key={`detected-${i}`}
+                className="annotation-marker detected-event"
+                style={{ left: `${(event.start_s / 60 / max) * 100}%` }}
+                onClick={() => setCursor(event.start_s)}
+                aria-label={`${detectedEventLabel(event)} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}; ${detectedEventDescription(event)}`}
+                title={`${detectedEventLabel(event)} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)} · ${detectedEventDescription(event)}`}
+              >
+                <Diamond size={14} aria-hidden="true" />
+              </button>
+            ))}
           {session.annotations.map((a) => (
             <button
               className="annotation-marker"

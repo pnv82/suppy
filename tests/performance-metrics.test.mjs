@@ -107,8 +107,9 @@ test("low-speed evidence requires corroboration and multiple edges, keeps unknow
     cadence_raw: null,
   }));
   const result = movementEvidence(records, [], 60);
-  assert.equal(result.events.length, 1);
-  assert.equal(result.events[0].cadence_zero_observed, false);
+  assert.equal(result.events.length, 0);
+  assert.equal(result.low_speed_intervals.length, 1);
+  assert.equal(result.low_speed_intervals[0].cadence_zero_observed, false);
   assert.equal(result.supported_low_speed_s, 60);
   assert.equal(movementEvidence(records.slice(0, 2), [], 5).events.length, 0);
   assert.equal(
@@ -254,8 +255,9 @@ test("low-speed hysteresis tolerates small threshold jitter without interpreting
     cadence_raw: null,
   }));
   const result = movementEvidence(records, [], 30);
-  assert.equal(result.events.length, 1);
-  assert.equal(result.events[0].end_s, 30);
+  assert.equal(result.events.length, 0);
+  assert.equal(result.low_speed_intervals.length, 1);
+  assert.equal(result.low_speed_intervals[0].end_s, 30);
 });
 
 test("drift modes retain independent optional channels and require joint support", () => {

@@ -36,6 +36,47 @@ function commitArgs(store, args = uploadFixture(), rest = {}) {
   };
 }
 
+test("temperature preserves negative values/nulls and existing uploads refresh on open without losing annotations", (t) => {
+  const { db, store } = setup(t);
+  const args = uploadFixture({
+    record: (r, time) => ({ ...r, ...(time === 0 ? {} : { temperature: -3 }) }),
+  });
+  const decoded = decodeUpload(args);
+  assert.equal(decoded.session.records[0].temperature_c, null);
+  assert.equal(decoded.session.records[1].temperature_c, -3);
+  const { session_id } = store.commitImport(commitArgs(store, args));
+  const repo = db.forTenant("alice");
+  const s = repo.get(session_id);
+  s.annotations = [
+    {
+      id: "keep",
+      kind: "note",
+      start_s: 20,
+      end_s: 20,
+      note: "Keep me",
+      timing: "exact",
+      source: "athlete_reported",
+    },
+  ];
+  for (const r of s.records) delete r.temperature_c;
+  s.deterministic = {
+    method: "obsolete",
+    movement: { events: [{ type: "timer_pause" }] },
+  };
+  repo.save(s);
+  const bytes = Buffer.from(repo.fitSource(session_id).fit_bytes);
+  assert.equal(db.forTenant("bob").fitSource(session_id), null);
+  const context = store.context(session_id);
+  assert.equal(context.deterministic.method, "sup_deterministic_v4");
+  assert.deepEqual(context.deterministic.movement.events, []);
+  const refreshed = repo.get(session_id);
+  assert.equal(refreshed.records[1].temperature_c, -3);
+  assert.deepEqual(refreshed.annotations, s.annotations);
+  assert.deepEqual(Buffer.from(repo.fitSource(session_id).fit_bytes), bytes);
+  store.context(session_id);
+  assert.equal(repo.get(session_id).revision, refreshed.revision);
+});
+
 // Garmin records use whole seconds, but elapsed/timer durations use milliseconds.
 const fractionalEnd = {
   summary: { totalElapsedTime: 1299.494, totalTimerTime: 1299.494 },

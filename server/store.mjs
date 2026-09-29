@@ -52,6 +52,40 @@ export function createStore({
     return entry?.expires > Date.now() ? (entry.candidates ?? []) : [];
   };
   function withMetrics(session) {
+    // Re-extract the newly supported channel on first open of existing uploads.
+    // Original bytes and all athlete edits remain untouched.
+    if (session.records.some((r) => !Object.hasOwn(r, "temperature_c"))) {
+      const source = repo.fitSource(session.id);
+      if (source) {
+        const bytes = Buffer.from(source.fit_bytes);
+        if (
+          createHash("sha256").update(bytes).digest("hex") !== source.fit_sha256
+        )
+          throw new Error("Saved FIT checksum mismatch.");
+        const decoded = decodeUpload({
+          filename: "saved.fit",
+          data_base64: bytes.toString("base64"),
+          timezone: session.timezone,
+        });
+        const rows = decoded.session.records;
+        if (
+          rows.length !== session.records.length ||
+          rows.some(
+            (r, i) =>
+              Date.parse(r.timestamp_utc) !==
+              Date.parse(session.records[i].timestamp_utc),
+          )
+        )
+          throw new Error("Saved FIT records do not match this track.");
+        session.records = session.records.map((r, i) => ({
+          ...r,
+          temperature_c: rows[i].temperature_c,
+        }));
+        delete session.deterministic;
+        session.revision++;
+        repo.save(session);
+      }
+    }
     const cadenceGoals = repo
       .goals()
       .filter((g) => g.metric === "cadence_duration");

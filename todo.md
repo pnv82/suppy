@@ -1,8 +1,9 @@
 # Next - Other
 
 - [ ] show track direction with a lgit arrows within a track. Make them barely visible not to obstruct the map view.
-check if there is a way to call the ChatGPT analysis when app in launched within the chat?
-automatic launch spot based  naming does not work now
+- [ ] check if there is a way to call the ChatGPT analysis when app in launched within the chat?
+- [ ] automatic launch spot based  naming does not work now
+- [ ] allow to convert the event candidates into the annotation - for example when clicking on the even marker select a permanent spot on the timeline, right now it does not do anything.
 
 # Deferred work
 
@@ -57,3 +58,5 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 ## Intentionally outside this prototype
 
 Authentication, user sharing, public deployment, automatic Garmin sync, extra import formats, video-link management and training-plan generation. Public distribution also requires a hosted/authenticated MCP design and account-level review. None is implemented or implied by local connection instructions.
+
+- Validate temperature-assisted possible-fall detection against more athlete-timed falls and non-fall stops/immersions; measure false alarms and missed events before claiming reliability. Current speed/cooling thresholds are provisional.

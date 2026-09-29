@@ -4,7 +4,7 @@ import { trackingEvidence } from "./tracking.mjs";
 import { movementEvidence } from "./events.mjs";
 import { matchedWindowDrift } from "./drift.mjs";
 
-export const ANALYSIS_METHOD = "sup_deterministic_v3";
+export const ANALYSIS_METHOD = "sup_deterministic_v4";
 export const POLICY = Object.freeze({
   gap_limit_s: 15,
   distance_speed_limit_mps: 8,
@@ -234,7 +234,13 @@ export function analyzeTelemetry(
             annotations: context.annotations,
           }),
   }));
-  const movement = movementEvidence(records, pauses, elapsed);
+  const movement = movementEvidence(
+    records,
+    pauses,
+    elapsed,
+    context.annotations,
+  );
+  const { low_speed_intervals, ...visibleMovement } = movement;
   return {
     method: ANALYSIS_METHOD,
     computed_at_utc: new Date().toISOString(),
@@ -245,7 +251,7 @@ export function analyzeTelemetry(
       annotations: context.annotations,
     }),
     windows,
-    movement,
+    movement: visibleMovement,
     drift: matchedWindowDrift(
       records,
       pauses,

@@ -4,6 +4,10 @@ import { mph, timeLabel, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
 import { intervalTitle, reviewIntervals } from "../domain/intervals.mjs";
 import { TrackingScore } from "./TrackingScore.jsx";
+import {
+  detectedEventLabel,
+  detectedEventDescription,
+} from "../domain/events.mjs";
 const fmt = (v, dp = 0) => (Number.isFinite(v) ? v.toFixed(dp) : "—");
 
 export function EvidenceDialog({ title, onClose, children }) {
@@ -147,13 +151,17 @@ export function MetricDetails({ session, duration, onClose }) {
       )}
       {whole && !!movement?.events?.length && (
         <details>
-          <summary>Movement events & boundary uncertainty</summary>
+          <summary>Detected events & supporting evidence</summary>
           {movement.events.map((event, i) => (
             <p key={i}>
-              {event.type === "timer_pause"
-                ? "Recorded timer pause"
-                : "Low-speed candidate; cause unknown"}{" "}
+              {detectedEventLabel(event)}
+              {event.annotation_ids?.length
+                ? " (linked to athlete annotation)"
+                : ""}{" "}
               · {timeLabel(event.start_s)}–{timeLabel(event.end_s)}
+              {` · ${detectedEventDescription(event)}`}
+              {event.onset_bracket_s &&
+                ` · onset bracket ${timeLabel(event.onset_bracket_s[0])}–${timeLabel(event.onset_bracket_s[1])}`}
               {event.boundary_uncertainty_s != null
                 ? ` · boundary uncertainty up to ${fmt(event.boundary_uncertainty_s)} s`
                 : ""}

@@ -157,3 +157,5 @@ The map uses OpenStreetMap with visible attribution and normal browser tile cach
 Navigation uses a compact left icon rail. Labels are persistent from 1400 px upward. On smaller screens, hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail.
 
 The app is named Suppy. Existing SUP_DB_PATH/SUP_PORT environment names, local storage paths and operator-created tunnel profile names remain valid. Refresh ChatGPT connection metadata after this release; the embedded resource now uses ui://suppy/dashboard.html.
+
+Detected events retain sustained low-speed periods and add temperature-supported possible falls. Timer pauses and brief fluctuations no longer create event markers. Existing uploaded tracks recover temperature from their saved FIT bytes on load; annotations and original files are preserved. See [event contracts](docs/engineering/performance-metrics.md#selective-event-refresh-and-temperature-2026-09-29).

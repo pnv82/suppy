@@ -249,6 +249,7 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
       distance_m: distance,
       speed_mps: finite(r.enhancedSpeed) ?? finite(r.speed),
       heart_rate_bpm: finite(r.heartRate, 1),
+      temperature_c: Number.isFinite(r.temperature) ? r.temperature : null,
       cadence_raw: finite(r.cadence),
       cadence_fractional_raw: finite(r.fractionalCadence),
       cadence_256_raw: finite(r.cadence256),
