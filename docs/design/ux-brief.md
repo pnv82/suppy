@@ -125,3 +125,5 @@ Home now presents its chronological trend above the latest-ten grid, in both des
 Goals is a separate navigation section for adding/editing/deleting explicit athlete targets. The Home chart selector includes all requested speed scopes and saved cadence thresholds. Matching goals use light dashed lines and text labels. This does not restore the removed training-focus panel or next-outing technique pinning.
 
 Import uses a two-step Choose file / Review & save dialog, with a native accessible file chooser, filename/size confirmation, centered route preview and grouped distance/time/sensor metrics. The phone modal scrolls internally; action buttons wrap. Existing duplicate, candidate, missing-data and error behavior is retained.
+
+Full-route travel direction uses faint white chevrons within the existing line, with at least 38 px separation and a 160-marker cap. Each continuous GPS run is handled independently; pauses, missing GPS and stationary geometry produce no connecting arrow. They sit beneath selected-interval highlights, have no pointer or keyboard interaction, and add no vertical space. GPS direction does not require recorded distance.

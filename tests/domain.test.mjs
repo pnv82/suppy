@@ -33,6 +33,13 @@ test("window arrows follow travel order on overlapping outbound and return track
   const returning = segmentDirections(route, { start: 600, end: 1200 });
   assert.equal(outward.length, 4);
   assert.equal(returning.length, 4);
+  assert.equal(
+    segmentDirections(
+      route.map((p) => ({ ...p, distance_m: null })),
+      { start: 0, end: 600 },
+    ).length,
+    4,
+  );
   assert.ok(outward.every((p) => Math.abs(p.bearing_deg - 90) < 0.01));
   assert.ok(returning.every((p) => Math.abs(p.bearing_deg - 270) < 0.01));
   const north = route.map((p) => ({

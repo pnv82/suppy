@@ -336,3 +336,7 @@ Existing local tracks were refreshed after a SQLite backup. The three historical
 ## Next items: launch naming (2026-09-29)
 
 Validated using an in-memory synthetic tenant, injected geographic provider and synthetic FITs on port 3015. Import preview selected Synthetic Beach with a source link and review notice; keyboard submission saved the name. Checked desktop 1440×1000 and narrow 390×844 layouts. Missing GPS, provider failure, duplicate bypass, non-mutating preview and provenance validation are covered by synthetic tests. No production data or original files changed.
+
+## Next items: route direction (2026-09-29)
+
+Checked the synthetic curved route at 1440×1000 and 390×844, keyboard zoom and best-window selection, and summary-only missing GPS. Full-route chevrons remain faint beneath interval overlays and introduce zero keyboard tab stops. No page overflow at the narrow width. Existing direction/pause/gap tests plus a GPS-without-distance assertion pass; production build succeeds.

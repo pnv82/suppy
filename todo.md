@@ -1,6 +1,6 @@
 # Next - Other
 - [x] Resolve launch names during import preview, preselect for review, preserve confirmed source provenance, and automatically offer suggestions when editing coordinate-fallback sessions.
-- [ ] show track direction with a light arrows within a track. Make them barely visible not to obstruct the map view.
+- [x] Show faint travel chevrons within the full track, with gap-aware geometry and zoom-dependent spacing beneath interval highlights.
 - [ ] allow to convert the event candidates into the annotation - for example when clicking on the even marker select a permanent spot on the timeline, right now it does not do anything.
 - [ ] when session highlight clicked in the context of ChatGPT session (i.e. app is a widget) and there is no previous analysis saved - initiate analysys in the host session (from what I understood via sendFollowUpMessage). Carefully select a good prompt that will be sent to a ChatGPT, make sure full context of the session (with annotations, notes, calculated metrics etc.) is available to the ChatGPT (i assume via MCP?). If same is called in the web app and has not data yet - show an instruction to call it from the context of the ChatGPT.
 

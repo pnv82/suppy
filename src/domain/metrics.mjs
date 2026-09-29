@@ -289,7 +289,7 @@ export function segmentDirections(
     window.end <= window.start
   )
     return [];
-  const run = validRuns(records, pauses, true).find(
+  const run = validRuns(records, pauses, true, false).find(
     (r) => r[0].elapsed_s <= window.start && r.at(-1).elapsed_s >= window.end,
   );
   if (!run) return [];

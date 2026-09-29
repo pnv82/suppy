@@ -198,7 +198,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
         zoom={13}
         scrollWheelZoom={false}
         className="route-map"
-        aria-label="GPS track with the selected interval and annotations"
+        aria-label="GPS track with subtle arrows following recorded travel, selected interval and annotations"
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -216,6 +216,13 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
             pathOptions={{ color: "#304d61", weight: 3, opacity: 0.55 }}
           />
         ))}
+        <Pane
+          name={`route-direction-${session.id}`}
+          key={`route-direction-${session.id}`}
+          style={{ zIndex: 405, pointerEvents: "none" }}
+        >
+          <RouteArrows runs={runs} />
+        </Pane>
         {selected &&
           windows
             .filter((w) => intervalKey(w) === selected)
@@ -429,6 +436,41 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
       )}
     </div>
   );
+}
+
+function RouteArrows({ runs }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
+  const arrows = useMemo(() => {
+    const accepted = [];
+    for (const run of runs) {
+      if (run.length < 2) continue;
+      const window = { start: run[0].elapsed_s, end: run.at(-1).elapsed_s };
+      const fractions = Array.from({ length: 79 }, (_, i) => (i + 1) / 80);
+      for (const p of segmentDirections(run, window, [], fractions)) {
+        const pixel = map.project([p.latitude_deg, p.longitude_deg], zoom);
+        if (accepted.some((a) => a.pixel.distanceTo(pixel) < 38)) continue;
+        accepted.push({ ...p, pixel });
+        if (accepted.length >= 160) return accepted;
+      }
+    }
+    return accepted;
+  }, [map, zoom, runs]);
+  return arrows.map((p) => (
+    <Marker
+      key={p.elapsed_s}
+      position={[p.latitude_deg, p.longitude_deg]}
+      interactive={false}
+      keyboard={false}
+      icon={divIcon({
+        className: "route-direction-marker",
+        iconSize: [7, 9],
+        iconAnchor: [3.5, 4.5],
+        html: `<svg viewBox="0 0 7 9" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M1 6 L3.5 2 L6 6" fill="none" stroke="white" stroke-opacity="0.65" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      })}
+    />
+  ));
 }
 
 function TravelArrows({ session, selected }) {
