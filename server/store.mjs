@@ -120,7 +120,12 @@ export function createStore({
       cached.value.input_hash = signature;
       cached.value.context_revision = session.revision;
       cached.customIntervals = (session.customIntervals || []).map((interval) =>
-        customIntervalEvidence(interval, session.records, session.pauses),
+        customIntervalEvidence(
+          interval,
+          session.records,
+          session.pauses,
+          session.annotations,
+        ),
       );
       analysisCache.set(session.id, cached);
       if (analysisCache.size > 30)
@@ -400,7 +405,7 @@ export function createStore({
         "Session stroke distance uses FIT totals; interval stroke distance may be a cadence-integral estimate with explicit coverage and assumptions. Neither is validated biomechanical efficiency.",
         "Wind is nearby-station context, not an on-water measurement.",
         "Watch telemetry cannot diagnose stroke faults.",
-        "Zig-zag is experimental local GPS straightness; inspect eligible coverage and underlying deviations. Higher is not proof of better technique.",
+        "TCS combines median/P90 course deviation, central-95% lateral corridor and oscillation frequency with weights 35/30/25/10. Its method, component scores and eligible coverage accompany the value.",
         "Matched-window changes are descriptive, with independent pairs and no normalization for current, chop or local wind.",
       ],
     };
@@ -736,9 +741,9 @@ export function createStore({
 }
 
 export function compactInterval(evidence) {
-  if (!evidence?.zigzag) return evidence;
-  const { segments, ...zigzag } = evidence.zigzag;
-  return { ...evidence, zigzag };
+  if (!evidence?.tracking) return evidence;
+  const { segments, ...tracking } = evidence.tracking;
+  return { ...evidence, tracking };
 }
 
 function compactAnalysis(evidence) {

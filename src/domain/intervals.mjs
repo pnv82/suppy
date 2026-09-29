@@ -25,12 +25,18 @@ export function pointInRuns(runs, elapsed) {
   return run ? interpolate(run, elapsed) : null;
 }
 
-export function customIntervalEvidence(interval, records, pauses) {
+export function customIntervalEvidence(
+  interval,
+  records,
+  pauses,
+  annotations = [],
+) {
   const statistics = intervalStatistics(
     records,
     pauses,
     interval.start,
     interval.end,
+    { annotations },
   );
   return {
     ...interval,

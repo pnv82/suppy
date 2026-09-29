@@ -1,29 +1,7 @@
 # Next - Other
 
-- [x] add maximum speed attribute to the main page and graphs
-- [x] get rid of the "Your training focus" functionality for now, it is not meaningfull yet
-- [x] allow to delete sessions, so i can test the uploads
-- [x] on the interval tiles do nto show the start-end time, better show the cadence and distance per stroke.
-- [x] move additional session data into session edit dialog
-- [x] Integrate `docs/product/llm vs app.md` into architecture and agent principles. App-owned FIT import and deterministic interval evidence are implemented; remaining multi-session evidence, advanced features and reviewed LLM-result persistence are listed below.
-- [x] if we have sufficient horizontal space - show the names of the sections in the left toolbar
-- [x] update how i'm using the markers on the graphs - let's have to states - current position and selected spot (last clicked position, i.e. some persistency). Selected spot will allow to add annotations better, right now it is hard to attach annotation to a specific spot because it moves with any mouse move. This also mean couple of different markers on the map - one is lights, following the active position of the mouse on the graphs. Second - last selected position.
+- [ ] 
 
-- [x] introduce a notion of the session highlight and summary. It is to be filled the the LLM from outside when it is analysing existing session.
-- [x] in session overview exchange places for heart rate and stroke distance - it is better logical grouping.
-- [x] make arrows of the direction smaller - they take to much space and obstruct the view. Ideally if they will fit into the widths of the track and will be draw a bit more frequently - right now 5min segment with default zoom usually has only one arrow.
-- [x] let's make session selector popover riacher - show last 10 session and allow to search rest.
-- [x] let's refine the naming logic of the session - propose a name of the nearest launch point to the start point (usually name of the cove or beach). Do not use generic names - Mission Bay - it is huge and could mean anything.
-- [x] allow to select intervals on the graph with Shift+Click modifier. This will allow to have a more precise annotations. I.e. annotations now have two modes - specific point, as now and interval.
-- [x] add sections Goals, where i will be able to define my targets. So far we will start with - max speed, best 5, 10, 20 min speed, avg speed, longest time with cadesse over X. When applicable - display goal on the graph on Home page as light dashed line.
-- [x] make upload dialog pretty
-- [x] Rename app to Suppy in all places. Also add the icon fro the web-site.
-
-# Next - Main page redesign
-- [x] get rid of the summaries line - it is confusing, not clear what it shows
-- [x] move the graph to the top of the screen - it is muc useable
-- [x] add controls to manage the session (behind 3 dots menu) - delete, recalculate, refresh weather, edit
-- [x] show the dynamic for the key attributes in the grid - if there is more that 5% change compared to the window of avg last 3 session - show the dynamic with a a small colored arrow (red/down, green/up)
 
 # Deferred work
 
@@ -45,7 +23,7 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 
 Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md#part-ii-suspended-research-and-future-work). These items are outside the active delivery stages. Review their independent-evidence and promotion gates before bringing one forward.
 
-- [ ] [S1: Local course variability, tracking/zig-zag and eventual paddle-side inference](docs/product/key%20metrics.md#s1-local-course-variability-tracking-and-zig-zag). The experimental local path-straightness score is implemented by explicit user request. Independent accuracy/sensitivity validation, quality bands and paddle-side inference remain future work.
+- [ ] [S1: Local course variability, tracking/zig-zag and eventual paddle-side inference](docs/product/key%20metrics.md#s1-local-course-variability-tracking-and-zig-zag). The four-component [TCS_v1](docs/engineering/tracking-control-score.md) and score colors are implemented by explicit user request. Athlete-labelled interval/session validation, anchor/weight calibration, independent accuracy/sensitivity checks and paddle-side inference remain future work.
 - [ ] [S2: Fall/remount and semantic interruption detection](docs/product/key%20metrics.md#s2-fallremount-and-semantic-interruption-classification). Collect independently timed labels and assess false positives; ordinary stops must not become probable falls.
 - [ ] [S3: Automatic effort intervals and exhaustive segment labels](docs/product/key%20metrics.md#s3-automatic-effort-intervals-and-exhaustive-segment-labels). Preserve explicit lap/workout evidence first.
 - [ ] [S4: Environmental normalization and historical benchmarks](docs/product/key%20metrics.md#s4-environmental-normalization-and-historical-benchmarks). Validate conditions/equipment support before normalized claims.

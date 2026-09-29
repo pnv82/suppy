@@ -59,7 +59,7 @@ The REST/MCP session DTO exposes these under `statistics.speed_mps`, `statistics
 
 Garmin defines average distance per stroke for paddle sports as distance traveled per stroke in its [data-field reference](https://www8.garmin.com/manuals-apac/webhelp/forerunner570/EN-SG/GUID-F5495143-1A21-4197-83B4-B8B2DD3A7F72-1054.html). Our ratio is a transparent local estimate from the supplied totals, not a claim that the watch uses this exact internal calculation.
 
-Home defaults to best-20-minute paired speed/cadence, estimated DPS, HR and experimental zig-zag, with a whole-session scope switch. FIT maxima remain in session chart references and details.
+Home defaults to best-20-minute paired speed/cadence, estimated DPS, HR and Tracking Control Score, with a whole-session scope switch. FIT maxima remain in session chart references and details.
 
 ## Matched stroke-distance estimate
 
@@ -69,7 +69,7 @@ Zero cadence includes supported glide distance but no strokes. An all-zero strok
 
 ## Current extended evidence
 
-`sup_deterministic_v2` adds paired support, experimental local GPS straightness, conservative movement evidence, independent-window descriptive drift and a 30-second DPS timeline. Every request uses the current contract; stale calculations are recomputed, with database/tenant-scoped bounded caches. Viewing does not rewrite original records or uploads. New imports retain calculated evidence; runtime inputs and method version determine freshness.
+`sup_deterministic_v3` adds paired support, Tracking Control Score, conservative movement evidence, independent-window descriptive drift and a 30-second DPS timeline. Every request uses the current contract; stale calculations are recomputed, with database/tenant-scoped bounded caches. Viewing does not rewrite original records or uploads. New imports retain calculated evidence; runtime inputs and method version determine freshness.
 
 See [performance-metrics.md](../engineering/performance-metrics.md) for exact formulas, gates, parameters, source ranges, cache dependencies, model-context bounds and validation limits. No backward compatibility layer is required.
 

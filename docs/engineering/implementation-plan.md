@@ -23,7 +23,7 @@ Run `npm test` and `npm run build`. Consult root `design-qa.md` for browser evid
 
 ## Next work
 
-The [revised metrics plan](../product/key%20metrics.md) is implemented for paired speed/cadence, matched DPS, conservative low-speed evidence, descriptive independent-window drift and experimental zig-zag. See [performance metric contracts](performance-metrics.md). The selected UI combines the interval inspector and clean chart band, with a compact best-20-minute Home list. Old calculated evidence is discarded in favor of one current contract; no migration or database reset was necessary. Original uploads remain unchanged.
+The [revised metrics plan](../product/key%20metrics.md) is implemented for paired speed/cadence, matched DPS, conservative low-speed evidence, descriptive independent-window drift and Tracking Control Score. See [performance metric contracts](performance-metrics.md). The selected UI combines the interval inspector and clean chart band, with a compact best-20-minute Home list. Old calculated evidence is discarded in favor of one current contract; no migration or database reset was necessary. Original uploads remain unchanged.
 
 Use [todo.md](../../todo.md) as the deferred-work list. SUP FIT decoding and deterministic evidence are implemented under [LLM versus app responsibilities](../product/llm%20vs%20app.md). Reviewed LLM-result ingestion, advanced metric validation and multi-session feature requests remain future work. Authentication, sharing, broader activity formats and in-app model execution remain outside this slice.
 

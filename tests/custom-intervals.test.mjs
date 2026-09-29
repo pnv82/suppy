@@ -149,9 +149,9 @@ test("interval zig-zag uses exact selected telemetry and agrees across UI and an
   const session = store.dashboard().sessions[0];
   const first = metricView(session, straight.id);
   const second = metricView(session, oscillating.id);
-  assert.ok(first.zigzag > 99.9);
-  assert.ok(second.zigzag < first.zigzag);
-  assert.notEqual(first.zigzag, metricView(session).zigzag);
+  assert.ok(first.tracking > 99.9);
+  assert.ok(second.tracking < first.tracking);
+  assert.notEqual(first.tracking, metricView(session).tracking);
   assert.deepEqual(second.evidence.interval, { start_s: 800, end_s: 1100 });
   const prepared = executeTool(store, "prepare_analysis_context", {
     ...bounds(id, 800, 1100),
@@ -163,7 +163,7 @@ test("interval zig-zag uses exact selected telemetry and agrees across UI and an
     prepared.evidence,
   );
   assert.equal(
-    "segments" in prepared.session.customIntervals[1].statistics.zigzag,
+    "segments" in prepared.session.customIntervals[1].statistics.tracking,
     false,
   );
 });
@@ -196,7 +196,7 @@ test("custom ranges reject points/outside bounds and preserve missing GPS, senso
   );
   const short = store.addCustomInterval(bounds(id, 100, 110));
   assert.equal(
-    metricView(store.dashboard().sessions[0], short.id).zigzag,
+    metricView(store.dashboard().sessions[0], short.id).tracking,
     null,
   );
 
@@ -219,10 +219,10 @@ test("custom ranges reject points/outside bounds and preserve missing GPS, senso
   const missing = createStore({ database, tenantId: "missing" });
   const interval = missing.addCustomInterval(bounds(session.id, 100, 500));
   const view = metricView(missing.dashboard().sessions[0], interval.id);
-  assert.equal(view.zigzag, null);
+  assert.equal(view.tracking, null);
   assert.equal(view.hr, null);
   assert.equal(view.cadence, null);
   assert.equal(view.dps, null);
   assert.equal(view.evidence.distance.covered_s, 310);
-  assert.ok(view.evidence.zigzag.reason);
+  assert.ok(view.evidence.tracking.reason);
 });

@@ -1,6 +1,6 @@
 # Metrics implementation QA — 2026-09-27 (America/Los_Angeles)
 
-**Final result: passed.** This is the current report; earlier checks are preserved below.
+**Final result: passed.** Latest: [Tracking Control Score verification](#tracking-control-score-verification-2026-09-29-utc). Earlier checks are preserved below.
 
 ## Scope and visual truth
 
@@ -299,3 +299,12 @@ All 72 Node tests pass, including provider request/timeout/size limits, caching,
 Desktop 1440 × 1080 and narrow 390 × 844 browser checks used synthetic sessions in `.tools/custom-interval-ui.sqlite` on port 3002. Verified point-only selections hide Add interval; forward/backward keyboard ranges and click/Shift-click ranges preview exact evidence; Choose interval end extends the next click/tap/Enter without Shift; saving several tiles, selecting equal-duration ranges, duplicate reuse, browser refresh and server restart, keyboard removal and focus return. Selected tiles scroll fully into the strip without page-wide horizontal overflow. Metric dialogs open by keyboard and return focus on Escape. Missing GPS/HR/cadence and summary-only sessions retain unavailable states and explicit reasons. No browser console errors.
 
 All 77 Node tests and the production build pass. New regressions cover persistent/tenant/session ownership, exact interval versus whole-session zig-zag, compact REST/MCP evidence, invalid bounds, gaps/pauses, missing/short GPS support, summary-reference invalidation, and absent map boundary markers inside pauses or GPS gaps. The original metric policy and source bytes remain unchanged. Private screenshot evidence: `.tools/custom-interval-desktop.png` and `.tools/custom-interval-phone.png`; these files and the synthetic database are ignored by Git. The main local app was rebuilt/restarted; private production session selections were not modified.
+
+## Tracking Control Score verification (2026-09-29 UTC)
+
+- Replaced the path-ratio headline with the four-component `TCS_v1` across best/custom tiles, manual previews, the inspector, metric details, Home rows/cards and trend points. Shared green/teal/amber/orange/red bands retain numeric values and accessible band labels; missing scores are neutral. No new persistent panel or repeated experimental disclaimer.
+- In-app Browser verification at 1440×1000, 390×844 and 320×844, using an isolated in-memory SQLite tenant and synthetic straight/oscillating/missing-GPS/summary-only sessions. Confirmed all five colors and gray missing values, the 0–100 trend, component details and score/coverage agreement between custom tile and inspector.
+- Keyboard Enter opened details; Escape closed them and restored focus. Home/Enter/End/Shift+Enter selected a chart range; Add interval saved it and it remained after reload. A 30-second custom interval stayed unavailable. Phone details fit without horizontal overflow; page width stayed within the viewport. No browser console errors during the synthetic flow.
+- Live read-only smoke check after restarting the local server: Liberty Station 59:05–66:11 shows **59.7/100**, red, with **93% eligible coverage**, matching the API and pure calculation. The production session-state fingerprint was unchanged by the restart/read flow. No original FIT/ZIP or source data was altered. Local screenshot: `data/storage/zigzag-study/tcs-liberty-desktop.png` (private, ignored).
+- `npm test`: **84 passed**. `npm run build`: passed, with the existing large-bundle/third-party annotation warnings. Current-turn diff has no whitespace errors; the pre-existing `todo.md` blank checklist item retains its existing trailing space.
+- User-led on-water/interval calibration remains deferred in `todo.md`; no claim of validated anchors, technique diagnosis or live ChatGPT account connection.

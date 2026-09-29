@@ -144,7 +144,7 @@ for (const name of Object.keys(toolSchemas))
 
 export const descriptions = {
   add_custom_interval:
-    "Save a user-selected, non-empty interval in elapsed seconds as a session tile. Exact duplicate bounds reuse the existing tile. Metrics, including experimental zig-zag and eligible coverage, are derived from full telemetry over those bounds; no best-effort or technique claim is made.",
+    "Save a user-selected, non-empty interval in elapsed seconds as a session tile. Exact duplicate bounds reuse the existing tile. Metrics, including Tracking Control Score and eligible coverage, are derived from full telemetry over those bounds; no best-effort or technique claim is made.",
   delete_custom_interval:
     "Remove a user-selected custom interval tile from its session. Leaves telemetry, original uploads, best windows and annotations unchanged.",
   suggest_launch_name:
@@ -266,7 +266,9 @@ export function executeTool(store, name, input) {
       session: store.context(s.id),
       interval: { start_s: start, end_s: end },
       evidence: compactInterval(
-        intervalStatistics(s.records, s.pauses, start, end),
+        intervalStatistics(s.records, s.pauses, start, end, {
+          annotations: s.annotations,
+        }),
       ),
       weather_evidence: s.weather?.data
         ? {

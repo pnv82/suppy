@@ -219,6 +219,8 @@ Return bounded exact evidence through existing analysis-context tools. The exter
 
 ## 8.1 Experimental zig-zag promotion
 
+**Superseded on 2026-09-29:** the user authorized the supplied four-component TCS, its 35/30/25/10 weights, initial anchors and score colors. Implementation details and remaining validation limits are in [Tracking Control Score](../engineering/tracking-control-score.md). The following describes the earlier path-ratio implementation, not the current score. Experimental wording is kept in documentation, not repeated across the UI.
+
 User decision: implement a 0–100 experimental local GPS path-straightness score now, with whole-session and exact-interval scope, eligible coverage, median/P90 angular deviation, resolved oscillations and lateral motion. Higher means straighter eligible recorded path, not better technique or lower energy use. No quality bands or paddle-side inference.
 
 The implemented method uses non-overlapping 60-second local sections, 5-second smoothing, 10-second geometry steps and a fixed chord axis per section. Score is 100 × summed chord distance / summed smoothed path distance. Exclude pauses, unsupported GPS, reported accuracy over 20 m, insufficient displacement, speed below 1 m/s, implausible movement and major turns. Require 60 eligible seconds and 20% coverage. These are versioned experimental parameters, not validated SUP thresholds. See [implemented methods](../engineering/performance-metrics.md) for exact rules, dependencies and validation limits. S1 retains the unpromoted research alternatives and independent field-validation work.

@@ -4,7 +4,7 @@ import { trackingEvidence } from "./tracking.mjs";
 import { movementEvidence } from "./events.mjs";
 import { matchedWindowDrift } from "./drift.mjs";
 
-export const ANALYSIS_METHOD = "sup_deterministic_v2";
+export const ANALYSIS_METHOD = "sup_deterministic_v3";
 export const POLICY = Object.freeze({
   gap_limit_s: 15,
   distance_speed_limit_mps: 8,
@@ -18,7 +18,7 @@ export function intervalStatistics(
   pauses,
   start,
   end,
-  { tracking = true } = {},
+  { tracking = true, annotations = [] } = {},
 ) {
   if (
     !Number.isFinite(start) ||
@@ -202,7 +202,11 @@ export function intervalStatistics(
         : "No matched distance and cadence support.",
     },
     ...(tracking
-      ? { zigzag: trackingEvidence(records, pauses, start, end) }
+      ? {
+          tracking: trackingEvidence(records, pauses, start, end, {
+            annotations,
+          }),
+        }
       : {}),
   };
 }
@@ -226,7 +230,9 @@ export function analyzeTelemetry(
     statistics:
       w.start === null
         ? null
-        : intervalStatistics(records, pauses, w.start, w.end),
+        : intervalStatistics(records, pauses, w.start, w.end, {
+            annotations: context.annotations,
+          }),
   }));
   const movement = movementEvidence(records, pauses, elapsed);
   return {
@@ -235,7 +241,9 @@ export function analyzeTelemetry(
     source: "derived",
     source_ref: sourceRef,
     policy: POLICY,
-    summary: intervalStatistics(records, pauses, 0, elapsed),
+    summary: intervalStatistics(records, pauses, 0, elapsed, {
+      annotations: context.annotations,
+    }),
     windows,
     movement,
     drift: matchedWindowDrift(
@@ -310,14 +318,21 @@ export function ensureIntervalStatistics(
   start,
   end,
   existing,
+  annotations = [],
 ) {
   if (start == null || end == null) return existing ?? null;
-  if (!existing) return intervalStatistics(records, pauses, start, end);
+  if (!existing)
+    return intervalStatistics(records, pauses, start, end, { annotations });
   if (existing.method === ANALYSIS_METHOD) return existing;
-  return intervalStatistics(records, pauses, start, end);
+  return intervalStatistics(records, pauses, start, end, { annotations });
 }
 
-export function ensureWindowStatistics(windows, records, pauses) {
+export function ensureWindowStatistics(
+  windows,
+  records,
+  pauses,
+  annotations = [],
+) {
   return windows.map((w) => ({
     ...w,
     statistics: ensureIntervalStatistics(
@@ -326,6 +341,7 @@ export function ensureWindowStatistics(windows, records, pauses) {
       w.start,
       w.end,
       w.statistics,
+      annotations,
     ),
   }));
 }

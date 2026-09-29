@@ -22,6 +22,6 @@ export function metricView(session, duration = null) {
     dps: evidence?.distance_per_stroke?.value_m ?? null,
     coverage: pair?.coverage_pct ?? null,
     hr: evidence?.heart_rate_bpm?.mean ?? null,
-    zigzag: evidence?.zigzag?.score ?? null,
+    tracking: evidence?.tracking?.score ?? null,
   };
 }

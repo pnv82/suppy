@@ -1,4 +1,5 @@
 import { ensureWindowStatistics } from "../domain/analysis.mjs";
+import { TrackingScore } from "./TrackingScore.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   intervalKey,
@@ -492,8 +493,15 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
         reviewIntervals(session),
         session.records,
         session.pauses,
+        session.annotations,
       ),
-    [session.windows, session.customIntervals, session.records, session.pauses],
+    [
+      session.windows,
+      session.customIntervals,
+      session.records,
+      session.pauses,
+      session.annotations,
+    ],
   );
   return (
     <section
@@ -510,8 +518,8 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
         {windows.map((w) => {
           const stats = w.statistics;
           const stroke = stats?.distance_per_stroke;
-          const zigzag = stats?.zigzag;
-          const zigzagDetail = `Experimental GPS straightness; higher means straighter eligible recorded sections. Eligible coverage: ${fmt(zigzag?.coverage_pct)}%. ${zigzag?.reason || ""}`;
+          const tracking = stats?.tracking;
+          const trackingDetail = `Eligible coverage: ${fmt(tracking?.coverage_pct)}%. ${tracking?.reason || ""}`;
           const detail =
             stroke?.value_m == null
               ? stroke?.reason
@@ -569,14 +577,15 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
                   </span>
                 </span>
                 <span
-                  className="window-zigzag"
-                  title={zigzagDetail}
-                  aria-description={zigzagDetail}
+                  className="window-tracking"
+                  title={trackingDetail}
+                  aria-description={trackingDetail}
                 >
-                  Zig-zag {fmt(zigzag?.score, 1)} / 100
-                  {zigzag?.score == null && (
-                    <span className="sr-only"> · Unavailable</span>
-                  )}
+                  <TrackingScore
+                    value={tracking?.score}
+                    label
+                    detail={trackingDetail}
+                  />
                 </span>
               </button>
               {w.id && (

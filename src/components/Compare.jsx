@@ -23,6 +23,8 @@ import { metricView } from "../domain/metric-view.mjs";
 import { fmt, shortDate } from "./SessionViews.jsx";
 import { MetricDetails } from "./MetricEvidence.jsx";
 
+import { TrackingScore, TrackingDot } from "./TrackingScore.jsx";
+
 export function Compare({
   sessions,
   boards = [],
@@ -64,7 +66,7 @@ export function Compare({
       ),
       dps: view.dps,
       cadenceValue: view.cadence,
-      zigzag: view.zigzag,
+      tracking: view.tracking,
       hr: view.hr,
       dateLabel: shortDate(session.date),
     };
@@ -103,7 +105,7 @@ export function Compare({
     ),
     dps: ["Estimated distance per stroke", "m/stroke", 2, "#7952c7"],
     cadenceValue: ["Recorded cadence", "spm", 0, "#6273c9"],
-    zigzag: ["Zig-zag · experimental", "/100", 1, "#008591"],
+    tracking: ["Tracking Control Score", "/100", 1, "#91a3b0"],
     hr: ["Heart rate", "bpm", 0, "#d54d72"],
   };
   const effectiveMetric = options[metric] ? metric : "speed";
@@ -194,7 +196,9 @@ export function Compare({
               />
               <YAxis
                 width={70}
-                domain={metric === "zigzag" ? [0, 100] : ["auto", "auto"]}
+                domain={
+                  effectiveMetric === "tracking" ? [0, 100] : ["auto", "auto"]
+                }
                 tickFormatter={(v) => fmt(v, dp)}
                 axisLine={false}
                 tickLine={false}
@@ -205,7 +209,13 @@ export function Compare({
                 dataKey={effectiveMetric}
                 stroke={color}
                 strokeWidth={2}
-                dot={{ r: 4, fill: "white" }}
+                dot={
+                  effectiveMetric === "tracking" ? (
+                    <TrackingDot />
+                  ) : (
+                    { r: 4, fill: "white" }
+                  )
+                }
                 connectNulls={false}
                 isAnimationActive={false}
               />
@@ -240,8 +250,7 @@ export function Compare({
             )
             .join("")}
           {unit} · Conditions, boards and coverage vary. These descriptive
-          trends do not establish improved fitness or technique. Zig-zag: higher
-          means a straighter eligible recorded path.
+          trends do not establish improved fitness or technique.
         </p>
       </section>
       <section className="sessions-table-section metrics-session-list">
@@ -270,7 +279,7 @@ export function Compare({
                   "Speed @ cadence",
                   "Session max",
                   "Distance / stroke",
-                  "Zig-zag · experimental",
+                  "TCS",
                   "HR",
                   "Details",
                   "Actions",
@@ -334,13 +343,11 @@ export function Compare({
                       {s.dps != null && !s.view.paired ? " · partial" : ""}
                     </small>
                   </td>
-                  <td data-label="Zig-zag · experimental">
-                    <strong>
-                      {fmt(s.zigzag, 1)} <span>/ 100</span>
-                      {change(index, "zigzag")}
-                    </strong>
+                  <td data-label="TCS">
+                    <TrackingScore value={s.tracking} />
+                    {change(index, "tracking")}
                     <small>
-                      {fmt(s.view.evidence?.zigzag?.coverage_pct)}% eligible
+                      {fmt(s.view.evidence?.tracking?.coverage_pct)}% eligible
                     </small>
                   </td>
                   <td data-label="Heart rate">

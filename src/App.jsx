@@ -138,9 +138,10 @@ export function App() {
             },
             session.records,
             session.pauses,
+            session.annotations,
           )
         : null,
-    [session?.records, session?.pauses, spot, rangeEnd],
+    [session?.records, session?.pauses, session?.annotations, spot, rangeEnd],
   );
   const reviewSession = manualInterval
     ? {

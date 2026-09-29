@@ -30,16 +30,20 @@ test("matched metrics share support, preserve zeros and use timer-eligible cover
   assert.equal(partial.speed_cadence.cadence_spm, 0);
   assert.equal(partial.distance_per_stroke.value_m, null);
 });
-test("zig-zag score distinguishes straight and oscillating GPS with angular evidence", () => {
+test("TCS distinguishes straight and oscillating GPS with all four components", () => {
   const straight = trackingEvidence(track(), [], 0, 3600);
   const zig = trackingEvidence(track({ zig: 6 }), [], 0, 3600);
   assert.ok(straight.score > 99.99);
-  assert.ok(zig.score < straight.score - 1 && zig.score > 90);
-  assert.ok(zig.p90_course_error_deg > 5);
-  assert.ok(zig.lateral_motion_m_per_km > 50);
+  assert.ok(zig.score < 80 && zig.score > 0);
+  assert.ok(zig.p90_course_deviation_deg > 5);
+  // A 6 m sine amplitude over a 60 s cycle spans approximately 12 m
+  // relative to the centered 30 s chord at its extremes.
+  assert.ok(zig.corridor_p95_m > 11.7 && zig.corridor_p95_m < 12.2);
+  assert.equal(zig.components.length, 4);
   assert.ok(zig.resolved_cycles > 0);
   assert.ok(zig.coverage_pct > 95);
-  assert.deepEqual(zig.segments[0].source_record_range, [0, 15]);
+  assert.deepEqual(zig.segments[0].source_record_range, [0, 721]);
+  assert.equal(zig.resolved_cycles, 59);
   const interval = trackingEvidence(track({ zig: 6 }), [], 600.5, 1200.5);
   assert.ok(interval.score >= 0 && interval.score <= 100);
   assert.ok(
@@ -49,7 +53,8 @@ test("zig-zag score distinguishes straight and oscillating GPS with angular evid
 test("tracking does not join pauses/gaps or invent support, and sampling sensitivity is bounded", () => {
   const a = trackingEvidence(track({ zig: 6, step: 1 }), [], 0, 3600);
   const b = trackingEvidence(track({ zig: 6, step: 5 }), [], 0, 3600);
-  assert.ok(Math.abs(a.score - b.score) < 0.1);
+  assert.ok(Math.abs(a.score - b.score) < 1);
+  assert.equal(a.resolved_cycles, b.resolved_cycles);
   const records = track({ seconds: 300 }).filter(
     (p) => p.elapsed_s < 100 || p.elapsed_s > 180,
   );
@@ -212,12 +217,12 @@ test("UI and bounded exact MCP evidence agree, and context edits invalidate calc
     start_s: best.start,
     end_s: best.end,
   }).structuredContent;
-  assert.equal(result.evidence.zigzag.score, best.statistics.zigzag.score);
+  assert.equal(result.evidence.tracking.score, best.statistics.tracking.score);
   assert.equal(
     result.evidence.distance_per_stroke.value_m,
     metricView(session, 1200).dps,
   );
-  assert.equal(result.evidence.zigzag.segments, undefined);
+  assert.equal(result.evidence.tracking.segments, undefined);
   assert.equal(result.session.deterministic.dps_timeline, undefined);
   assert.ok(result.telemetry.length <= 120);
   assert.ok(Number.isFinite(Date.parse(session.deterministic.computed_at_utc)));
@@ -237,7 +242,7 @@ test("UI and bounded exact MCP evidence agree, and context edits invalidate calc
   const summary = store.dashboard().sessions.at(-1);
   assert.equal(metricView(summary, 1200).speed, null);
   assert.equal(metricView(summary, 1200).cadence, null);
-  assert.equal(metricView(summary, 1200).zigzag, null);
+  assert.equal(metricView(summary, 1200).tracking, null);
 });
 
 test("low-speed hysteresis tolerates small threshold jitter without interpreting missing cadence", () => {
@@ -299,7 +304,7 @@ test("irregular recording preserves broad oscillation evidence without implying 
   assert.ok(
     irregular.score != null && Math.abs(irregular.score - baseline.score) < 1,
   );
-  assert.ok(irregular.p90_course_error_deg > 5);
+  assert.ok(irregular.p90_course_deviation_deg > 5);
   assert.equal(
     trackingEvidence(
       dense.map((p) => ({ ...p, latitude_deg: 32.7, longitude_deg: -117.2 })),
