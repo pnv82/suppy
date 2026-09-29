@@ -340,3 +340,7 @@ Validated using an in-memory synthetic tenant, injected geographic provider and 
 ## Next items: route direction (2026-09-29)
 
 Checked the synthetic curved route at 1440×1000 and 390×844, keyboard zoom and best-window selection, and summary-only missing GPS. Full-route chevrons remain faint beneath interval overlays and introduce zero keyboard tab stops. No page overflow at the narrow width. Existing direction/pause/gap tests plus a GPS-without-distance assertion pass; production build succeeds.
+
+## Next items: candidate annotations (2026-09-29)
+
+Synthetic temperature-supported possible fall at 6:39–7:30: keyboard activation pins the range and opens a Note/Approximate draft. Moving the speed cursor to session end preserves both bounds. Reviewed interruption saves to the annotation lane and replaces the linked candidate; reload retains the note. Desktop and phone editor layouts, cancellation, and summary-only annotation access checked. Event/domain tests and production build pass.

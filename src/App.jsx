@@ -9,6 +9,10 @@ import {
   ArrowClockwise,
 } from "@phosphor-icons/react";
 import { timeLabel, validRuns } from "./domain/metrics.mjs";
+import {
+  detectedEventLabel,
+  detectedEventDescription,
+} from "./domain/events.mjs";
 import { customIntervalEvidence, intervalKey } from "./domain/intervals.mjs";
 import { ImportDialog } from "./components/ImportDialog.jsx";
 import {
@@ -184,8 +188,16 @@ export function App() {
     navigate({ sessionId: id, page: "Sessions" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const annotate = (t, end = t) =>
-    setDraft(defaultDraft(Math.min(t, end), Math.max(t, end)));
+  const annotate = (t, end = t, candidate = null) =>
+    setDraft({
+      ...defaultDraft(Math.min(t, end), Math.max(t, end)),
+      ...(candidate
+        ? {
+            kind: "note",
+            candidate: `${detectedEventLabel(candidate)}. ${detectedEventDescription(candidate)}`,
+          }
+        : {}),
+    });
   const editAnnotation = (a) =>
     setDraft({
       id: a.id,

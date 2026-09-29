@@ -1121,8 +1121,16 @@ export function Timeline({
                 key={`detected-${i}`}
                 className="annotation-marker detected-event"
                 style={{ left: `${(event.start_s / 60 / max) * 100}%` }}
-                onClick={() => setCursor(event.start_s)}
-                aria-label={`${detectedEventLabel(event)} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}; ${detectedEventDescription(event)}`}
+                disabled={busy}
+                onClick={() => {
+                  setCursor(event.start_s);
+                  setSpot(event.start_s);
+                  setRangeEnd(event.end_s > event.start_s ? event.end_s : null);
+                  setExtending(false);
+                  onManualSelection(event.end_s > event.start_s);
+                  onAnnotate(event.start_s, event.end_s, event);
+                }}
+                aria-label={`Annotate ${detectedEventLabel(event)} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}; ${detectedEventDescription(event)}`}
                 title={`${detectedEventLabel(event)} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)} · ${detectedEventDescription(event)}`}
               >
                 <Diamond size={14} aria-hidden="true" />

@@ -15,6 +15,12 @@ export function AnnotationForm({
         <strong>{draft.id ? "Edit annotation" : "New annotation"}</strong>
         <span>Athlete reported · elapsed time</span>
       </div>
+      {draft.candidate && (
+        <p className="caption">
+          {draft.candidate} Review the timing and describe what happened before
+          saving. Detection alone does not confirm a fall.
+        </p>
+      )}
       <div className="editor-fields">
         <label>
           Selection
