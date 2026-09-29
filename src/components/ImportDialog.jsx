@@ -254,7 +254,9 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                     <li key={q.code}>
                       {q.code === "record_timestamp_end_precision"
                         ? "Whole-second timestamp at session end; original timing retained"
-                        : q.code.replaceAll("_", " ")}
+                        : q.code === "record_after_reported_end"
+                          ? `Final records match the timer stop, ${q.difference_s} s after the reported duration. Original timing retained. Records affected`
+                          : q.code.replaceAll("_", " ")}
                       : {q.count}
                     </li>
                   ))}

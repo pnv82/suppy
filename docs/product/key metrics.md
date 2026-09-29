@@ -66,7 +66,7 @@ Use Garmin profile scaling/subfields and validate device/activity cadence semant
 
 ### 3.2 Ordering, gaps and speed sources
 
-Keep the strict import policy for missing, duplicate, decreasing and out-of-session record timestamps, accounting for FIT whole-second timestamps versus millisecond duration at the final partial second as specified in [FIT import](../engineering/fit-import.md). Retain that boundary record with a precision flag; keep calculated windows within the reported duration. Do not silently sort or discard records. A source-preserving repair mode is suspended in Part II. Backward-compatibility freedom does not justify ambiguous timestamps.
+Keep the strict import policy for missing, duplicate, decreasing and out-of-session record timestamps, accounting for FIT whole-second timestamps versus millisecond duration and the bounded timer-corroborated ending policy specified in [FIT import](../engineering/fit-import.md). Retain boundary records with the appropriate precision or timer-discrepancy flag; keep calculated windows within the reported duration. Do not silently sort or discard records. A source-preserving repair mode is suspended in Part II. Backward-compatibility freedom does not justify ambiguous timestamps.
 
 Use actual positive timestamp differences, never sample count as duration. Time-based smoothing stays inside supported runs; no bridging pauses/unsupported sensor gaps or endpoint extrapolation. Display smoothing and numerical calculations must be distinguishable.
 

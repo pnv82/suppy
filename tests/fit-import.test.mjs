@@ -162,11 +162,124 @@ test("invalid record timestamps report the precise cause, record and timing", ()
     },
     {
       summary: { totalElapsedTime: 1299, totalTimerTime: 1299 },
+      timerEvents: [],
       reason: /record 261.*1 s after.*14:21:39\.000/i,
     },
   ];
   for (const { reason, ...options } of cases)
     assert.throws(() => decodeUpload(uploadFixture(options)), reason);
+});
+
+const timerEvent = (seconds, eventType) => ({
+  timestamp: new Date(Date.parse("2026-09-27T14:00:00Z") + seconds * 1000),
+  event: "timer",
+  eventType,
+});
+
+test("a bounded final timer stop corroborates older-watch tail records without changing durations", (t) => {
+  const { store } = setup(t);
+  const board = store.upsertBoard({ name: "Inflatable board" });
+  for (const paused of [false, true]) {
+    const elapsed = 1296.271;
+    const args = uploadFixture({
+      paused,
+      // Session save time may be much later; it is not the recording boundary.
+      summary: {
+        totalElapsedTime: elapsed,
+        totalTimerTime: paused ? elapsed - 160 : elapsed,
+        timestamp: new Date("2026-09-27T15:00:00Z"),
+      },
+    });
+    const { session: s, provenance } = decodeUpload(args);
+    assert.equal(s.deviceSummary.total_elapsed_time, elapsed);
+    assert.equal(
+      s.deviceSummary.total_timer_time,
+      paused ? elapsed - 160 : elapsed,
+    );
+    assert.equal(s.records.at(-1).elapsed_s, 1300);
+    assert.equal(s.records.at(-1).source_record_index, s.records.length - 1);
+    assert.equal(
+      provenance.raw_timer_events.at(-1).timestamp.toISOString(),
+      s.records.at(-1).timestamp_utc,
+    );
+    const quality = s.quality.find(
+      (q) => q.code === "record_after_reported_end",
+    );
+    assert.equal(quality.count, 1);
+    assert.equal(quality.difference_s, 3.729);
+    assert.equal(quality.timer_stop_utc, "2026-09-27T14:21:40.000Z");
+    assert.deepEqual(s.pauses, paused ? [{ start: 500, end: 660 }] : []);
+    assert.ok(s.windows.every((w) => w.end === null || w.end <= elapsed));
+    assert.ok(s.deterministic.summary.speed_mps.covered_s <= elapsed);
+    assert.equal(store.previewImport(args).status, "preview");
+    const saved = store.commitImport(
+      commitArgs(store, args, { board_id: board.id }),
+    );
+    assert.equal(store.get(saved.session_id).boardId, board.id);
+    assert.equal(store.previewImport(args).status, "duplicate");
+    executeTool(store, "delete_session", { session_id: saved.session_id });
+    assert.equal(
+      store.commitImport(commitArgs(store, args, { board_id: board.id }))
+        .status,
+      "imported",
+    );
+    executeTool(store, "delete_session", { session_id: saved.session_id });
+  }
+});
+
+test("timer corroboration is bounded and requires ordered complete events plus a matching final record", () => {
+  const summary = {
+    totalElapsedTime: 1296.271,
+    totalTimerTime: 1296.271,
+    timestamp: new Date("2026-09-27T15:00:00Z"),
+  };
+  for (const timerEvents of [
+    [],
+    [timerEvent(0, "start")],
+    [timerEvent(1300, "stopAll")],
+    [timerEvent(1, "start"), timerEvent(1300, "stopAll")],
+    [timerEvent(0, "start"), timerEvent(1299, "stopAll")],
+    [timerEvent(0, "start"), timerEvent(1301, "stopAll")],
+    [
+      timerEvent(0, "start"),
+      timerEvent(1300, "stopAll"),
+      timerEvent(1301, "start"),
+    ],
+    [
+      timerEvent(0, "start"),
+      timerEvent(700, "stopAll"),
+      timerEvent(600, "start"),
+      timerEvent(1300, "stopAll"),
+    ],
+    [
+      timerEvent(0, "start"),
+      timerEvent(600, "start"),
+      timerEvent(1300, "stopAll"),
+    ],
+  ])
+    assert.throws(
+      () => decodeUpload(uploadFixture({ summary, timerEvents })),
+      /record 261.*after the session end/i,
+    );
+  assert.throws(
+    () =>
+      decodeUpload(
+        uploadFixture({
+          summary: { totalElapsedTime: 1294.999, totalTimerTime: 1294.999 },
+        }),
+      ),
+    /record 261.*5\.001 s after/i,
+  );
+  const allowed = decodeUpload(
+    uploadFixture({
+      summary: { totalElapsedTime: 1295, totalTimerTime: 1295 },
+    }),
+  ).session;
+  assert.equal(
+    allowed.quality.find((q) => q.code === "record_after_reported_end")
+      .difference_s,
+    5,
+  );
 });
 
 test("official decoder normalizes SI, UTC, nulls, strokes and deterministic best windows", () => {
@@ -513,12 +626,20 @@ test("REST and MCP expose the same import flow and calculated interval evidence,
       assert.equal((await response.json()).error, mcpError.content[0].text);
       assert.equal(store.dashboard().sessions.length, 0);
     }
-    const args = uploadFixture(fractionalEnd);
+    const args = uploadFixture({
+      summary: { totalElapsedTime: 1296.271, totalTimerTime: 1296.271 },
+    });
     const preview = await client.callTool({
       name: "preview_fit_import",
       arguments: args,
     });
     assert.equal(preview.structuredContent.status, "preview");
+    assert.equal(
+      preview.structuredContent.summary.quality.find(
+        (q) => q.code === "record_after_reported_end",
+      ).difference_s,
+      3.729,
+    );
     assert.equal(preview.structuredContent.route, undefined);
     assert.ok(preview._meta.importRoute.length);
     const res = await fetch(base + "/api/tools", {

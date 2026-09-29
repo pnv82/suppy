@@ -10,7 +10,15 @@ python -m venv .venv
 
 Both scripts resolve paths from their own location and use the selected interpreter's installed packages. The retired `.tools/python` package directory is no longer injected into Python's import path. `.venv` is ignored by Git.
 
-`inspect_samples.py` verifies the three supplied one-FIT archives, decodes with Garmin's SDK, checks integrity and regenerates derived telemetry/inventory. Run it only when those derived files need regeneration; ordinary validation is read-only:
+To check the actual app importer against every local sample, including archive/FIT checksums and best-window bounds, run this opt-in, read-only integration check:
+
+```powershell
+node scripts/validate-fit-samples.mjs
+```
+
+It requires the private files listed in the sample manifest, performs no database writes, and is separate from `npm test`, whose fixtures remain synthetic.
+
+`inspect_samples.py` verifies the supplied one-FIT archives (currently seven), decodes with Garmin's SDK, checks integrity and regenerates derived telemetry/inventory. Run it only when those derived files need regeneration; ordinary validation is read-only:
 
 ```powershell
 .\.venv\Scripts\python.exe scripts/inspect_samples.py

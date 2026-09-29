@@ -12,6 +12,34 @@ const finite = (n, min = 0) => (Number.isFinite(n) && n >= min ? n : null);
 const iso = (d) =>
   d instanceof Date && Number.isFinite(d.getTime()) ? d.toISOString() : null;
 
+// Compatibility bound, not a Garmin precision guarantee. A small disagreement
+// is accepted only with a complete timer sequence and a matching final record.
+const MAX_TIMER_END_DIFFERENCE_S = 5;
+function corroboratedTimerEnd(events, lastRecord, startMs, elapsed) {
+  if (events.length < 2 || Date.parse(events[0].timestamp) !== startMs)
+    return null;
+  let running = false,
+    previous = -Infinity;
+  for (const event of events) {
+    const time = Date.parse(event.timestamp);
+    if (!Number.isFinite(time) || time <= previous) return null;
+    if (event.event_type === "start" && !running) running = true;
+    else if (["stop", "stopAll"].includes(event.event_type) && running)
+      running = false;
+    else return null;
+    previous = time;
+  }
+  const end = (previous - startMs) / 1000;
+  if (
+    running ||
+    end <= Math.ceil(elapsed) ||
+    end - elapsed > MAX_TIMER_END_DIFFERENCE_S ||
+    iso(lastRecord?.timestamp) !== events.at(-1).timestamp
+  )
+    return null;
+  return end;
+}
+
 // Deliberately narrow ZIP adapter: one classic stored/deflated FIT, no disk
 // extraction, ZIP64, encryption, paths, symlinks or additional entries.
 export function unpackFit(bytes, filename) {
@@ -190,9 +218,24 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
   const quality = new Map();
   const flag = (code) => quality.set(code, (quality.get(code) || 0) + 1);
   const startMs = Date.parse(startUtc);
+  const events = (messages.eventMesgs || [])
+    .filter((e) => e.event === "timer")
+    .map((e, index) => ({
+      timestamp: iso(e.timestamp),
+      event: "timer",
+      event_type: typeof e.eventType === "string" ? e.eventType : "unknown",
+      source_event_index: index,
+    }));
+  const timerEnd = corroboratedTimerEnd(
+    events,
+    messages.recordMesgs?.at(-1),
+    startMs,
+    elapsed,
+  );
   // FIT date_time has whole-second precision; total_elapsed_time has ms precision.
-  // Keep the original timestamps/duration, allowing only the final partial second.
-  const recordEnd = Math.ceil(elapsed);
+  // Keep original timestamps/duration. A corroborated older-watch ending can
+  // extend record admission, but never the duration used by derived analysis.
+  const recordEnd = timerEnd ?? Math.ceil(elapsed);
   const endUtc = new Date(startMs + Math.round(elapsed * 1000)).toISOString();
   const secondsLabel = (seconds) => Number(seconds.toFixed(3));
   let last = -Infinity;
@@ -219,9 +262,14 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
       );
     if (t > recordEnd)
       reject(
-        `is ${secondsLabel(t - elapsed)} s after the session end (${timestamp}; end: ${endUtc}; elapsed: ${elapsed} s), beyond FIT whole-second timestamp precision.`,
+        `is ${secondsLabel(t - elapsed)} s after the session end (${timestamp}; end: ${endUtc}; elapsed: ${elapsed} s), beyond whole-second precision or a matching final timer stop within ${MAX_TIMER_END_DIFFERENCE_S} s.`,
       );
-    if (t > elapsed) flag("record_timestamp_end_precision");
+    if (t > elapsed)
+      flag(
+        timerEnd === null
+          ? "record_timestamp_end_precision"
+          : "record_after_reported_end",
+      );
     if (t - last > 15 && index) flag("telemetry_gap_over_15s");
     last = t;
     let lat = Number.isFinite(r.positionLat)
@@ -257,20 +305,13 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
       source_record_index: index,
     };
   });
-  const events = (messages.eventMesgs || [])
-    .filter((e) => e.event === "timer")
-    .map((e, index) => ({
-      timestamp: iso(e.timestamp),
-      event: "timer",
-      event_type: typeof e.eventType === "string" ? e.eventType : "unknown",
-      source_event_index: index,
-    }));
   if (
     events.some(
       (e) =>
         !e.timestamp ||
         Date.parse(e.timestamp) < Date.parse(startUtc) ||
-        Date.parse(e.timestamp) > Date.parse(startUtc) + (elapsed + 1) * 1000,
+        Date.parse(e.timestamp) >
+          startMs + Math.max(elapsed + 1, recordEnd) * 1000,
     )
   )
     throw new Error("FIT timer events have invalid session timestamps.");
@@ -375,7 +416,17 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
     deterministic: analysis,
     deviceSummary: device,
     timerEvents: events,
-    quality: [...quality].map(([code, count]) => ({ code, count })),
+    quality: [...quality].map(([code, count]) => ({
+      code,
+      count,
+      ...(code === "record_after_reported_end"
+        ? {
+            difference_s: secondsLabel(timerEnd - elapsed),
+            timer_stop_utc: events.at(-1).timestamp,
+            reported_end_utc: endUtc,
+          }
+        : {}),
+    })),
     annotations: [],
     additionalContext: "",
     technique: [],
