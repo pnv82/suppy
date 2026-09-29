@@ -64,14 +64,14 @@ export function NavigationRail({ page, onNavigate, onImport }) {
       <div className="rail-actions">
         <button
           className="rail-button"
-          aria-label="Import FIT"
+          aria-label="Import"
           onClick={onImport}
           onFocus={reveal}
           onMouseEnter={reveal}
         >
           <UploadSimple size={22} aria-hidden="true" />
           <span className="rail-label" aria-hidden="true">
-            Import FIT
+            Import
           </span>
         </button>
       </div>

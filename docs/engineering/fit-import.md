@@ -65,3 +65,7 @@ See [launch lookup contracts](launch-names.md) for supported-start eligibility, 
 ## Temperature refresh
 
 Records retain signed nullable `temperature_c` directly from the FIT record field. Existing uploads recover this field on first load from checksum-verified, tenant-scoped `fit_imports` bytes after exact timestamp/count alignment. Athlete annotations remain unchanged and stale generated evidence is replaced by the current method. Missing source bytes or missing temperature never become zero. See [selective event contracts](performance-metrics.md#selective-event-refresh-and-temperature-2026-09-29).
+
+## Personal Garmin import
+
+The same decoder/preview/commit boundary also accepts originals downloaded on demand from a user-connected personal Garmin account. Temporary previews are tenant-scoped, and commits retain source activity ID/retrieval time alongside unchanged bytes and checksums. See [Garmin Connect](garmin-connect.md).

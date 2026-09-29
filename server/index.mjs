@@ -9,6 +9,7 @@ import { openDatabase, validateTenantId } from "./database.mjs";
 import { descriptions, toolSchemas } from "./tools.mjs";
 import { dispatchTool } from "./operations.mjs";
 import { createWeatherService } from "./weather/service.mjs";
+import { createGarminService } from "./garmin/service.mjs";
 
 const clientRoot = resolve(
   fileURLToPath(new URL("../dist/client/", import.meta.url)),
@@ -37,6 +38,7 @@ function widgetHtml() {
 export function createMcpServer(
   store,
   weatherService = createWeatherService(),
+  garminService,
 ) {
   const server = new McpServer({ name: "suppy", version: "0.1.0" });
   server.registerResource(
@@ -80,6 +82,8 @@ export function createMcpServer(
       "set_default_board",
       "assign_session_board",
       "commit_fit_import",
+      "commit_garmin_activity",
+      "disconnect_garmin",
       "fetch_session_weather",
       "set_session_wind",
     ].includes(name);
@@ -110,13 +114,23 @@ export function createMcpServer(
             "suggest_launch_name",
             "fetch_session_weather",
             "commit_fit_import",
+            "commit_garmin_activity",
+            "preview_fit_import",
+            "list_garmin_activities",
+            "preview_garmin_activity",
           ].includes(name),
         },
         _meta: { ui: { resourceUri }, "openai/outputTemplate": resourceUri },
       },
       async (args) => {
         try {
-          return await dispatchTool(store, name, args, weatherService);
+          return await dispatchTool(
+            store,
+            name,
+            args,
+            weatherService,
+            garminService,
+          );
         } catch (error) {
           return {
             isError: true,
@@ -129,11 +143,11 @@ export function createMcpServer(
   return server;
 }
 
-async function readJson(req) {
+async function readJson(req, limit = 40_010_000) {
   let body = "";
   for await (const chunk of req) {
     body += chunk;
-    if (body.length > 40_010_000)
+    if (body.length > limit)
       throw new Error("Request too large (30 MB file limit)");
   }
   return body ? JSON.parse(body) : {};
@@ -147,6 +161,7 @@ function json(res, status, body) {
 }
 
 export function createHttpServer(store, options = {}) {
+  const garminService = options.garminService ?? createGarminService();
   const weatherService =
     options.weatherService ??
     createWeatherService({ provider: options.weatherProvider });
@@ -198,7 +213,11 @@ export function createHttpServer(store, options = {}) {
             error: "This stateless MCP endpoint accepts POST requests.",
           });
         }
-        const mcp = createMcpServer(requestStore, weatherService);
+        const mcp = createMcpServer(
+          requestStore,
+          weatherService,
+          garminService,
+        );
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,
@@ -210,6 +229,47 @@ export function createHttpServer(store, options = {}) {
         await mcp.connect(transport);
         return await transport.handleRequest(req, res, await readJson(req));
       }
+      if (path.startsWith("/api/garmin/")) {
+        // Credentials are accepted only from the direct same-origin loopback UI.
+        // The MCP tunnel has no credential tool or forwarded sign-in endpoint.
+        const local = ["127.0.0.1", "::1", "::ffff:127.0.0.1"].includes(
+          req.socket.remoteAddress,
+        );
+        if (
+          req.method !== "POST" ||
+          !local ||
+          req.headers.origin !== `http://${req.headers.host}` ||
+          !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(
+            req.headers.origin ?? "",
+          ) ||
+          Object.keys(req.headers).some(
+            (key) =>
+              key === "forwarded" ||
+              key.startsWith("x-forwarded-") ||
+              key.startsWith("cf-"),
+          ) ||
+          !req.headers["content-type"]?.startsWith("application/json")
+        )
+          return json(res, 403, {
+            error:
+              "Sign in through the direct local app, not ChatGPT or a tunnel.",
+          });
+        let credentials;
+        try {
+          credentials = await readJson(req, 4096);
+        } catch {
+          return json(res, 400, { error: "Invalid Garmin sign-in request." });
+        }
+        return json(
+          res,
+          200,
+          await garminService.authenticate(
+            requestStore,
+            path.slice("/api/garmin/".length),
+            credentials,
+          ),
+        );
+      }
       if (path === "/api/dashboard" && req.method === "GET")
         return json(res, 200, requestStore.dashboard());
       if (path === "/api/tools" && req.method === "POST") {
@@ -217,7 +277,13 @@ export function createHttpServer(store, options = {}) {
         return json(
           res,
           200,
-          await dispatchTool(requestStore, name, args, weatherService),
+          await dispatchTool(
+            requestStore,
+            name,
+            args,
+            weatherService,
+            garminService,
+          ),
         );
       }
       if (path.startsWith("/api/"))
@@ -254,6 +320,7 @@ export function createHttpServer(store, options = {}) {
       else res.end();
     }
   });
+  server.on("close", () => garminService.close());
   if (owned)
     server.on("close", () =>
       weatherService.idle().then(() => database.close()),

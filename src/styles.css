@@ -3473,3 +3473,49 @@ td small {
   width: 7px;
   height: 9px;
 }
+
+.garmin-picker fieldset {
+  border: 0;
+  padding: 0;
+  margin: 14px 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.garmin-picker legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.garmin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0;
+}
+.garmin-toolbar [aria-pressed="true"] {
+  border-color: var(--accent, #2c6b6d);
+  background: #e4f0ed;
+}
+.garmin-activities {
+  list-style: none;
+  padding: 0;
+  max-height: 310px;
+  overflow-y: auto;
+}
+.garmin-activities li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #dddcd3;
+}
+.garmin-activities li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.garmin-activities .caption {
+  display: block;
+}

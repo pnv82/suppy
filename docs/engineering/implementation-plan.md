@@ -47,3 +47,7 @@ Training focus and the separate context panel are removed from session review fo
 The top row has previous (older) / next (newer) controls, disabled at the ends. A single session-selection popover contains full date, local start/end, explicit timezone, distance, active duration, type and source availability. The separate info disclosure is removed. Home now defaults to supported best-20-minute metrics; the existing FIT maximum remains in session chart references and metric details.
 
 Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Current interval evidence is calculated as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.
+
+## Personal Garmin import (2026-09-29)
+
+The user approved a personal Garmin Connect integration. On-demand account connection, MFA, SUP activity browsing and original-file preview/save reuse the deterministic FIT import pipeline. Credentials are entered only in the direct local app; the widget uses safe tools after local sign-in. Tokens are temporary and tenant-scoped. No automatic synchronization is implemented. See [Garmin contracts](garmin-connect.md).

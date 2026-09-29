@@ -352,3 +352,10 @@ Browser-tested the built widget inside a synthetic host using the installed MCP 
 ## Next items: speed quality (2026-09-29)
 
 A synthetic 18 mph record and FIT maximum are excluded from speed statistics, charts and analysis while remaining visible as raw evidence. Checked metric details and missing telemetry at desktop 1440×1000 and phone 390×844; keyboard opens/closes details. Regression tests cover independent channel coverage, null maxima and existing sessions without rewriting source. All 101 tests pass; production build succeeds with existing bundle/annotation warnings.
+
+## Next items: personal Garmin import (2026-09-29)
+
+Used an injected personal-account adapter and synthetic FITs in the isolated in-memory tenant. At 390×844 and 1440×1000, checked sign-in, wrong-code feedback, keyboard MFA retry, activity labels with missing time/distance, no-GPS/no-sensor preview and save, explicit similar-session choice, launch suggestion confirmation and saved session. Manual file import still identifies the same original as a duplicate and opens the existing session. Cancel/Escape and focus return remain supported; no horizontal overflow. Screenshots: `.tools/qa-garmin-mobile.png`, `.tools/qa-garmin-desktop.png`.
+
+All 107 tests pass, including actual MCP transport with a synthetic connected account and separate tests for credentials, tenant isolation, provider errors and original bytes/provenance. Production build and foundation audit pass; preexisting Zod annotations and bundle-size warnings remain. No live Garmin credentials were used; live sign-in/download validation remains a user account check.
+Embedded AppBridge browser check also confirms that a disconnected widget shows local-app sign-in instructions and a connection refresh button, with no credential fields. The safe Garmin tools were exercised over real MCP transport with the synthetic account.

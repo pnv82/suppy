@@ -20,6 +20,10 @@ For UI development, use `npm run dev` instead: Vite runs on port 5173, with the 
 
 This workspace’s four historical summaries and three Garmin tracks have been migrated to `data/storage/production.sqlite` under tenant `local`. A fresh checkout starts empty and runs without private files. Restore a SQLite backup to move personal data between machines; use synthetic development fixtures for UI work. See [storage, multitenancy and backup instructions](docs/engineering/storage.md).
 
+## Import from Garmin Connect
+
+Choose **Import → Garmin Connect** in the local app, sign in and complete verification if requested, then select a SUP activity to preview and save. You can also continue importing FIT/ZIP files. The personal connection is on demand, uses an unofficial client, and expires after 30 minutes or a server restart. Passwords are not saved. Sign in locally before using Garmin import inside ChatGPT; never enter credentials in chat. See [connection and privacy details](docs/engineering/garmin-connect.md).
+
 ## What works now
 
 - **Home:** chronological trends above the latest-ten session grid, with maximum speed and changes over 5% versus the preceding three sessions. Row menus offer Edit, Delete, Recalculate and Refresh weather. Open any row to review that session; phone layouts show the rows as readable cards.
@@ -154,7 +158,7 @@ Historical import capture: 2026-09-26 03:24:26 UTC. Original source ranges, refe
 
 The map uses OpenStreetMap with visible attribution and normal browser tile caching. Only the visible map area is requested; no offline tile download. See the [tile policy](https://operations.osmfoundation.org/policies/tiles/). A production map service decision is deferred.
 
-Navigation uses a compact left icon rail. Labels are persistent from 1400 px upward. On smaller screens, hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail.
+Navigation uses a compact left icon rail. Labels are persistent from 1400 px upward. On smaller screens, hover or keyboard-focus an icon to see its label; the active page is highlighted. Import is at the bottom of the rail.
 
 The app is named Suppy. Existing SUP_DB_PATH/SUP_PORT environment names, local storage paths and operator-created tunnel profile names remain valid. Refresh ChatGPT connection metadata after this release; the embedded resource now uses ui://suppy/dashboard.html.
 

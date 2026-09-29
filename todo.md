@@ -4,7 +4,7 @@
 - [x] Convert event candidates into reviewed annotations: activation pins their range and opens an approximate note draft without confirming a fall.
 - [x] Request fresh whole-session analysis and a saved summary from an empty highlight in the ChatGPT widget; show standalone instructions and host error/retry states.
 - [x] Filter unreasonable recorded speed and FIT maxima with an explicit 6 m/s ceiling, retain raw evidence and show exclusions in metric details.
-- [ ] add integration with Garmin, so i can load sessions data directly from there, omitting export/import step fo the fit files.
+- [x] Add on-demand personal Garmin Connect sign-in/MFA, SUP activity browsing and reviewed original-file import, with temporary tenant-scoped account storage.
 
 # Deferred work
 
@@ -32,6 +32,8 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 - [ ] [S4: Environmental normalization and historical benchmarks](docs/product/key%20metrics.md#s4-environmental-normalization-and-historical-benchmarks). Validate conditions/equipment support before normalized claims.
 - [ ] [S5: Physiological fatigue/regression models and composite indices](docs/product/key%20metrics.md#s5-physiological-fatigue-models-and-composite-indices). Keep simple descriptive drift and external interpretation separate.
 - [ ] [S6: Steady-only DPS, universal GPS thresholds/scores, timestamp repair and permanent chart additions](docs/product/key%20metrics.md#s6-alternative-estimands-generic-thresholds-and-repair-mode). Each needs a bounded decision and validation.
+
+- [ ] Complete a live personal Garmin account sign-in/MFA/download check in the local app. Synthetic adapter, REST/MCP and browser flows are validated; upstream account challenges still need the user’s account.
 
 ## External analysis and ChatGPT
 

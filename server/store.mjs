@@ -223,8 +223,9 @@ export function createStore({
       ...matches,
     };
   }
-  function commitImport(args) {
+  function commitImport(args, importSource = null) {
     const { upload, matches } = inspectImport(args);
+    if (importSource) upload.provenance.import_source = importSource;
     if (args.expected_sha256 !== upload.provenance.original_sha256)
       throw new Error("File changed since preview. Preview it again.");
     if (matches.duplicate_session_id) {
@@ -761,7 +762,7 @@ export function createStore({
     ...Object.fromEntries(
       Object.entries(writes).map(([name, fn]) => [
         name,
-        (args) => repo.transaction(() => fn(args)),
+        (...args) => repo.transaction(() => fn(...args)),
       ]),
     ),
   };
