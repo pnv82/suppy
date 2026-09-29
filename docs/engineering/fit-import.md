@@ -60,7 +60,7 @@ The current runtime method is `sup_deterministic_v4`. It adds shared speed/caden
 
 Edit session offers `suggest_launch_name` after import. The user approved exact start-coordinate transmission to the OpenStreetMap Overpass endpoint. On-demand lookup finds named waterfront features, preferring same-tenant athlete-confirmed starts and retaining six historical City beach references as an offline fallback. Suggestions carry source links, retrieval timestamps and approximate proximity; selecting a name and saving confirms it without changing source location or session ID.
 
-See [launch lookup contracts](launch-names.md) for supported-start eligibility, ranking, tenant-scoped cache, provider bounds, failure handling and provenance. Import itself remains offline and never waits for or triggers this geographic lookup.
+See [launch lookup contracts](launch-names.md) for supported-start eligibility, ranking, tenant-scoped cache, provider bounds, failure handling and provenance. The preview tool now awaits the same bounded lookup and returns `launch_suggestions`; the import dialog preselects a candidate for review. Failed lookup and absent GPS preserve a usable preview. Duplicate previews skip lookup. The decoder and commit stay offline. Optional `launch_source_ref` is revalidated at commit and saved with confirmation provenance; expired references require preview again or manual entry.
 
 ## Temperature refresh
 

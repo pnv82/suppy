@@ -60,6 +60,7 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
     [runs, setRuns] = useState([]);
   const [target, setTarget] = useState(""),
     [name, setName] = useState(""),
+    [launchReference, setLaunchReference] = useState(null),
     [board, setBoard] = useState(defaultBoardId || "");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -82,6 +83,10 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
       if (!preview) {
         const input = await uploadArguments(file, timezone);
         const result = await callTool("preview_fit_import", input);
+        const suggested =
+          result.structuredContent.launch_suggestions?.candidates[0];
+        setName(suggested?.name || "");
+        setLaunchReference(suggested?.source_ref || null);
         setArgs(input);
         setPreview(result.structuredContent);
         setRuns(result._meta.importRoute || []);
@@ -98,6 +103,7 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
           target_session_id: target || null,
           board_id: board || null,
           launch_name: name,
+          launch_source_ref: launchReference,
         });
         onImported(
           result.structuredContent.session_id,
@@ -308,10 +314,67 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                         value={name}
                         maxLength={100}
                         placeholder={s.title}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          setLaunchReference(null);
+                        }}
                         disabled={busy}
                       />
                     </label>
+                    <p className="caption">
+                      Nearby launch suggestions are unconfirmed. Review the name
+                      before importing. Exact start coordinates are used for the
+                      OpenStreetMap lookup.
+                    </p>
+                    {preview.launch_suggestions?.lookup.message && (
+                      <p role="status">
+                        {preview.launch_suggestions.lookup.message}
+                      </p>
+                    )}
+                    {preview.launch_suggestions?.reason && (
+                      <p role="status">{preview.launch_suggestions.reason}</p>
+                    )}
+                    <div className="launch-suggestions">
+                      {preview.launch_suggestions?.candidates.map((c) => (
+                        <div key={c.source_ref}>
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() => {
+                              setName(c.name);
+                              setLaunchReference(c.source_ref);
+                            }}
+                          >
+                            {c.name} · {c.distance_m} m · use name
+                          </button>
+                          <small>
+                            {c.source === "openstreetmap" ? (
+                              <a
+                                href={c.source_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                OpenStreetMap contributors · nearby mapped
+                                feature
+                              </a>
+                            ) : c.source === "previous_athlete_confirmation" ? (
+                              "Previously confirmed nearby start"
+                            ) : (
+                              <a
+                                href={
+                                  preview.launch_suggestions.catalog.source_url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Historical City beach reference
+                              </a>
+                            )}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
                     <label>
                       Board
                       <select
@@ -351,7 +414,7 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
           <p role="status">
             {preview
               ? "Saving import…"
-              : "Validating file and calculating metrics…"}
+              : "Validating file, calculating metrics and finding nearby launches…"}
           </p>
         )}
         <div className="dialog-actions">

@@ -181,7 +181,9 @@ export function createStore({
     return { upload, matches };
   }
   function previewImport(args) {
-    const { upload, matches } = inspectImport(args);
+    return importPreview(inspectImport(args));
+  }
+  function importPreview({ upload, matches }) {
     const { records, ...summary } = upload.session;
     const stride = Math.max(1, Math.ceil(records.length / 400));
     const route = validRuns(records, upload.session.pauses, true, false)
@@ -264,6 +266,28 @@ export function createStore({
     if (args.launch_name?.trim()) {
       session.title = args.launch_name.trim();
       session.titleSource = "athlete_reported";
+      const candidate = args.launch_source_ref
+        ? launchSuggestions(
+            session,
+            repo.sessions(),
+            launchCatalog.places,
+            cachedLaunches(session),
+          ).candidates.find(
+            (c) =>
+              c.source_ref === args.launch_source_ref &&
+              c.name === session.title,
+          )
+        : null;
+      if (args.launch_source_ref && !candidate)
+        throw new Error(
+          "Launch suggestion expired. Preview again or enter the name manually.",
+        );
+      session.launchNameProvenance = {
+        source: "athlete_reported",
+        reference: args.launch_source_ref ?? null,
+        evidence: candidate,
+        confirmed_at_utc: new Date().toISOString(),
+      };
     }
     repo.insertSession(session, { provenance: upload.provenance });
     repo.saveImport(upload, session.id);
@@ -693,64 +717,19 @@ export function createStore({
   return {
     get,
     async suggestLaunchName({ session_id }) {
-      const session = get(session_id),
-        start = launchPoint(session),
-        key = launchKey(session);
-      let lookup = { status: start ? "disabled" : "no_gps", candidates: [] };
-      if (start && launchLookup) {
-        let entry = launchCache.get(key);
-        if (!entry || entry.expires <= Date.now()) {
-          entry = { expires: Infinity };
-          entry.promise = Promise.resolve()
-            .then(() => launchLookup(start))
-            .then(
-              (candidates) => ({
-                candidates,
-                status: "ready",
-                expires: Date.now() + 86400000,
-              }),
-              () => ({
-                candidates: [],
-                status: "unavailable",
-                expires: Date.now() + 60000,
-              }),
-            )
-            .then((value) => {
-              Object.assign(entry, value);
-              delete entry.promise;
-              return entry;
-            });
-          launchCache.set(key, entry);
-          if (launchCache.size > 100)
-            launchCache.delete(launchCache.keys().next().value);
-        }
-        lookup = entry.promise ? await entry.promise : entry;
-        // A deleted session cannot be revived by a late provider response.
-        get(session_id);
-      }
-      return {
-        session_id,
-        ...launchSuggestions(
-          session,
-          repo.sessions(),
-          launchCatalog.places,
-          lookup.candidates,
-        ),
-        lookup: {
-          status: lookup.status,
-          message:
-            lookup.status === "unavailable"
-              ? "Online lookup is temporarily unavailable. Showing local suggestions; try again in a minute."
-              : null,
-        },
-        catalog: {
-          scope: launchCatalog.scope,
-          source: launchCatalog.source,
-          source_date: launchCatalog.source_date,
-          source_url: launchCatalog.source_url,
-          limitations: launchCatalog.limitations,
-        },
-      };
+      const result = await suggestForSession(get(session_id));
+      // A deleted session cannot be revived by a late provider response.
+      get(session_id);
+      return { session_id, ...result };
+    },
+    async previewImportWithLaunch(args) {
+      const inspected = inspectImport(args);
+      const preview = importPreview(inspected);
+      if (!preview.duplicate_session_id)
+        preview.launch_suggestions = await suggestForSession(
+          inspected.upload.session,
+        );
+      return preview;
     },
     recalculateSession({ session_id }) {
       get(session_id);
@@ -772,6 +751,62 @@ export function createStore({
       ]),
     ),
   };
+  async function suggestForSession(session) {
+    const start = launchPoint(session),
+      key = launchKey(session);
+    let lookup = { status: start ? "disabled" : "no_gps", candidates: [] };
+    if (start && launchLookup) {
+      let entry = launchCache.get(key);
+      if (!entry || entry.expires <= Date.now()) {
+        entry = { expires: Infinity };
+        entry.promise = Promise.resolve()
+          .then(() => launchLookup(start))
+          .then(
+            (candidates) => ({
+              candidates,
+              status: "ready",
+              expires: Date.now() + 86400000,
+            }),
+            () => ({
+              candidates: [],
+              status: "unavailable",
+              expires: Date.now() + 60000,
+            }),
+          )
+          .then((value) => {
+            Object.assign(entry, value);
+            delete entry.promise;
+            return entry;
+          });
+        launchCache.set(key, entry);
+        if (launchCache.size > 100)
+          launchCache.delete(launchCache.keys().next().value);
+      }
+      lookup = entry.promise ? await entry.promise : entry;
+    }
+    return {
+      ...launchSuggestions(
+        session,
+        repo.sessions(),
+        launchCatalog.places,
+        lookup.candidates,
+      ),
+      lookup: {
+        status: lookup.status,
+        message:
+          lookup.status === "unavailable"
+            ? "Online lookup is temporarily unavailable. Showing local suggestions; try again in a minute."
+            : null,
+      },
+      catalog: {
+        scope: launchCatalog.scope,
+        source: launchCatalog.source,
+        source_date: launchCatalog.source_date,
+        source_url: launchCatalog.source_url,
+        limitations: launchCatalog.limitations,
+      },
+    };
+  }
 }
 
 export function compactInterval(evidence) {

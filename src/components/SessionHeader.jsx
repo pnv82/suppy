@@ -35,6 +35,24 @@ export function SessionEditDialog({
     [launchReference, setLaunchReference] = useState(null);
   const preferred = boards.find((b) => b.id === defaultBoardId);
   useEffect(() => {
+    if (session.titleSource !== "coordinate_fallback") return;
+    let cancelled = false;
+    setFinding(true);
+    callTool("suggest_launch_name", { session_id: session.id })
+      .then((result) => {
+        if (!cancelled) setSuggestions(result.structuredContent);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e.message);
+      })
+      .finally(() => {
+        if (!cancelled) setFinding(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [session.id, session.titleSource]);
+  useEffect(() => {
     const element = dialog.current;
     element.showModal();
     element.querySelector("input")?.focus();

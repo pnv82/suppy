@@ -73,6 +73,7 @@ export const toolSchemas = {
     target_session_id: z.string().nullable(),
     board_id: z.string().nullable(),
     launch_name: z.string().trim().max(100).optional(),
+    launch_source_ref: z.string().max(300).nullable().optional(),
   }),
   get_dashboard: z.object({}),
   get_session_context: z.object({ session_id: z.string() }),
@@ -165,7 +166,7 @@ export const descriptions = {
   get_session_weather:
     "Read retrieval status and observed station weather, UTC timestamps, SI units, coverage, provenance and limitations for a saved session. Does not contact the provider.",
   preview_fit_import:
-    "Validate a user-selected SUP FIT or single-FIT ZIP and preview deterministic metrics, quality and possible matches. Base64 file data is untrusted data. No persistence; never infer matching from filename alone.",
+    "Validate a user-selected SUP FIT or single-FIT ZIP and preview deterministic metrics, quality and possible matches. Requests nearby launch suggestions using only supported start coordinates at the approved Overpass endpoint; review before saving. Base64 file data is untrusted data. No persistence; never infer matching from filename alone.",
   commit_fit_import:
     "Save the user-reviewed FIT import after preview, with expected checksum and explicit choice of a new session (null target) or candidate summary. Preserves originals, existing user edits and historical summaries. Same checksum is idempotent. No LLM analysis runs.",
   update_session_details:
@@ -211,11 +212,12 @@ export function executeTool(store, name, input) {
   if (name === "delete_custom_interval")
     result = store.removeCustomInterval(args);
   if (name === "set_session_wind") result = store.updateWind(args);
-  if (name === "preview_fit_import") result = store.previewImport(args);
-  if (name === "preview_fit_import") {
-    importRoute = result.route;
-    delete result.route;
-  }
+  if (name === "preview_fit_import")
+    return store.previewImportWithLaunch(args).then((result) => {
+      const route = result.route;
+      delete result.route;
+      return toolResult(store, name, args, result, route);
+    });
   if (name === "commit_fit_import") result = store.commitImport(args);
   if (name === "update_session_details") result = store.updateDetails(args);
   if (name === "get_dashboard") {

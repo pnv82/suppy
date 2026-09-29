@@ -22,8 +22,8 @@ function setup(t, path = ":memory:") {
   t.after(() => db.close());
   return {
     db,
-    store: createStore({ database: db, tenantId: "alice" }),
-    bob: createStore({ database: db, tenantId: "bob" }),
+    store: createStore({ database: db, tenantId: "alice", launchLookup: null }),
+    bob: createStore({ database: db, tenantId: "bob", launchLookup: null }),
   };
 }
 function commitArgs(store, args = uploadFixture(), rest = {}) {
@@ -512,8 +512,11 @@ test("preview writes nothing; commits preserve originals, survive restart and de
   await db.backup(backup);
   const reopened = openDatabase(backup);
   assert.equal(
-    createStore({ database: reopened, tenantId: "alice" }).get(saved.session_id)
-      .additionalContext,
+    createStore({
+      database: reopened,
+      tenantId: "alice",
+      launchLookup: null,
+    }).get(saved.session_id).additionalContext,
     "keep this observation",
   );
   reopened.close();
