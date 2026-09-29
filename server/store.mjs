@@ -3,7 +3,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { openDatabase } from "./database.mjs";
 import { decodeUpload, importMatches } from "./fit-import.mjs";
 import { analyzeTelemetry, ANALYSIS_METHOD } from "../src/domain/analysis.mjs";
-import { validRuns } from "../src/domain/metrics.mjs";
+import { validRuns, sessionStatistics } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
 import { launchPoint, launchSuggestions } from "./launch-names.mjs";
 import { lookupLaunchPlaces } from "./launch-lookup.mjs";
@@ -86,6 +86,20 @@ export function createStore({
         repo.save(session);
       }
     }
+    session = {
+      ...session,
+      statistics: {
+        ...session.statistics,
+        speed_mps: sessionStatistics(session.records, session.pauses, {
+          enhanced_max_speed:
+            session.deviceSummary?.enhanced_max_speed ??
+            session.statistics?.speed_mps?.raw_summary_max_mps ??
+            (session.statistics?.speed_mps?.max_source === "fit_session"
+              ? session.statistics.speed_mps.max
+              : null),
+        }).speed_mps,
+      },
+    };
     const cadenceGoals = repo
       .goals()
       .filter((g) => g.metric === "cadence_duration");

@@ -37,7 +37,7 @@ SQLite schema 2 stores immutable original upload bytes, uncompressed FIT bytes, 
 
 ## Calculations and evidence
 
-`src/domain/analysis.mjs` owns deterministic numerical calculations, versioned as `sup_deterministic_v4`, with separate computation-time metadata. Imports persist its output separately from device summaries and historical values. Context requests also calculate evidence for previously migrated sessions, without rewriting their history.
+`src/domain/analysis.mjs` owns deterministic numerical calculations, versioned as `sup_deterministic_v5`, with separate computation-time metadata. Imports persist its output separately from device summaries and historical values. Context requests also calculate evidence for previously migrated sessions, without rewriting their history.
 
 - Best 300/600/1200-second windows use `elapsed_continuous_v1`: piecewise-linear cumulative distance, exact elapsed boundaries, earliest tie within 1e-9 m/s, gaps at most 15 s, no timer pause, no distance reset or distance-implied speed over 8 m/s. GPS is unnecessary for a numeric window; the map uses only separate valid GPS runs. Unavailable windows include a reason. No sensor-accuracy certification is implied.
 - Session and requested-interval speed, HR and raw cadence means/medians use left-held time weighting, clipped to requested boundaries. Both endpoints must be valid, ordered and at most 15 s apart; any edge overlapping a pause is excluded. Each channel returns covered seconds and percentage of the requested elapsed interval, with no endpoint extrapolation. Interval maxima use recorded samples in that interval, excluding pause interiors. Zero speed/cadence is valid; zero HR is unavailable. No supported weight returns null.
@@ -54,7 +54,7 @@ The local UI and MCP transport are supported; actual ChatGPT file-selection avai
 
 ## Extended performance evidence (2026-09-27)
 
-The current runtime method is `sup_deterministic_v4`. It adds shared speed/cadence support, Tracking Control Score, movement candidates, descriptive independent-window drift and a 30-second DPS chart series. Import also retains scaled fractional cadence/GPS accuracy and private lap/device/file-ID provenance. Fractional fields are preserved without guessing a cadence recombination. See [performance-metrics.md](performance-metrics.md) for formulas, gates, cache invalidation, source ranges and bounded model evidence. Old calculated methods are recomputed; no backwards compatibility layer or database reset was needed.
+The current runtime method is `sup_deterministic_v5`. It adds shared speed/cadence support, Tracking Control Score, movement candidates, descriptive independent-window drift and a 30-second DPS chart series. Import also retains scaled fractional cadence/GPS accuracy and private lap/device/file-ID provenance. Fractional fields are preserved without guessing a cadence recombination. See [performance-metrics.md](performance-metrics.md) for formulas, gates, cache invalidation, source ranges and bounded model evidence. Old calculated methods are recomputed; no backwards compatibility layer or database reset was needed.
 
 ## Launch-name suggestions
 

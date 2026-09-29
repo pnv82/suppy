@@ -331,7 +331,12 @@ export function Compare({
                       {fmt(s.maxSpeed, 2)} <span>mph</span>
                       {change(index, "maxSpeed")}
                     </strong>
-                    <small>whole-session maximum</small>
+                    <small>
+                      {s.statistics?.speed_mps?.summary_max_excluded ||
+                      s.statistics?.speed_mps?.quality?.excluded_sample_count
+                        ? "filtered maximum · see details"
+                        : "whole-session maximum"}
+                    </small>
                   </td>
                   <td data-label="Distance / stroke">
                     <strong>

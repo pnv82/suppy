@@ -3,7 +3,7 @@
 - [x] Show faint travel chevrons within the full track, with gap-aware geometry and zoom-dependent spacing beneath interval highlights.
 - [x] Convert event candidates into reviewed annotations: activation pins their range and opens an approximate note draft without confirming a fall.
 - [x] Request fresh whole-session analysis and a saved summary from an empty highlight in the ChatGPT widget; show standalone instructions and host error/retry states.
-- [ ] find a way to filter out unresonable speed metrics - for example "Mission Bay to La Jolla beach" session has a speed 18mph which is clearly and error.
+- [x] Filter unreasonable recorded speed and FIT maxima with an explicit 6 m/s ceiling, retain raw evidence and show exclusions in metric details.
 - [ ] add integration with Garmin, so i can load sessions data directly from there, omitting export/import step fo the fit files.
 
 # Deferred work

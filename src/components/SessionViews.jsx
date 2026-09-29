@@ -4,6 +4,7 @@ import {
   detectedEventDescription,
 } from "../domain/events.mjs";
 import { TrackingScore } from "./TrackingScore.jsx";
+import { usableSpeed } from "../domain/speed-quality.mjs";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   intervalKey,
@@ -888,7 +889,7 @@ export function Timeline({
                     ", " +
                     fmt(
                       key === "speed"
-                        ? mph(current?.speed_mps)
+                        ? mph(usableSpeed(current?.speed_mps))
                         : key === "hr"
                           ? current?.heart_rate_bpm
                           : key === "dps"
@@ -929,7 +930,7 @@ export function Timeline({
                     >
                       <b>{timeLabel(cursor)}</b>
                       <span>
-                        {fmt(mph(current?.speed_mps), 2)} mph ·{" "}
+                        {fmt(mph(usableSpeed(current?.speed_mps)), 2)} mph ·{" "}
                         {fmt(current?.heart_rate_bpm)} bpm
                       </span>
                       <span>
@@ -960,7 +961,9 @@ export function Timeline({
                         title={
                           stats?.max_source === "fit_session"
                             ? "Maximum from the FIT session summary; may exceed the peak in sampled records."
-                            : "Maximum of available recorded values; no spike filtering."
+                            : unit === "mph"
+                              ? "Maximum of supported recorded values after the 0–6 m/s sanity filter; smaller artifacts may remain."
+                              : "Maximum of supported recorded values."
                         }
                       >
                         <i className="stat-line max-line" aria-hidden="true" />

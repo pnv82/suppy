@@ -99,6 +99,14 @@ export function MetricDetails({ session, duration, onClose }) {
             .join(" / ")}{" "}
           mph
         </dd>
+        <dt>Speed quality filter</dt>
+        <dd>
+          Excluded samples: {e?.speed_mps?.quality?.excluded_sample_count ?? 0},
+          outside 0–6 m/s (13.42 mph ceiling). Raw recorded maximum:{" "}
+          {fmt(mph(e?.speed_mps?.quality?.raw_max_mps), 2)} mph. Coverage
+          excludes edges touching rejected samples; smaller artifacts may
+          remain.
+        </dd>
         {whole && (
           <>
             <dt>Distance / active / elapsed</dt>
@@ -119,6 +127,20 @@ export function MetricDetails({ session, duration, onClose }) {
               {fmt(mph(session.statistics?.speed_mps?.max), 2)} mph ·{" "}
               {session.statistics?.speed_mps?.max_source || "unavailable"}
             </dd>
+            {session.statistics?.speed_mps?.summary_max_excluded && (
+              <>
+                <dt>Excluded FIT maximum</dt>
+                <dd>
+                  Original FIT maximum{" "}
+                  {fmt(
+                    mph(session.statistics.speed_mps.raw_summary_max_mps),
+                    2,
+                  )}{" "}
+                  mph excluded by the speed sanity ceiling; the displayed
+                  maximum uses supported records, or remains unavailable.
+                </dd>
+              </>
+            )}
             <dt>FIT total-stroke DPS</dt>
             <dd>
               {fmt(session.statistics?.distance_per_stroke?.value_m, 2)}{" "}

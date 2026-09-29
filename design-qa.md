@@ -348,3 +348,7 @@ Synthetic temperature-supported possible fall at 6:39–7:30: keyboard activatio
 ## Next items: highlight analysis (2026-09-29)
 
 Browser-tested the built widget inside a synthetic host using the installed MCP Apps AppBridge and actual postMessage transport. Verified latest context (including saved annotation/source notes/calculated metrics), context-before-message order, rejected-message feedback, successful retry, no duplicate on dialog reopen, and a synthetic saved result delivered back through the bridge. Standalone missing-summary instructions and Escape/focus return checked on phone; desktop and narrow layouts checked. Local service tests cover missing duration, already-saved summaries, revision freshness and failure propagation. This is a protocol/UI check, not a live ChatGPT account or model-quality test.
+
+## Next items: speed quality (2026-09-29)
+
+A synthetic 18 mph record and FIT maximum are excluded from speed statistics, charts and analysis while remaining visible as raw evidence. Checked metric details and missing telemetry at desktop 1440×1000 and phone 390×844; keyboard opens/closes details. Regression tests cover independent channel coverage, null maxima and existing sessions without rewriting source. All 101 tests pass; production build succeeds with existing bundle/annotation warnings.
