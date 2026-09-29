@@ -1,6 +1,6 @@
 {
   "version": "0.1.0",
-  "origin": "Three user-supplied archives in Downloads, copied unchanged on 2026-09-25 America/Los_Angeles.",
+  "origin": "User-supplied archives copied unchanged from Downloads. Initial three on 2026-09-25 America/Los_Angeles; subsequent additions retain per-sample source and athlete reports.",
   "samples": [
     {
       "session_id": "24249467884",
@@ -28,6 +28,102 @@
       "fit": "data/samples/garmin/fit/24495535896_ACTIVITY.fit",
       "fit_bytes": 175252,
       "fit_sha256": "26fb5398faa69322b769354e6ed3f04075fcc18e49510b2c98be29a66e03ad4a"
+    },
+    {
+      "session_id": "20005174116",
+      "id_source": "supplied_filename",
+      "archive": "data/samples/garmin/archives/20005174116.zip",
+      "archive_bytes": 36065,
+      "archive_sha256": "478f44e87238d931547c7fd2d02e70314fdb4bb65779eb3be68ad91e52df33cd",
+      "fit": "data/samples/garmin/fit/20005174116_ACTIVITY.fit",
+      "fit_bytes": 73191,
+      "fit_sha256": "6f03c6e881a82400b37ec4428e3aba7042367d82cd69c6a368ac02763e53e6e4",
+      "origin": {
+        "source": "user_supplied_downloads",
+        "added_at_utc": "2026-09-29T02:56:29.634Z"
+      },
+      "athlete_report": {
+        "board": "Inflatable board",
+        "source": "user_message",
+        "watch_description": "older watch"
+      },
+      "device_metadata": {
+        "manufacturer": "garmin",
+        "product": "instinctSolar",
+        "source": "fit_file_id"
+      }
+    },
+    {
+      "session_id": "19857824112",
+      "id_source": "supplied_filename",
+      "archive": "data/samples/garmin/archives/19857824112.zip",
+      "archive_bytes": 47579,
+      "archive_sha256": "f922a0ea9eb57b7efec4a0ed1f0142b0fc111671fd1c91d8ab0040e80b8bb5d2",
+      "fit": "data/samples/garmin/fit/19857824112_ACTIVITY.fit",
+      "fit_bytes": 96086,
+      "fit_sha256": "334ae63198e686cd7242f2075756e574bc36de15c9338a00deff3c37d78dacd1",
+      "origin": {
+        "source": "user_supplied_downloads",
+        "added_at_utc": "2026-09-29T02:56:29.646Z"
+      },
+      "athlete_report": {
+        "board": "Inflatable board",
+        "source": "user_message",
+        "watch_description": "older watch"
+      },
+      "device_metadata": {
+        "manufacturer": "garmin",
+        "product": "instinctSolar",
+        "source": "fit_file_id"
+      }
+    },
+    {
+      "session_id": "17095580563",
+      "id_source": "supplied_filename",
+      "archive": "data/samples/garmin/archives/17095580563.zip",
+      "archive_bytes": 85036,
+      "archive_sha256": "dce53976ef1625ca787c5e7f1a30fecfd31da7802289afbc38872537a33960e1",
+      "fit": "data/samples/garmin/fit/17095580563_ACTIVITY.fit",
+      "fit_bytes": 170585,
+      "fit_sha256": "6fc5ebb0d3b3e572ac9873362c58769585b16521f187c5548cd6173a28b8256d",
+      "origin": {
+        "source": "user_supplied_downloads",
+        "added_at_utc": "2026-09-29T02:56:29.661Z"
+      },
+      "athlete_report": {
+        "board": "Inflatable board",
+        "source": "user_message",
+        "watch_description": "older watch"
+      },
+      "device_metadata": {
+        "manufacturer": "garmin",
+        "product": "instinctSolar",
+        "source": "fit_file_id"
+      }
+    },
+    {
+      "session_id": "24521449019",
+      "id_source": "supplied_filename",
+      "archive": "data/samples/garmin/archives/24521449019.zip",
+      "archive_bytes": 83653,
+      "archive_sha256": "ebd14e45205b6269b42128e0f9efd77c341e02b7e582bbb81b0aacee08292ce1",
+      "fit": "data/samples/garmin/fit/24521449019_ACTIVITY.fit",
+      "fit_bytes": 183724,
+      "fit_sha256": "c9f49c698efca52b096d6b1922532a03c73e290eecee50d3b6483de4fa116448",
+      "origin": {
+        "source": "user_supplied_downloads",
+        "added_at_utc": "2026-09-29T02:56:29.675Z"
+      },
+      "athlete_report": {
+        "board": "Inflatable board",
+        "source": "user_message",
+        "watch_description": "older watch"
+      },
+      "device_metadata": {
+        "manufacturer": "garmin",
+        "product": "enduro3",
+        "source": "fit_file_id"
+      }
     }
   ]
 }

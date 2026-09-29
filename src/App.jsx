@@ -9,6 +9,10 @@ import {
   ArrowClockwise,
 } from "@phosphor-icons/react";
 import { timeLabel, validRuns } from "./domain/metrics.mjs";
+import {
+  detectedEventLabel,
+  detectedEventDescription,
+} from "./domain/events.mjs";
 import { customIntervalEvidence, intervalKey } from "./domain/intervals.mjs";
 import { ImportDialog } from "./components/ImportDialog.jsx";
 import {
@@ -154,9 +158,10 @@ function Workspace({ account, initialData }) {
             },
             session.records,
             session.pauses,
+            session.annotations,
           )
         : null,
-    [session?.records, session?.pauses, spot, rangeEnd],
+    [session?.records, session?.pauses, session?.annotations, spot, rangeEnd],
   );
   const reviewSession = manualInterval
     ? {
@@ -199,8 +204,16 @@ function Workspace({ account, initialData }) {
     navigate({ sessionId: id, page: "Sessions" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const annotate = (t, end = t) =>
-    setDraft(defaultDraft(Math.min(t, end), Math.max(t, end)));
+  const annotate = (t, end = t, candidate = null) =>
+    setDraft({
+      ...defaultDraft(Math.min(t, end), Math.max(t, end)),
+      ...(candidate
+        ? {
+            kind: "note",
+            candidate: `${detectedEventLabel(candidate)}. ${detectedEventDescription(candidate)}`,
+          }
+        : {}),
+    });
   const editAnnotation = (a) =>
     setDraft({
       id: a.id,
@@ -316,6 +329,7 @@ function Workspace({ account, initialData }) {
             <>
               <SessionHeader
                 key={`header-${session.id}`}
+                connected={connected}
                 session={session}
                 sessions={data.sessions}
                 boards={data.boards || []}

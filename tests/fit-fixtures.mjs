@@ -9,6 +9,7 @@ export function fitFixture({
   summary = {},
   record = (r) => r,
   start = "2026-09-27T14:00:00Z",
+  timerEvents,
 } = {}) {
   const encoder = new Encoder(),
     date = new Date(start);
@@ -17,11 +18,12 @@ export function fitFixture({
     manufacturer: "development",
     timeCreated: date,
   });
-  encoder.onMesg(Profile.MesgNum.EVENT, {
-    timestamp: date,
-    event: "timer",
-    eventType: "start",
-  });
+  if (!timerEvents)
+    encoder.onMesg(Profile.MesgNum.EVENT, {
+      timestamp: date,
+      event: "timer",
+      eventType: "start",
+    });
   if (records)
     for (let t = 0; t <= 1300; t += 5) {
       if (paused && t > 500 && t < 660) continue;
@@ -42,7 +44,7 @@ export function fitFixture({
       );
       if (r) encoder.onMesg(Profile.MesgNum.RECORD, r);
     }
-  if (paused) {
+  if (paused && !timerEvents) {
     encoder.onMesg(Profile.MesgNum.EVENT, {
       timestamp: new Date(+date + 500000),
       event: "timer",
@@ -54,11 +56,14 @@ export function fitFixture({
       eventType: "start",
     });
   }
-  encoder.onMesg(Profile.MesgNum.EVENT, {
-    timestamp: new Date(+date + 1300000),
-    event: "timer",
-    eventType: "stopAll",
-  });
+  if (!timerEvents)
+    encoder.onMesg(Profile.MesgNum.EVENT, {
+      timestamp: new Date(+date + 1300000),
+      event: "timer",
+      eventType: "stopAll",
+    });
+  for (const event of timerEvents || [])
+    encoder.onMesg(Profile.MesgNum.EVENT, event);
   encoder.onMesg(Profile.MesgNum.SESSION, {
     sport: "standUpPaddleboarding",
     startTime: date,

@@ -3,11 +3,17 @@ import { intervalRecords } from "./telemetry.mjs";
 import { trackingEvidence } from "./tracking.mjs";
 import { movementEvidence } from "./events.mjs";
 import { matchedWindowDrift } from "./drift.mjs";
+import {
+  usableSpeed,
+  speedQuality,
+  SPEED_LIMIT_MPS,
+} from "./speed-quality.mjs";
 
-export const ANALYSIS_METHOD = "sup_deterministic_v2";
+export const ANALYSIS_METHOD = "sup_deterministic_v5";
 export const POLICY = Object.freeze({
   gap_limit_s: 15,
   distance_speed_limit_mps: 8,
+  recorded_speed_limit_mps: SPEED_LIMIT_MPS,
   tie_tolerance_mps: 1e-9,
 });
 
@@ -18,7 +24,7 @@ export function intervalStatistics(
   pauses,
   start,
   end,
-  { tracking = true } = {},
+  { tracking = true, annotations = [] } = {},
 ) {
   if (
     !Number.isFinite(start) ||
@@ -31,7 +37,9 @@ export function intervalStatistics(
   const channels = {};
   for (const key of ["speed_mps", "heart_rate_bpm", "cadence_raw"]) {
     const valid = (v) =>
-      Number.isFinite(v) && (key === "heart_rate_bpm" ? v > 0 : v >= 0);
+      Number.isFinite(v) &&
+      (key === "heart_rate_bpm" ? v > 0 : v >= 0) &&
+      (key !== "speed_mps" || usableSpeed(v) !== null);
     const samples = [];
     for (let i = 0; i < records.length - 1; i++) {
       const a = records[i],
@@ -74,6 +82,9 @@ export function intervalStatistics(
       .map((p) => p[key])
       .filter(valid);
     channels[key] = {
+      ...(key === "speed_mps"
+        ? { quality: speedQuality(records, start, end) }
+        : {}),
       mean,
       standard_deviation: covered_s
         ? Math.sqrt(
@@ -202,7 +213,11 @@ export function intervalStatistics(
         : "No matched distance and cadence support.",
     },
     ...(tracking
-      ? { zigzag: trackingEvidence(records, pauses, start, end) }
+      ? {
+          tracking: trackingEvidence(records, pauses, start, end, {
+            annotations,
+          }),
+        }
       : {}),
   };
 }
@@ -214,7 +229,7 @@ export function analyzeTelemetry(
   sourceRef = null,
   context = {},
 ) {
-  const windows = bestWindows(records, pauses, false).map((w) => ({
+  const windows = bestWindows(records, pauses, false, elapsed).map((w) => ({
     ...w,
     method: "elapsed_continuous_v1",
     source: "derived",
@@ -226,18 +241,28 @@ export function analyzeTelemetry(
     statistics:
       w.start === null
         ? null
-        : intervalStatistics(records, pauses, w.start, w.end),
+        : intervalStatistics(records, pauses, w.start, w.end, {
+            annotations: context.annotations,
+          }),
   }));
-  const movement = movementEvidence(records, pauses, elapsed);
+  const movement = movementEvidence(
+    records,
+    pauses,
+    elapsed,
+    context.annotations,
+  );
+  const { low_speed_intervals, ...visibleMovement } = movement;
   return {
     method: ANALYSIS_METHOD,
     computed_at_utc: new Date().toISOString(),
     source: "derived",
     source_ref: sourceRef,
     policy: POLICY,
-    summary: intervalStatistics(records, pauses, 0, elapsed),
+    summary: intervalStatistics(records, pauses, 0, elapsed, {
+      annotations: context.annotations,
+    }),
     windows,
-    movement,
+    movement: visibleMovement,
     drift: matchedWindowDrift(
       records,
       pauses,
@@ -310,14 +335,21 @@ export function ensureIntervalStatistics(
   start,
   end,
   existing,
+  annotations = [],
 ) {
   if (start == null || end == null) return existing ?? null;
-  if (!existing) return intervalStatistics(records, pauses, start, end);
+  if (!existing)
+    return intervalStatistics(records, pauses, start, end, { annotations });
   if (existing.method === ANALYSIS_METHOD) return existing;
-  return intervalStatistics(records, pauses, start, end);
+  return intervalStatistics(records, pauses, start, end, { annotations });
 }
 
-export function ensureWindowStatistics(windows, records, pauses) {
+export function ensureWindowStatistics(
+  windows,
+  records,
+  pauses,
+  annotations = [],
+) {
   return windows.map((w) => ({
     ...w,
     statistics: ensureIntervalStatistics(
@@ -326,6 +358,7 @@ export function ensureWindowStatistics(windows, records, pauses) {
       w.start,
       w.end,
       w.statistics,
+      annotations,
     ),
   }));
 }

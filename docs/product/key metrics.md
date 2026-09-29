@@ -66,7 +66,7 @@ Use Garmin profile scaling/subfields and validate device/activity cadence semant
 
 ### 3.2 Ordering, gaps and speed sources
 
-Keep the existing strict import policy for missing, duplicate, decreasing and out-of-session record timestamps. Do not silently sort or discard records. A source-preserving repair mode is suspended in Part II. Backward-compatibility freedom does not justify ambiguous timestamps.
+Keep the strict import policy for missing, duplicate, decreasing and out-of-session record timestamps, accounting for FIT whole-second timestamps versus millisecond duration and the bounded timer-corroborated ending policy specified in [FIT import](../engineering/fit-import.md). Retain boundary records with the appropriate precision or timer-discrepancy flag; keep calculated windows within the reported duration. Do not silently sort or discard records. A source-preserving repair mode is suspended in Part II. Backward-compatibility freedom does not justify ambiguous timestamps.
 
 Use actual positive timestamp differences, never sample count as duration. Time-based smoothing stays inside supported runs; no bridging pauses/unsupported sensor gaps or endpoint extrapolation. Display smoothing and numerical calculations must be distinguishable.
 
@@ -218,6 +218,8 @@ Home retains automatic latest-10 descriptive trends, defaulting to best-20-minut
 Return bounded exact evidence through existing analysis-context tools. The external LLM interprets it; no in-app model, automatic analysis writes or coaching diagnosis is added.
 
 ## 8.1 Experimental zig-zag promotion
+
+**Superseded on 2026-09-29:** the user authorized the supplied four-component TCS, its 35/30/25/10 weights, initial anchors and score colors. Implementation details and remaining validation limits are in [Tracking Control Score](../engineering/tracking-control-score.md). The following describes the earlier path-ratio implementation, not the current score. Experimental wording is kept in documentation, not repeated across the UI.
 
 User decision: implement a 0–100 experimental local GPS path-straightness score now, with whole-session and exact-interval scope, eligible coverage, median/P90 angular deviation, resolved oscillations and lateral motion. Higher means straighter eligible recorded path, not better technique or lower energy use. No quality bands or paddle-side inference.
 

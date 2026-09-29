@@ -3,7 +3,7 @@ import { randomUUID, createHash } from "node:crypto";
 import { openDatabase } from "./database.mjs";
 import { decodeUpload, importMatches } from "./fit-import.mjs";
 import { analyzeTelemetry, ANALYSIS_METHOD } from "../src/domain/analysis.mjs";
-import { validRuns } from "../src/domain/metrics.mjs";
+import { validRuns, sessionStatistics } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
 import { launchPoint, launchSuggestions } from "./launch-names.mjs";
 import { lookupLaunchPlaces } from "./launch-lookup.mjs";
@@ -52,6 +52,54 @@ export function createStore({
     return entry?.expires > Date.now() ? (entry.candidates ?? []) : [];
   };
   function withMetrics(session) {
+    // Re-extract the newly supported channel on first open of existing uploads.
+    // Original bytes and all athlete edits remain untouched.
+    if (session.records.some((r) => !Object.hasOwn(r, "temperature_c"))) {
+      const source = repo.fitSource(session.id);
+      if (source) {
+        const bytes = Buffer.from(source.fit_bytes);
+        if (
+          createHash("sha256").update(bytes).digest("hex") !== source.fit_sha256
+        )
+          throw new Error("Saved FIT checksum mismatch.");
+        const decoded = decodeUpload({
+          filename: "saved.fit",
+          data_base64: bytes.toString("base64"),
+          timezone: session.timezone,
+        });
+        const rows = decoded.session.records;
+        if (
+          rows.length !== session.records.length ||
+          rows.some(
+            (r, i) =>
+              Date.parse(r.timestamp_utc) !==
+              Date.parse(session.records[i].timestamp_utc),
+          )
+        )
+          throw new Error("Saved FIT records do not match this track.");
+        session.records = session.records.map((r, i) => ({
+          ...r,
+          temperature_c: rows[i].temperature_c,
+        }));
+        delete session.deterministic;
+        session.revision++;
+        repo.save(session);
+      }
+    }
+    session = {
+      ...session,
+      statistics: {
+        ...session.statistics,
+        speed_mps: sessionStatistics(session.records, session.pauses, {
+          enhanced_max_speed:
+            session.deviceSummary?.enhanced_max_speed ??
+            session.statistics?.speed_mps?.raw_summary_max_mps ??
+            (session.statistics?.speed_mps?.max_source === "fit_session"
+              ? session.statistics.speed_mps.max
+              : null),
+        }).speed_mps,
+      },
+    };
     const cadenceGoals = repo
       .goals()
       .filter((g) => g.metric === "cadence_duration");
@@ -120,7 +168,12 @@ export function createStore({
       cached.value.input_hash = signature;
       cached.value.context_revision = session.revision;
       cached.customIntervals = (session.customIntervals || []).map((interval) =>
-        customIntervalEvidence(interval, session.records, session.pauses),
+        customIntervalEvidence(
+          interval,
+          session.records,
+          session.pauses,
+          session.annotations,
+        ),
       );
       analysisCache.set(session.id, cached);
       if (analysisCache.size > 30)
@@ -142,7 +195,9 @@ export function createStore({
     return { upload, matches };
   }
   function previewImport(args) {
-    const { upload, matches } = inspectImport(args);
+    return importPreview(inspectImport(args));
+  }
+  function importPreview({ upload, matches }) {
     const { records, ...summary } = upload.session;
     const stride = Math.max(1, Math.ceil(records.length / 400));
     const route = validRuns(records, upload.session.pauses, true, false)
@@ -168,8 +223,9 @@ export function createStore({
       ...matches,
     };
   }
-  function commitImport(args) {
+  function commitImport(args, importSource = null) {
     const { upload, matches } = inspectImport(args);
+    if (importSource) upload.provenance.import_source = importSource;
     if (args.expected_sha256 !== upload.provenance.original_sha256)
       throw new Error("File changed since preview. Preview it again.");
     if (matches.duplicate_session_id) {
@@ -225,6 +281,28 @@ export function createStore({
     if (args.launch_name?.trim()) {
       session.title = args.launch_name.trim();
       session.titleSource = "athlete_reported";
+      const candidate = args.launch_source_ref
+        ? launchSuggestions(
+            session,
+            repo.sessions(),
+            launchCatalog.places,
+            cachedLaunches(session),
+          ).candidates.find(
+            (c) =>
+              c.source_ref === args.launch_source_ref &&
+              c.name === session.title,
+          )
+        : null;
+      if (args.launch_source_ref && !candidate)
+        throw new Error(
+          "Launch suggestion expired. Preview again or enter the name manually.",
+        );
+      session.launchNameProvenance = {
+        source: "athlete_reported",
+        reference: args.launch_source_ref ?? null,
+        evidence: candidate,
+        confirmed_at_utc: new Date().toISOString(),
+      };
     }
     repo.insertSession(session, { provenance: upload.provenance });
     repo.saveImport(upload, session.id);
@@ -400,7 +478,7 @@ export function createStore({
         "Session stroke distance uses FIT totals; interval stroke distance may be a cadence-integral estimate with explicit coverage and assumptions. Neither is validated biomechanical efficiency.",
         "Wind is nearby-station context, not an on-water measurement.",
         "Watch telemetry cannot diagnose stroke faults.",
-        "Zig-zag is experimental local GPS straightness; inspect eligible coverage and underlying deviations. Higher is not proof of better technique.",
+        "TCS combines median/P90 course deviation, central-95% lateral corridor and oscillation frequency with weights 35/30/25/10. Its method, component scores and eligible coverage accompany the value.",
         "Matched-window changes are descriptive, with independent pairs and no normalization for current, chop or local wind.",
       ],
     };
@@ -654,64 +732,19 @@ export function createStore({
   return {
     get,
     async suggestLaunchName({ session_id }) {
-      const session = get(session_id),
-        start = launchPoint(session),
-        key = launchKey(session);
-      let lookup = { status: start ? "disabled" : "no_gps", candidates: [] };
-      if (start && launchLookup) {
-        let entry = launchCache.get(key);
-        if (!entry || entry.expires <= Date.now()) {
-          entry = { expires: Infinity };
-          entry.promise = Promise.resolve()
-            .then(() => launchLookup(start))
-            .then(
-              (candidates) => ({
-                candidates,
-                status: "ready",
-                expires: Date.now() + 86400000,
-              }),
-              () => ({
-                candidates: [],
-                status: "unavailable",
-                expires: Date.now() + 60000,
-              }),
-            )
-            .then((value) => {
-              Object.assign(entry, value);
-              delete entry.promise;
-              return entry;
-            });
-          launchCache.set(key, entry);
-          if (launchCache.size > 100)
-            launchCache.delete(launchCache.keys().next().value);
-        }
-        lookup = entry.promise ? await entry.promise : entry;
-        // A deleted session cannot be revived by a late provider response.
-        get(session_id);
-      }
-      return {
-        session_id,
-        ...launchSuggestions(
-          session,
-          repo.sessions(),
-          launchCatalog.places,
-          lookup.candidates,
-        ),
-        lookup: {
-          status: lookup.status,
-          message:
-            lookup.status === "unavailable"
-              ? "Online lookup is temporarily unavailable. Showing local suggestions; try again in a minute."
-              : null,
-        },
-        catalog: {
-          scope: launchCatalog.scope,
-          source: launchCatalog.source,
-          source_date: launchCatalog.source_date,
-          source_url: launchCatalog.source_url,
-          limitations: launchCatalog.limitations,
-        },
-      };
+      const result = await suggestForSession(get(session_id));
+      // A deleted session cannot be revived by a late provider response.
+      get(session_id);
+      return { session_id, ...result };
+    },
+    async previewImportWithLaunch(args) {
+      const inspected = inspectImport(args);
+      const preview = importPreview(inspected);
+      if (!preview.duplicate_session_id)
+        preview.launch_suggestions = await suggestForSession(
+          inspected.upload.session,
+        );
+      return preview;
     },
     recalculateSession({ session_id }) {
       get(session_id);
@@ -729,16 +762,72 @@ export function createStore({
     ...Object.fromEntries(
       Object.entries(writes).map(([name, fn]) => [
         name,
-        (args) => repo.transaction(() => fn(args)),
+        (...args) => repo.transaction(() => fn(...args)),
       ]),
     ),
   };
+  async function suggestForSession(session) {
+    const start = launchPoint(session),
+      key = launchKey(session);
+    let lookup = { status: start ? "disabled" : "no_gps", candidates: [] };
+    if (start && launchLookup) {
+      let entry = launchCache.get(key);
+      if (!entry || entry.expires <= Date.now()) {
+        entry = { expires: Infinity };
+        entry.promise = Promise.resolve()
+          .then(() => launchLookup(start))
+          .then(
+            (candidates) => ({
+              candidates,
+              status: "ready",
+              expires: Date.now() + 86400000,
+            }),
+            () => ({
+              candidates: [],
+              status: "unavailable",
+              expires: Date.now() + 60000,
+            }),
+          )
+          .then((value) => {
+            Object.assign(entry, value);
+            delete entry.promise;
+            return entry;
+          });
+        launchCache.set(key, entry);
+        if (launchCache.size > 100)
+          launchCache.delete(launchCache.keys().next().value);
+      }
+      lookup = entry.promise ? await entry.promise : entry;
+    }
+    return {
+      ...launchSuggestions(
+        session,
+        repo.sessions(),
+        launchCatalog.places,
+        lookup.candidates,
+      ),
+      lookup: {
+        status: lookup.status,
+        message:
+          lookup.status === "unavailable"
+            ? "Online lookup is temporarily unavailable. Showing local suggestions; try again in a minute."
+            : null,
+      },
+      catalog: {
+        scope: launchCatalog.scope,
+        source: launchCatalog.source,
+        source_date: launchCatalog.source_date,
+        source_url: launchCatalog.source_url,
+        limitations: launchCatalog.limitations,
+      },
+    };
+  }
 }
 
 export function compactInterval(evidence) {
-  if (!evidence?.zigzag) return evidence;
-  const { segments, ...zigzag } = evidence.zigzag;
-  return { ...evidence, zigzag };
+  if (!evidence?.tracking) return evidence;
+  const { segments, ...tracking } = evidence.tracking;
+  return { ...evidence, tracking };
 }
 
 function compactAnalysis(evidence) {

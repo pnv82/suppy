@@ -1,6 +1,7 @@
 import { App } from "@modelcontextprotocol/ext-apps";
 import { createRequestSession } from "./request-session.mjs";
 import { createWorkspaceSession } from "./workspace-session.mjs";
+import { sendAnalysisToHost } from "./session-analysis.mjs";
 
 const requests = createRequestSession();
 const workspace = createWorkspaceSession();
@@ -87,34 +88,17 @@ export async function callTool(name, args = {}) {
   publish(result);
   return result;
 }
-export async function askChatGPT(result) {
+export async function askChatGPT(result, message) {
   const context = JSON.stringify(result.structuredContent, null, 2);
   if (!embedded) return context;
   await workspace.run((signal) =>
-    bridge.updateModelContext(
-      {
-        content: [{ type: "text", text: context }],
-      },
-      { signal },
+    sendAnalysisToHost(
+      bridge,
+      result,
+      message ??
+        `Please analyze this SUP session using the current app context, including my latest annotations and additional data. My question: ${result.structuredContent.question}`,
+      signal,
     ),
   );
-  const sent = await workspace.run((signal) =>
-    bridge.sendMessage(
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `Please analyze this SUP session using the current app context, including my latest annotations and additional data. My question: ${result.structuredContent.question}`,
-          },
-        ],
-      },
-      { signal },
-    ),
-  );
-  if (sent?.isError)
-    throw new Error(
-      "ChatGPT did not accept the message. Copy the prepared context and send it in chat.",
-    );
   return null;
 }

@@ -28,7 +28,7 @@ Historical station weather retrieval is approved and implemented independently a
 
 ## Scope boundary
 
-The 2026-09-29 authorization adds Google sign-in through Auth0 and an empty private workspace per account. Sign out and Switch Google account live in the existing navigation. Existing local history remains separate; it is not transferred automatically. The app stays local until a hosting URL is chosen, with authenticated hosting prepared as a separate publication step. Multi-user sharing, broad import compatibility, Garmin account sync, in-app coaching analysis and a training-plan generator remain outside scope.
+The 2026-09-29 authorization adds Google sign-in through Auth0 and an empty private workspace per account. Sign out and Switch Google account live in the existing navigation. Existing local history remains separate; it is not transferred automatically. The app stays local until a hosting URL is chosen, with authenticated hosting prepared as a separate publication step. Personal Garmin Connect imports are user-initiated and do not automatically synchronize. Multi-user sharing, broad import compatibility, automatic Garmin sync, in-app coaching analysis and a training-plan generator remain outside scope.
 
 The app supports validated SUP FIT/one-FIT ZIP import and deterministic 5/10/20-minute distance/time windows, channel-weighted interval evidence and coverage. Calculated evidence stays separate from device summaries and stored historical results. Interpretation and coaching run in the external LLM; advanced sensor validation and richer analysis remain in `todo.md`. See [responsibilities](llm%20vs%20app.md) and [import contract](../engineering/fit-import.md).
 
@@ -43,7 +43,7 @@ The app supports validated SUP FIT/one-FIT ZIP import and deterministic 5/10/20-
 
 ## Initial slice versus full feature depth
 
-Manual chart ranges can be saved as custom interval tiles alongside the fixed best 5/10/20-minute windows. Several tiles persist per session and tenant, with independent identities even at identical durations. Exact duplicate bounds reuse the existing tile. Removal changes only the saved selection. Each tile's experimental zig-zag uses that interval's full telemetry; missing/insufficient GPS support stays unavailable. Custom intervals are athlete-selected ranges, not continuous best-effort claims.
+Manual chart ranges can be saved as custom interval tiles alongside the fixed best 5/10/20-minute windows. Several tiles persist per session and tenant, with independent identities even at identical durations. Exact duplicate bounds reuse the existing tile. Removal changes only the saved selection. Each tile's Tracking Control Score uses that interval's full telemetry; missing/insufficient GPS support stays unavailable. Custom intervals are athlete-selected ranges, not continuous best-effort claims.
 
 The app has a separate Goals section for maximum/average/best-5/10/20 speed and continuous cadence-duration targets, plus validated SUP FIT/ZIP import. Small versioned external highlights/summaries are supported. Richer technique editing, broader activity formats and full typed analysis-envelope ingestion remain in root `todo.md`.
 
@@ -54,3 +54,5 @@ Training focus and the separate context panel are removed from session review fo
 The top row has previous (older) / next (newer) controls, disabled at the ends. A single session-selection popover contains full date, local start/end, explicit timezone, distance, active duration, type and source availability. The separate info disclosure is removed. Home includes maximum speed in cards, table and chronological trends using the same FIT maximum as session review, with nulls kept as gaps.
 
 Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Missing interval stroke distance now calculates lazily as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.
+
+User-approved extension: on-demand personal Garmin Connect sign-in/MFA and SUP activity import, using the same reviewed original-file pipeline. See [Garmin contracts](../engineering/garmin-connect.md).

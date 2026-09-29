@@ -3045,21 +3045,21 @@ td small {
   font-size: 11px;
   color: var(--muted);
 }
-.inspector-zigzag {
+.inspector-tracking {
   border-top: 1px solid var(--line);
   padding-top: 12px;
   font-size: 13px;
 }
-.inspector-zigzag > div {
+.inspector-tracking > div {
   display: flex;
   justify-content: space-between;
   gap: 8px;
 }
-.inspector-zigzag small {
+.inspector-tracking small {
   font-size: 11px;
   font-weight: 400;
 }
-.inspector-zigzag p {
+.inspector-tracking p {
   color: var(--muted);
   font-size: 11px;
   margin: 6px 0 0;
@@ -3381,14 +3381,35 @@ td small {
   align-items: stretch;
   gap: 3px;
 }
-.window-zigzag,
+.window-tracking,
 .custom-interval-bounds {
   font-size: 11px;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
 }
-.window-zigzag {
+.window-tracking {
   white-space: nowrap;
+}
+.tracking-score {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--score-color);
+  background: color-mix(in srgb, var(--score-color) 9%, white);
+  font-size: inherit;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tracking-score b,
+.tracking-score span {
+  color: inherit;
+  font-size: inherit;
+}
+.tracking-score-unavailable {
+  background: transparent;
 }
 .custom-interval-tile .window-button {
   padding-right: 42px;
@@ -3412,7 +3433,7 @@ td small {
   .custom-interval-tile .window-button {
     padding-right: 46px;
   }
-  .window-zigzag {
+  .window-tracking {
     font-size: 10px;
   }
   .app-workspace .has-custom-intervals .window-button > div {
@@ -3458,3 +3479,60 @@ td small {
 .import-metrics small {font-size:12px;font-weight:400;}
 .import-dialog .dialog-actions {flex-wrap:wrap;border-top:1px solid var(--line);padding-top:16px;}
 @media(max-width:600px){.session-edit-dialog.import-dialog{padding:16px;}.import-metrics{padding:10px;gap:6px;}.import-metrics dd{font-size:16px;}.import-file-card{padding:20px 10px;}.import-steps{gap:16px;}}
+
+.route-direction-marker {
+  background: transparent;
+  border: 0;
+  pointer-events: none;
+}
+.route-direction-marker svg {
+  display: block;
+  width: 7px;
+  height: 9px;
+}
+
+.garmin-picker fieldset {
+  border: 0;
+  padding: 0;
+  margin: 14px 0;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.garmin-picker legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.garmin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 12px 0;
+}
+.garmin-toolbar [aria-pressed="true"] {
+  border-color: var(--accent, #2c6b6d);
+  background: #e4f0ed;
+}
+.garmin-activities {
+  list-style: none;
+  padding: 0;
+  max-height: 310px;
+  overflow-y: auto;
+}
+.garmin-activities li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #dddcd3;
+}
+.garmin-activities li > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.garmin-activities .caption {
+  display: block;
+}

@@ -1,6 +1,6 @@
 # Metrics UI design proposal
 
-Status: **selected direction implemented**. The user chose option 2’s interval properties/details and option 1’s clean chart interval highlight; option 3 was rejected. Home defaults to best-20-minute metrics with a whole-session switch. Experimental zig-zag and descriptive drift were explicitly authorized after the exploration.
+Status: **selected direction implemented**. The user chose option 2’s interval properties/details and option 1’s clean chart interval highlight; option 3 was rejected. Home defaults to best-20-minute metrics with a whole-session switch. Tracking Control Score and descriptive drift were explicitly authorized after the exploration.
 
 Companion: [revised metrics plan](../product/key%20metrics.md). Methodology, scope and unavailable rules there govern the eventual UI. Generated image text/geometry is illustrative and does not define calculations or source data.
 
@@ -8,7 +8,7 @@ Companion: [revised metrics plan](../product/key%20metrics.md). Methodology, sco
 
 The [combined target](concepts/metrics-selected-target.png) consolidates the selection. It is an illustrative visual reference, not athlete data. The running app uses the existing Leaflet map and Recharts plots, a Session / Selected interval inspector in the existing right-side space, accessible metric-details and drift dialogs, and a cadence/DPS switch in the third chart lane. Drift does not replace the chart with option 3’s table.
 
-The session list has compact columns for speed at cadence, estimated m/stroke, experimental zig-zag with coverage, and HR; distance, duration and board stay with session identity. Default scope is the best continuous 20 minutes. Whole-session scope is explicit; missing interval data is not silently replaced. Synthetic browser QA and remaining limitations are in [design-qa.md](../../design-qa.md).
+The session list has compact columns for speed at cadence, estimated m/stroke, Tracking Control Score with coverage, and HR; distance, duration and board stay with session identity. Default scope is the best continuous 20 minutes. Whole-session scope is explicit; missing interval data is not silently replaced. Synthetic browser QA and remaining limitations are in [design-qa.md](../../design-qa.md).
 
 The three alternatives below are retained as the historical exploration. Their earlier staging restrictions are superseded by the user’s implementation authorization and the [current method contract](../engineering/performance-metrics.md).
 
@@ -89,4 +89,4 @@ Visual review notes: the first study accidentally includes the older horizontal 
 
 ## Future implementation acceptance
 
-Validate actual browser flows at desktop and narrow widths, including keyboard/touch details, all missing-data states and session/interval scope transitions. Check that the visible values share the intended support and units, and that no new persistent chart row has appeared. Zig-zag must retain its experimental label, coverage and limitations. Static mockups do not satisfy browser QA or prove that any feature is running.
+Validate actual browser flows at desktop and narrow widths, including keyboard/touch details, all missing-data states and session/interval scope transitions. Check that the visible values share the intended support and units, and that no new persistent chart row has appeared. TCS uses the shared numeric/color display; coverage and component values remain in details. Experimental status and calibration limitations are documented in the TCS contract. Static mockups do not satisfy browser QA or prove that any feature is running.

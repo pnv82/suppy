@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "2.27.0",
+    "@fiddur/garmin-connect": "1.7.0",
     "@garmin/fitsdk": "21.217.0",
     "@modelcontextprotocol/ext-apps": "^2.0.0",
     "@modelcontextprotocol/sdk": "^1.30.1",

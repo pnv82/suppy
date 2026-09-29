@@ -62,3 +62,9 @@ The map requests standard OpenStreetMap tiles, preserves attribution and browser
 Use the README's private tunnel instructions to connect your account. A live ChatGPT account test remains distinct from local transport tests.
 
 `SessionHeader.jsx` provides a compact native session picker and native modal dialog for name/board drafts. `update_session_details` is a write tool shared by REST/MCP; it validates the launch name and board before changing either, preserves source location and identity, and updates the analysis revision once. Dialog save errors remain inside the dialog. The native modal handles focus containment and Escape; Cancel discards local drafts.
+
+## Empty highlight analysis request
+
+An explicit click on an empty session highlight in a connected widget reads `get_session_context`, then `prepare_analysis_context` for the whole session. It sends only structured model evidence through `updateModelContext` before `sendMessage` (`ui/message`, the standard counterpart of `sendFollowUpMessage`). This follows [OpenAI MCP Apps guidance](https://developers.openai.com/plugins/build/chatgpt-ui), checked 2026-09-29. Metadata/raw uploads are excluded. Unknown elapsed duration uses source context with unavailable interval evidence. Existing summaries open without a new request.
+
+The prompt requests interpretation and explicitly authorizes `set_session_summary` with current revision, provenance and supported evidence references; all measurements, reports and hypotheses stay distinct. The app never runs a model or claims an answer is complete on message acknowledgement. Reopening a successfully requested dialog does not resubmit; failures expose retry. Host tool-result delivery updates the saved summary; a manual refresh is available. Standalone empty highlights explain how to request analysis in ChatGPT.

@@ -1,4 +1,10 @@
 import { ensureWindowStatistics } from "../domain/analysis.mjs";
+import {
+  detectedEventLabel,
+  detectedEventDescription,
+} from "../domain/events.mjs";
+import { TrackingScore } from "./TrackingScore.jsx";
+import { usableSpeed } from "../domain/speed-quality.mjs";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   intervalKey,
@@ -193,7 +199,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
         zoom={13}
         scrollWheelZoom={false}
         className="route-map"
-        aria-label="GPS track with the selected interval and annotations"
+        aria-label="GPS track with subtle arrows following recorded travel, selected interval and annotations"
       >
         <TileLayer
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -211,6 +217,13 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
             pathOptions={{ color: "#304d61", weight: 3, opacity: 0.55 }}
           />
         ))}
+        <Pane
+          name={`route-direction-${session.id}`}
+          key={`route-direction-${session.id}`}
+          style={{ zIndex: 405, pointerEvents: "none" }}
+        >
+          <RouteArrows runs={runs} />
+        </Pane>
         {selected &&
           windows
             .filter((w) => intervalKey(w) === selected)
@@ -426,6 +439,41 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
   );
 }
 
+function RouteArrows({ runs }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvents({ zoomend: () => setZoom(map.getZoom()) });
+  const arrows = useMemo(() => {
+    const accepted = [];
+    for (const run of runs) {
+      if (run.length < 2) continue;
+      const window = { start: run[0].elapsed_s, end: run.at(-1).elapsed_s };
+      const fractions = Array.from({ length: 79 }, (_, i) => (i + 1) / 80);
+      for (const p of segmentDirections(run, window, [], fractions)) {
+        const pixel = map.project([p.latitude_deg, p.longitude_deg], zoom);
+        if (accepted.some((a) => a.pixel.distanceTo(pixel) < 38)) continue;
+        accepted.push({ ...p, pixel });
+        if (accepted.length >= 160) return accepted;
+      }
+    }
+    return accepted;
+  }, [map, zoom, runs]);
+  return arrows.map((p) => (
+    <Marker
+      key={p.elapsed_s}
+      position={[p.latitude_deg, p.longitude_deg]}
+      interactive={false}
+      keyboard={false}
+      icon={divIcon({
+        className: "route-direction-marker",
+        iconSize: [7, 9],
+        iconAnchor: [3.5, 4.5],
+        html: `<svg viewBox="0 0 7 9" aria-hidden="true" style="transform:rotate(${p.bearing_deg}deg)"><path d="M1 6 L3.5 2 L6 6" fill="none" stroke="white" stroke-opacity="0.65" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+      })}
+    />
+  ));
+}
+
 function TravelArrows({ session, selected }) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
@@ -492,8 +540,15 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
         reviewIntervals(session),
         session.records,
         session.pauses,
+        session.annotations,
       ),
-    [session.windows, session.customIntervals, session.records, session.pauses],
+    [
+      session.windows,
+      session.customIntervals,
+      session.records,
+      session.pauses,
+      session.annotations,
+    ],
   );
   return (
     <section
@@ -510,8 +565,8 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
         {windows.map((w) => {
           const stats = w.statistics;
           const stroke = stats?.distance_per_stroke;
-          const zigzag = stats?.zigzag;
-          const zigzagDetail = `Experimental GPS straightness; higher means straighter eligible recorded sections. Eligible coverage: ${fmt(zigzag?.coverage_pct)}%. ${zigzag?.reason || ""}`;
+          const tracking = stats?.tracking;
+          const trackingDetail = `Eligible coverage: ${fmt(tracking?.coverage_pct)}%. ${tracking?.reason || ""}`;
           const detail =
             stroke?.value_m == null
               ? stroke?.reason
@@ -569,14 +624,15 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
                   </span>
                 </span>
                 <span
-                  className="window-zigzag"
-                  title={zigzagDetail}
-                  aria-description={zigzagDetail}
+                  className="window-tracking"
+                  title={trackingDetail}
+                  aria-description={trackingDetail}
                 >
-                  Zig-zag {fmt(zigzag?.score, 1)} / 100
-                  {zigzag?.score == null && (
-                    <span className="sr-only"> · Unavailable</span>
-                  )}
+                  <TrackingScore
+                    value={tracking?.score}
+                    label
+                    detail={trackingDetail}
+                  />
                 </span>
               </button>
               {w.id && (
@@ -833,7 +889,7 @@ export function Timeline({
                     ", " +
                     fmt(
                       key === "speed"
-                        ? mph(current?.speed_mps)
+                        ? mph(usableSpeed(current?.speed_mps))
                         : key === "hr"
                           ? current?.heart_rate_bpm
                           : key === "dps"
@@ -874,7 +930,7 @@ export function Timeline({
                     >
                       <b>{timeLabel(cursor)}</b>
                       <span>
-                        {fmt(mph(current?.speed_mps), 2)} mph ·{" "}
+                        {fmt(mph(usableSpeed(current?.speed_mps)), 2)} mph ·{" "}
                         {fmt(current?.heart_rate_bpm)} bpm
                       </span>
                       <span>
@@ -905,7 +961,9 @@ export function Timeline({
                         title={
                           stats?.max_source === "fit_session"
                             ? "Maximum from the FIT session summary; may exceed the peak in sampled records."
-                            : "Maximum of available recorded values; no spike filtering."
+                            : unit === "mph"
+                              ? "Maximum of supported recorded values after the 0–6 m/s sanity filter; smaller artifacts may remain."
+                              : "Maximum of supported recorded values."
                         }
                       >
                         <i className="stat-line max-line" aria-hidden="true" />
@@ -1055,20 +1113,32 @@ export function Timeline({
         <div className="annotation-lane">
           {!session.annotations.length &&
             !session.deterministic?.movement?.events?.length && (
-              <span className="empty-annotation">No annotations</span>
+              <span className="empty-annotation">
+                No detected events or notes
+              </span>
             )}
-          {(session.deterministic?.movement?.events || []).map((event, i) => (
-            <button
-              key={`detected-${i}`}
-              className="annotation-marker detected-event"
-              style={{ left: `${(event.start_s / 60 / max) * 100}%` }}
-              onClick={() => setCursor(event.start_s)}
-              aria-label={`${event.type === "timer_pause" ? "Recorded timer pause" : "Low-speed candidate"} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}`}
-              title={`${event.type === "timer_pause" ? "Timer pause" : "Low-speed candidate; cause unknown"} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)}`}
-            >
-              <Diamond size={14} aria-hidden="true" />
-            </button>
-          ))}
+          {(session.deterministic?.movement?.events || [])
+            .filter((event) => !event.annotation_ids?.length)
+            .map((event, i) => (
+              <button
+                key={`detected-${i}`}
+                className="annotation-marker detected-event"
+                style={{ left: `${(event.start_s / 60 / max) * 100}%` }}
+                disabled={busy}
+                onClick={() => {
+                  setCursor(event.start_s);
+                  setSpot(event.start_s);
+                  setRangeEnd(event.end_s > event.start_s ? event.end_s : null);
+                  setExtending(false);
+                  onManualSelection(event.end_s > event.start_s);
+                  onAnnotate(event.start_s, event.end_s, event);
+                }}
+                aria-label={`Annotate ${detectedEventLabel(event)} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}; ${detectedEventDescription(event)}`}
+                title={`${detectedEventLabel(event)} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)} · ${detectedEventDescription(event)}`}
+              >
+                <Diamond size={14} aria-hidden="true" />
+              </button>
+            ))}
           {session.annotations.map((a) => (
             <button
               className="annotation-marker"

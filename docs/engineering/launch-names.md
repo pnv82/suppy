@@ -1,6 +1,6 @@
 # Launch-name lookup
 
-The user approved sending exact launch coordinates to `https://overpass-api.de/api/interpreter` on 2026-09-28. Edit session → **Suggest nearby launch** calls `suggest_launch_name` through the same REST/MCP operation. It runs only on request; opening a session, importing a FIT and server startup do not start geographic lookups.
+The user approved sending exact launch coordinates to `https://overpass-api.de/api/interpreter` on 2026-09-28. Edit session → **Suggest nearby launch** calls `suggest_launch_name` through the same REST/MCP operation. Import preview also requests suggestions automatically and preselects the first candidate for review. Opening the editor for a coordinate-fallback name requests suggestions without overwriting the draft. Opening a session and server startup do not start geographic lookups.
 
 The server sends the supported start latitude/longitude and a bounded OpenStreetMap feature query. It sends no session ID, timestamp, route, sensor records or original files. Redirects are rejected. No API key or additional browser connection permission is needed. This replaces the earlier offline-only restriction.
 

@@ -33,6 +33,13 @@ test("window arrows follow travel order on overlapping outbound and return track
   const returning = segmentDirections(route, { start: 600, end: 1200 });
   assert.equal(outward.length, 4);
   assert.equal(returning.length, 4);
+  assert.equal(
+    segmentDirections(
+      route.map((p) => ({ ...p, distance_m: null })),
+      { start: 0, end: 600 },
+    ).length,
+    4,
+  );
   assert.ok(outward.every((p) => Math.abs(p.bearing_deg - 90) < 0.01));
   assert.ok(returning.every((p) => Math.abs(p.bearing_deg - 270) < 0.01));
   const north = route.map((p) => ({
@@ -128,18 +135,18 @@ test("median weights covered time rather than record counts and excludes pauses/
     { elapsed_s: 0, speed_mps: 1 },
     { elapsed_s: 10, speed_mps: 3 },
     { elapsed_s: 11, speed_mps: 5 },
-    { elapsed_s: 12, speed_mps: 7 },
+    { elapsed_s: 12, speed_mps: 6 },
     { elapsed_s: 13, speed_mps: 9 },
     { elapsed_s: 50, speed_mps: 99 },
     { elapsed_s: 51, speed_mps: null },
   ];
   assert.equal(telemetryStats(records, "speed_mps").median, 1);
-  assert.equal(telemetryStats(records, "speed_mps").covered_s, 13);
+  assert.equal(telemetryStats(records, "speed_mps").covered_s, 12);
   assert.equal(
     telemetryStats(records, "speed_mps", [{ start: 0, end: 10 }]).median,
-    5,
+    3,
   );
-  assert.equal(telemetryStats(records, "speed_mps").max, 99);
+  assert.equal(telemetryStats(records, "speed_mps").max, 6);
   const stationary = [
     { elapsed_s: 0, speed_mps: 0, heart_rate_bpm: 0 },
     { elapsed_s: 1, speed_mps: 0, heart_rate_bpm: null },

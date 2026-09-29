@@ -90,7 +90,7 @@ export function NavigationRail({ page, onNavigate, onImport, account }) {
       <div className="rail-actions">
         <button
           className="rail-button"
-          aria-label="Import FIT"
+          aria-label="Import"
           onClick={onImport}
           disabled={!onImport}
           onFocus={reveal}
@@ -98,7 +98,7 @@ export function NavigationRail({ page, onNavigate, onImport, account }) {
         >
           <UploadSimple size={22} aria-hidden="true" />
           <span className="rail-label" aria-hidden="true">
-            Import FIT
+            Import
           </span>
         </button>
       </div>

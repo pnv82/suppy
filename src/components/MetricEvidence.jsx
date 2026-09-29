@@ -3,6 +3,11 @@ import { X, Info, ChatCircle } from "@phosphor-icons/react";
 import { mph, timeLabel, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
 import { intervalTitle, reviewIntervals } from "../domain/intervals.mjs";
+import { TrackingScore } from "./TrackingScore.jsx";
+import {
+  detectedEventLabel,
+  detectedEventDescription,
+} from "../domain/events.mjs";
 const fmt = (v, dp = 0) => (Number.isFinite(v) ? v.toFixed(dp) : "—");
 
 export function EvidenceDialog({ title, onClose, children }) {
@@ -44,7 +49,7 @@ export function EvidenceDialog({ title, onClose, children }) {
 export function MetricDetails({ session, duration, onClose }) {
   const view = metricView(session, duration),
     e = view.evidence,
-    z = e?.zigzag;
+    z = e?.tracking;
   const whole = duration == null,
     movement = session.deterministic?.movement;
   return (
@@ -94,6 +99,14 @@ export function MetricDetails({ session, duration, onClose }) {
             .join(" / ")}{" "}
           mph
         </dd>
+        <dt>Speed quality filter</dt>
+        <dd>
+          Excluded samples: {e?.speed_mps?.quality?.excluded_sample_count ?? 0},
+          outside 0–6 m/s (13.42 mph ceiling). Raw recorded maximum:{" "}
+          {fmt(mph(e?.speed_mps?.quality?.raw_max_mps), 2)} mph. Coverage
+          excludes edges touching rejected samples; smaller artifacts may
+          remain.
+        </dd>
         {whole && (
           <>
             <dt>Distance / active / elapsed</dt>
@@ -114,6 +127,20 @@ export function MetricDetails({ session, duration, onClose }) {
               {fmt(mph(session.statistics?.speed_mps?.max), 2)} mph ·{" "}
               {session.statistics?.speed_mps?.max_source || "unavailable"}
             </dd>
+            {session.statistics?.speed_mps?.summary_max_excluded && (
+              <>
+                <dt>Excluded FIT maximum</dt>
+                <dd>
+                  Original FIT maximum{" "}
+                  {fmt(
+                    mph(session.statistics.speed_mps.raw_summary_max_mps),
+                    2,
+                  )}{" "}
+                  mph excluded by the speed sanity ceiling; the displayed
+                  maximum uses supported records, or remains unavailable.
+                </dd>
+              </>
+            )}
             <dt>FIT total-stroke DPS</dt>
             <dd>
               {fmt(session.statistics?.distance_per_stroke?.value_m, 2)}{" "}
@@ -146,13 +173,17 @@ export function MetricDetails({ session, duration, onClose }) {
       )}
       {whole && !!movement?.events?.length && (
         <details>
-          <summary>Movement events & boundary uncertainty</summary>
+          <summary>Detected events & supporting evidence</summary>
           {movement.events.map((event, i) => (
             <p key={i}>
-              {event.type === "timer_pause"
-                ? "Recorded timer pause"
-                : "Low-speed candidate; cause unknown"}{" "}
+              {detectedEventLabel(event)}
+              {event.annotation_ids?.length
+                ? " (linked to athlete annotation)"
+                : ""}{" "}
               · {timeLabel(event.start_s)}–{timeLabel(event.end_s)}
+              {` · ${detectedEventDescription(event)}`}
+              {event.onset_bracket_s &&
+                ` · onset bracket ${timeLabel(event.onset_bracket_s[0])}–${timeLabel(event.onset_bracket_s[1])}`}
               {event.boundary_uncertainty_s != null
                 ? ` · boundary uncertainty up to ${fmt(event.boundary_uncertainty_s)} s`
                 : ""}
@@ -160,56 +191,63 @@ export function MetricDetails({ session, duration, onClose }) {
           ))}
         </details>
       )}
-      <h3>Zig-zag · experimental</h3>
-      <p>
-        Higher means a straighter GPS path in eligible local sections. It does
-        not measure board yaw, technique quality or energy efficiency.
-      </p>
+      <h3>Tracking Control Score</h3>
       <dl className="evidence-properties">
-        <dt>Score / coverage</dt>
+        <dt>Score</dt>
         <dd>
-          {fmt(z?.score, 1)} / 100 · {fmt(z?.coverage_pct)}%
+          <TrackingScore value={z?.score} />
         </dd>
-        <dt>Eligible / excluded</dt>
+        <dt>Eligible coverage</dt>
         <dd>
-          {fmt(z?.covered_s)} / {fmt(z?.excluded_s)} s
+          {fmt(z?.coverage_pct)}% · {fmt(z?.covered_s)} s ·{" "}
+          {fmt(z?.valid_distance_m)} m
         </dd>
-        <dt>Median / P90 course deviation</dt>
-        <dd>
-          {fmt(z?.median_course_error_deg, 1)}° /{" "}
-          {fmt(z?.p90_course_error_deg, 1)}°
-        </dd>
-        <dt>Resolved oscillations</dt>
-        <dd>{fmt(z?.zigzag_cycles_per_min, 2)} cycles/min</dd>
-        <dt>Lateral motion</dt>
-        <dd>{fmt(z?.lateral_motion_m_per_km, 1)} m/km · not wasted distance</dd>
+        <dt>Data support</dt>
+        <dd>{z?.confidence?.toLowerCase() || "Unavailable"}</dd>
+        {z?.components?.map((component) => (
+          <React.Fragment key={component.key}>
+            <dt>
+              {component.label} · {fmt(component.weight * 100)}%
+            </dt>
+            <dd>
+              {fmt(component.value, 2)} {component.unit} ·{" "}
+              {fmt(component.score, 1)} / 100
+            </dd>
+          </React.Fragment>
+        ))}
+        <dt>Complete oscillations</dt>
+        <dd>{fmt(z?.resolved_cycles)}</dd>
       </dl>
       {z?.reason && <p className="evidence-reason">{z.reason}</p>}
-      <p className="caption">
-        60-second local sections, 5-second smoothing and 10-second geometry
-        steps; turns over 25°, low speed, bad GPS and unsupported boundaries are
-        excluded. At least 60 eligible seconds and 20% coverage are required.
-        Fine oscillations can be missed; GPS noise and conditions affect
-        results. Thresholds are provisional.
-      </p>
-      {z?.limitations
-        ?.filter((text) => text.startsWith("GPS accuracy"))
-        .map((text) => (
-          <p className="caption" key={text}>
-            {text}
-          </p>
-        ))}
-      {!!Object.keys(z?.excluded_reasons || {}).length && (
-        <p className="caption">
-          Excluded sections:{" "}
-          {Object.entries(z.excluded_reasons)
-            .map(
-              ([key, value]) => `${key.replaceAll("_", " ")} ${fmt(value)} s`,
-            )
-            .join(" · ")}
-          . Other excluded time is unsupported boundaries, gaps or short runs.
+      <details>
+        <summary>Score calculation & colors</summary>
+        <p>
+          35% median course deviation + 30% P90 deviation + 25% lateral corridor
+          + 10% oscillation frequency. Higher scores indicate a steadier
+          recorded trajectory.
         </p>
-      )}
+        <p>
+          90–100 green · 80–89 teal · 70–79 amber · 60–69 orange · below 60 red.
+          Unavailable scores are gray.
+        </p>
+        <p>
+          Local course uses 6 seconds; the reference uses 30 seconds. Corridor
+          width covers the central 95% of lateral offsets. Pauses, reported
+          interruptions, turns, low speed and unsupported GPS are excluded.
+        </p>
+        {!!Object.keys(z?.excluded_reasons || {}).length && (
+          <p>
+            Excluded:{" "}
+            {Object.entries(z.excluded_reasons)
+              .map(
+                ([key, value]) =>
+                  key.replaceAll("_", " ") + " " + fmt(value) + " s",
+              )
+              .join(" · ")}
+            . Other excluded time includes boundaries and gaps.
+          </p>
+        )}
+      </details>
       <details>
         <summary>Method & source</summary>
         <p className="evidence-source">
@@ -226,7 +264,7 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
   const [details, setDetails] = useState(false);
   const view = metricView(session, selected),
     e = view.evidence,
-    z = e?.zigzag;
+    z = e?.tracking;
   const best =
     session.windows.find((w) => w.duration === 1200 && w.start != null) ||
     reviewIntervals(session).find((w) => w.start != null);
@@ -283,16 +321,12 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
           {!view.paired && <small> · insufficient for pairing</small>}
         </dd>
       </dl>
-      <div className="inspector-zigzag">
+      <div className="inspector-tracking">
         <div>
-          <span>Zig-zag</span>
-          <strong>
-            {fmt(view.zigzag, 1)} <small>/ 100 · experimental</small>
-          </strong>
+          <span title="Tracking Control Score">TCS</span>
+          <TrackingScore value={view.tracking} />
         </div>
-        <p>
-          Higher = straighter recorded path · {fmt(z?.coverage_pct)}% eligible
-        </p>
+        <p>Higher = steadier trajectory · {fmt(z?.coverage_pct)}% eligible</p>
       </div>
       <div className="inspector-actions">
         <button className="text-button" onClick={() => setDetails(true)}>

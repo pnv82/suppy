@@ -1,3 +1,4 @@
+import { usableSpeed, speedQuality } from "./speed-quality.mjs";
 export const WINDOW_COLORS = {
   300: "#c9790b",
   600: "#7952c7",
@@ -17,6 +18,7 @@ export function durationLabel(minutes) {
 export function telemetryStats(records, key, pauses = []) {
   const valid = (value) =>
     Number.isFinite(value) &&
+    (key !== "speed_mps" || usableSpeed(value) !== null) &&
     (key === "heart_rate_bpm" ? value > 0 : value >= 0);
   const values = records.map((p) => p[key]).filter(valid);
   const weighted = [];
@@ -64,8 +66,17 @@ export function sessionStatistics(
   summaryMaxHr = null,
 ) {
   const speed = telemetryStats(records, "speed_mps", pauses);
+  speed.quality = speedQuality(records);
+  speed.raw_summary_max_mps = Number.isFinite(fit?.enhanced_max_speed)
+    ? fit.enhanced_max_speed
+    : null;
+  speed.summary_max_excluded =
+    speed.raw_summary_max_mps !== null &&
+    usableSpeed(speed.raw_summary_max_mps) === null;
+  if (speed.quality.excluded_sample_count || speed.summary_max_excluded)
+    speed.max_source = speed.max === null ? null : "filtered_fit_records";
   const hr = telemetryStats(records, "heart_rate_bpm", pauses);
-  if (Number.isFinite(fit?.enhanced_max_speed) && fit.enhanced_max_speed >= 0) {
+  if (usableSpeed(fit?.enhanced_max_speed) !== null) {
     speed.max = fit.enhanced_max_speed;
     speed.max_source = "fit_session";
   }
@@ -215,13 +226,18 @@ export function interpolate(records, t) {
 }
 
 // Small deterministic display estimate. No coaching inference or LLM calls.
-export function bestWindows(records, pauses = [], requireGps = true) {
+export function bestWindows(
+  records,
+  pauses = [],
+  requireGps = true,
+  elapsed = Infinity,
+) {
   const runs = validRuns(records, pauses, requireGps);
   return [300, 600, 1200].map((duration) => {
     let best = null;
     for (const run of runs) {
       const min = run[0].elapsed_s,
-        max = run.at(-1).elapsed_s - duration;
+        max = Math.min(run.at(-1).elapsed_s, elapsed) - duration;
       if (max < min) continue;
       const candidates = [
         ...new Set([
@@ -284,7 +300,7 @@ export function segmentDirections(
     window.end <= window.start
   )
     return [];
-  const run = validRuns(records, pauses, true).find(
+  const run = validRuns(records, pauses, true, false).find(
     (r) => r[0].elapsed_s <= window.start && r.at(-1).elapsed_s >= window.end,
   );
   if (!run) return [];
@@ -328,7 +344,7 @@ export function chartRows(records) {
       });
     out.push({
       t: r.elapsed_s / 60,
-      speed: mph(r.speed_mps),
+      speed: mph(usableSpeed(r.speed_mps)),
       hr: r.heart_rate_bpm,
       cadence: r.cadence_raw,
     });

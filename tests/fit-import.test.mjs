@@ -22,8 +22,8 @@ function setup(t, path = ":memory:") {
   t.after(() => db.close());
   return {
     db,
-    store: createStore({ database: db, tenantId: "alice" }),
-    bob: createStore({ database: db, tenantId: "bob" }),
+    store: createStore({ database: db, tenantId: "alice", launchLookup: null }),
+    bob: createStore({ database: db, tenantId: "bob", launchLookup: null }),
   };
 }
 function commitArgs(store, args = uploadFixture(), rest = {}) {
@@ -35,6 +35,252 @@ function commitArgs(store, args = uploadFixture(), rest = {}) {
     ...rest,
   };
 }
+
+test("temperature preserves negative values/nulls and existing uploads refresh on open without losing annotations", (t) => {
+  const { db, store } = setup(t);
+  const args = uploadFixture({
+    record: (r, time) => ({ ...r, ...(time === 0 ? {} : { temperature: -3 }) }),
+  });
+  const decoded = decodeUpload(args);
+  assert.equal(decoded.session.records[0].temperature_c, null);
+  assert.equal(decoded.session.records[1].temperature_c, -3);
+  const { session_id } = store.commitImport(commitArgs(store, args));
+  const repo = db.forTenant("alice");
+  const s = repo.get(session_id);
+  s.annotations = [
+    {
+      id: "keep",
+      kind: "note",
+      start_s: 20,
+      end_s: 20,
+      note: "Keep me",
+      timing: "exact",
+      source: "athlete_reported",
+    },
+  ];
+  for (const r of s.records) delete r.temperature_c;
+  s.deterministic = {
+    method: "obsolete",
+    movement: { events: [{ type: "timer_pause" }] },
+  };
+  repo.save(s);
+  const bytes = Buffer.from(repo.fitSource(session_id).fit_bytes);
+  assert.equal(db.forTenant("bob").fitSource(session_id), null);
+  const context = store.context(session_id);
+  assert.equal(context.deterministic.method, "sup_deterministic_v5");
+  assert.deepEqual(context.deterministic.movement.events, []);
+  const refreshed = repo.get(session_id);
+  assert.equal(refreshed.records[1].temperature_c, -3);
+  assert.deepEqual(refreshed.annotations, s.annotations);
+  assert.deepEqual(Buffer.from(repo.fitSource(session_id).fit_bytes), bytes);
+  store.context(session_id);
+  assert.equal(repo.get(session_id).revision, refreshed.revision);
+});
+
+// Garmin records use whole seconds, but elapsed/timer durations use milliseconds.
+const fractionalEnd = {
+  summary: { totalElapsedTime: 1299.494, totalTimerTime: 1299.494 },
+};
+
+test("whole-second end records preserve source timing and bound derived windows to elapsed duration", () => {
+  const args = uploadFixture({
+    ...fractionalEnd,
+    record: (r, t) => ({ ...r, distance: 2 * t + (t * t) / 1300 }),
+  });
+  const { session: s, fit, original, provenance } = decodeUpload(args);
+  assert.equal(s.deviceSummary.total_elapsed_time, 1299.494);
+  assert.equal(s.deviceSummary.total_timer_time, 1299.494);
+  assert.equal(s.records.length, 261);
+  assert.equal(s.records.at(-1).elapsed_s, 1300);
+  assert.equal(s.records.at(-1).timestamp_utc, "2026-09-27T14:21:40.000Z");
+  assert.equal(s.records.at(-1).source_record_index, 260);
+  assert.equal(s.deterministic.summary.speed_mps.covered_s, 1299.494);
+  assert.ok(s.windows.every((w) => w.end <= 1299.494));
+  assert.equal(s.windows[0].end, 1299.494);
+  assert.deepEqual(s.quality, [
+    { code: "record_timestamp_end_precision", count: 1 },
+  ]);
+  assert.deepEqual(original, Buffer.from(args.data_base64, "base64"));
+  assert.equal(sha256(fit), provenance.fit_sha256);
+
+  // Rounding must not create a full 300-second effort from 299.494 seconds.
+  const short = decodeUpload(
+    uploadFixture({
+      ...fractionalEnd,
+      record: (r, t) => (t < 1000 ? null : r),
+    }),
+  ).session;
+  assert.equal(short.windows[0].start, null);
+  for (const elapsed of [1299.001, 1299.999, 1300]) {
+    const session = decodeUpload(
+      uploadFixture({
+        summary: { totalElapsedTime: elapsed, totalTimerTime: elapsed },
+      }),
+    ).session;
+    assert.equal(session.records.at(-1).elapsed_s, 1300);
+    assert.equal(session.quality.length, elapsed < 1300 ? 1 : 0);
+  }
+});
+
+test("invalid record timestamps report the precise cause, record and timing", () => {
+  const cases = [
+    {
+      record: (r, t) => {
+        if (t === 20) delete r.timestamp;
+        return r;
+      },
+      reason: /record 5.*missing or invalid timestamp/i,
+    },
+    {
+      record: (r, t) => ({
+        ...r,
+        timestamp: t === 20 ? new Date("2026-09-27T14:00:15Z") : r.timestamp,
+      }),
+      reason: /record 5.*duplicate timestamp.*14:00:15.*record 4/i,
+    },
+    {
+      record: (r, t) => ({
+        ...r,
+        timestamp: t === 20 ? new Date("2026-09-27T14:00:05Z") : r.timestamp,
+      }),
+      reason: /record 5.*goes backward by 10 s.*record 4/i,
+    },
+    {
+      record: (r, t) => ({
+        ...r,
+        timestamp: t === 0 ? new Date("2026-09-27T13:59:59Z") : r.timestamp,
+      }),
+      reason: /record 1.*1 s before.*14:00:00/i,
+    },
+    {
+      ...fractionalEnd,
+      record: (r, t) => ({
+        ...r,
+        timestamp: t === 1300 ? new Date("2026-09-27T14:21:41Z") : r.timestamp,
+      }),
+      reason: /record 261.*1\.506 s after.*14:21:39\.494.*whole-second/i,
+    },
+    {
+      summary: { totalElapsedTime: 1299, totalTimerTime: 1299 },
+      timerEvents: [],
+      reason: /record 261.*1 s after.*14:21:39\.000/i,
+    },
+  ];
+  for (const { reason, ...options } of cases)
+    assert.throws(() => decodeUpload(uploadFixture(options)), reason);
+});
+
+const timerEvent = (seconds, eventType) => ({
+  timestamp: new Date(Date.parse("2026-09-27T14:00:00Z") + seconds * 1000),
+  event: "timer",
+  eventType,
+});
+
+test("a bounded final timer stop corroborates older-watch tail records without changing durations", (t) => {
+  const { store } = setup(t);
+  const board = store.upsertBoard({ name: "Inflatable board" });
+  for (const paused of [false, true]) {
+    const elapsed = 1296.271;
+    const args = uploadFixture({
+      paused,
+      // Session save time may be much later; it is not the recording boundary.
+      summary: {
+        totalElapsedTime: elapsed,
+        totalTimerTime: paused ? elapsed - 160 : elapsed,
+        timestamp: new Date("2026-09-27T15:00:00Z"),
+      },
+    });
+    const { session: s, provenance } = decodeUpload(args);
+    assert.equal(s.deviceSummary.total_elapsed_time, elapsed);
+    assert.equal(
+      s.deviceSummary.total_timer_time,
+      paused ? elapsed - 160 : elapsed,
+    );
+    assert.equal(s.records.at(-1).elapsed_s, 1300);
+    assert.equal(s.records.at(-1).source_record_index, s.records.length - 1);
+    assert.equal(
+      provenance.raw_timer_events.at(-1).timestamp.toISOString(),
+      s.records.at(-1).timestamp_utc,
+    );
+    const quality = s.quality.find(
+      (q) => q.code === "record_after_reported_end",
+    );
+    assert.equal(quality.count, 1);
+    assert.equal(quality.difference_s, 3.729);
+    assert.equal(quality.timer_stop_utc, "2026-09-27T14:21:40.000Z");
+    assert.deepEqual(s.pauses, paused ? [{ start: 500, end: 660 }] : []);
+    assert.ok(s.windows.every((w) => w.end === null || w.end <= elapsed));
+    assert.ok(s.deterministic.summary.speed_mps.covered_s <= elapsed);
+    assert.equal(store.previewImport(args).status, "preview");
+    const saved = store.commitImport(
+      commitArgs(store, args, { board_id: board.id }),
+    );
+    assert.equal(store.get(saved.session_id).boardId, board.id);
+    assert.equal(store.previewImport(args).status, "duplicate");
+    executeTool(store, "delete_session", { session_id: saved.session_id });
+    assert.equal(
+      store.commitImport(commitArgs(store, args, { board_id: board.id }))
+        .status,
+      "imported",
+    );
+    executeTool(store, "delete_session", { session_id: saved.session_id });
+  }
+});
+
+test("timer corroboration is bounded and requires ordered complete events plus a matching final record", () => {
+  const summary = {
+    totalElapsedTime: 1296.271,
+    totalTimerTime: 1296.271,
+    timestamp: new Date("2026-09-27T15:00:00Z"),
+  };
+  for (const timerEvents of [
+    [],
+    [timerEvent(0, "start")],
+    [timerEvent(1300, "stopAll")],
+    [timerEvent(1, "start"), timerEvent(1300, "stopAll")],
+    [timerEvent(0, "start"), timerEvent(1299, "stopAll")],
+    [timerEvent(0, "start"), timerEvent(1301, "stopAll")],
+    [
+      timerEvent(0, "start"),
+      timerEvent(1300, "stopAll"),
+      timerEvent(1301, "start"),
+    ],
+    [
+      timerEvent(0, "start"),
+      timerEvent(700, "stopAll"),
+      timerEvent(600, "start"),
+      timerEvent(1300, "stopAll"),
+    ],
+    [
+      timerEvent(0, "start"),
+      timerEvent(600, "start"),
+      timerEvent(1300, "stopAll"),
+    ],
+  ])
+    assert.throws(
+      () => decodeUpload(uploadFixture({ summary, timerEvents })),
+      /record 261.*after the session end/i,
+    );
+  assert.throws(
+    () =>
+      decodeUpload(
+        uploadFixture({
+          summary: { totalElapsedTime: 1294.999, totalTimerTime: 1294.999 },
+        }),
+      ),
+    /record 261.*5\.001 s after/i,
+  );
+  const allowed = decodeUpload(
+    uploadFixture({
+      summary: { totalElapsedTime: 1295, totalTimerTime: 1295 },
+    }),
+  ).session;
+  assert.equal(
+    allowed.quality.find((q) => q.code === "record_after_reported_end")
+      .difference_s,
+    5,
+  );
+});
 
 test("official decoder normalizes SI, UTC, nulls, strokes and deterministic best windows", () => {
   const { session: s } = decodeUpload(uploadFixture());
@@ -212,14 +458,14 @@ test("bounded ZIP extraction verifies sizes/CRC and rejects traversal, encryptio
           }),
         }),
       ),
-    /timestamps/,
+    /goes backward/,
   );
 });
 
 test("preview writes nothing; commits preserve originals, survive restart and deduplicate FIT/ZIP across tenant scopes", async (t) => {
   const path = join(mkdtempSync(join(tmpdir(), "sup-fit-")), "test.sqlite");
   const { db, store, bob } = setup(t, path);
-  const args = uploadFixture();
+  const args = uploadFixture(fractionalEnd);
   const p = store.previewImport(args);
   assert.equal(p.status, "preview");
   assert.equal(store.dashboard().sessions.length, 0);
@@ -231,7 +477,7 @@ test("preview writes nothing; commits preserve originals, survive restart and de
     session_id: saved.session_id,
     note: "keep this observation",
   });
-  const zip = zipFixture(fitFixture());
+  const zip = zipFixture(fitFixture(fractionalEnd));
   const zipArgs = {
     ...args,
     filename: "renamed.zip",
@@ -239,6 +485,11 @@ test("preview writes nothing; commits preserve originals, survive restart and de
   };
   assert.equal(
     store.commitImport(commitArgs(store, zipArgs)).session_id,
+    saved.session_id,
+  );
+  assert.equal(store.previewImport(args).status, "duplicate");
+  assert.equal(
+    store.previewImport(zipArgs).duplicate_session_id,
     saved.session_id,
   );
   assert.equal(store.dashboard().sessions.length, 1);
@@ -261,8 +512,11 @@ test("preview writes nothing; commits preserve originals, survive restart and de
   await db.backup(backup);
   const reopened = openDatabase(backup);
   assert.equal(
-    createStore({ database: reopened, tenantId: "alice" }).get(saved.session_id)
-      .additionalContext,
+    createStore({
+      database: reopened,
+      tenantId: "alice",
+      launchLookup: null,
+    }).get(saved.session_id).additionalContext,
     "keep this observation",
   );
   reopened.close();
@@ -342,12 +596,53 @@ test("REST and MCP expose the same import flow and calculated interval evidence,
     await client.connect(
       new StreamableHTTPClientTransport(new URL(base + "/mcp")),
     );
-    const args = uploadFixture();
+    const invalid = uploadFixture({
+      record: (r, t) => ({
+        ...r,
+        timestamp: t === 20 ? new Date("2026-09-27T14:00:15Z") : r.timestamp,
+      }),
+    });
+    for (const name of ["preview_fit_import", "commit_fit_import"]) {
+      const args =
+        name === "preview_fit_import"
+          ? invalid
+          : {
+              ...invalid,
+              expected_sha256: sha256(
+                Buffer.from(invalid.data_base64, "base64"),
+              ),
+              target_session_id: null,
+              board_id: null,
+            };
+      const mcpError = await client.callTool({ name, arguments: args });
+      assert.equal(mcpError.isError, true);
+      assert.match(
+        mcpError.content[0].text,
+        /record 5.*duplicate timestamp.*record 4/i,
+      );
+      const response = await fetch(base + "/api/tools", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, arguments: args }),
+      });
+      assert.equal(response.status, 400);
+      assert.equal((await response.json()).error, mcpError.content[0].text);
+      assert.equal(store.dashboard().sessions.length, 0);
+    }
+    const args = uploadFixture({
+      summary: { totalElapsedTime: 1296.271, totalTimerTime: 1296.271 },
+    });
     const preview = await client.callTool({
       name: "preview_fit_import",
       arguments: args,
     });
     assert.equal(preview.structuredContent.status, "preview");
+    assert.equal(
+      preview.structuredContent.summary.quality.find(
+        (q) => q.code === "record_after_reported_end",
+      ).difference_s,
+      3.729,
+    );
     assert.equal(preview.structuredContent.route, undefined);
     assert.ok(preview._meta.importRoute.length);
     const res = await fetch(base + "/api/tools", {
@@ -384,7 +679,7 @@ test("REST and MCP expose the same import flow and calculated interval evidence,
 test("session deletion preserves original bytes, isolates tenants and permits re-import", (t) => {
   const path = join(mkdtempSync(join(tmpdir(), "sup-delete-")), "test.sqlite");
   const { db, store, bob } = setup(t, path);
-  const upload = uploadFixture();
+  const upload = uploadFixture(fractionalEnd);
   const saved = store.commitImport(commitArgs(store, upload));
   bob.commitImport(commitArgs(bob, upload));
   const result = executeTool(store, "delete_session", {

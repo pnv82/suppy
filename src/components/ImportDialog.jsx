@@ -4,6 +4,7 @@ import { callTool } from "../services/client.mjs";
 import { uploadArguments } from "../services/fit-import.mjs";
 import { fmt } from "./SessionViews.jsx";
 import { durationLabel, mph } from "../domain/metrics.mjs";
+import { GarminPicker } from "./GarminPicker.jsx";
 
 function RoutePreview({ runs }) {
   const points = runs.flat();
@@ -55,11 +56,13 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
     [timezone, setTimezone] = useState(
       Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     );
+  const [source, setSource] = useState("file");
   const [preview, setPreview] = useState(null),
     [args, setArgs] = useState(null),
     [runs, setRuns] = useState([]);
   const [target, setTarget] = useState(""),
     [name, setName] = useState(""),
+    [launchReference, setLaunchReference] = useState(null),
     [board, setBoard] = useState(defaultBoardId || "");
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
@@ -74,31 +77,43 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
   useEffect(() => {
     if (!busy) dialog.current?.querySelector(preview ? "h2" : "input")?.focus();
   }, [preview, busy]);
+  function acceptPreview(result, input) {
+    const suggested =
+      result.structuredContent.launch_suggestions?.candidates[0];
+    setName(suggested?.name || "");
+    setLaunchReference(suggested?.source_ref || null);
+    setArgs(input);
+    setPreview(result.structuredContent);
+    setRuns(result._meta.importRoute || []);
+    setTarget(
+      result.structuredContent.candidates.length &&
+        !result.structuredContent.duplicate_session_id
+        ? "choose"
+        : "",
+    );
+  }
   async function submit(e) {
     e.preventDefault();
+    if (source === "garmin" && !preview) return;
     setBusy(true);
     setError("");
     try {
       if (!preview) {
         const input = await uploadArguments(file, timezone);
         const result = await callTool("preview_fit_import", input);
-        setArgs(input);
-        setPreview(result.structuredContent);
-        setRuns(result._meta.importRoute || []);
-        setTarget(
-          result.structuredContent.candidates.length &&
-            !result.structuredContent.duplicate_session_id
-            ? "choose"
-            : "",
-        );
+        acceptPreview(result, input);
       } else {
-        const result = await callTool("commit_fit_import", {
-          ...args,
-          expected_sha256: preview.sha256,
-          target_session_id: target || null,
-          board_id: board || null,
-          launch_name: name,
-        });
+        const result = await callTool(
+          source === "garmin" ? "commit_garmin_activity" : "commit_fit_import",
+          {
+            ...args,
+            expected_sha256: preview.sha256,
+            target_session_id: target || null,
+            board_id: board || null,
+            launch_name: name,
+            launch_source_ref: launchReference,
+          },
+        );
         onImported(
           result.structuredContent.session_id,
           result.structuredContent.status,
@@ -139,7 +154,7 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
         </div>
         <ol className="import-steps" aria-label="Import progress">
           <li aria-current={!preview ? "step" : undefined}>
-            <span>{preview ? <Check size={14} /> : 1}</span>Choose file
+            <span>{preview ? <Check size={14} /> : 1}</span>Choose activity
           </li>
           <li aria-current={preview ? "step" : undefined}>
             <span>2</span>Review & save
@@ -147,32 +162,71 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
         </ol>
         {!preview ? (
           <>
-            <p>
-              Choose a SUP activity to preview its route and metrics before
-              saving.
-            </p>
-            <label className="import-file-card">
-              <UploadSimple size={30} aria-hidden="true" />
-              <strong>Choose your Garmin activity</strong>
-              <span className="caption">
-                SUP FIT or single-FIT ZIP · up to 30 MB
-              </span>
-              <input
-                aria-label="Garmin activity"
-                autoFocus
-                type="file"
-                accept=".fit,.zip"
-                required
+            <div
+              className="garmin-toolbar"
+              role="group"
+              aria-label="Import source"
+            >
+              <button
+                type="button"
+                className="button secondary"
+                aria-pressed={source === "file"}
                 disabled={busy}
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
+                onClick={() => setSource("file")}
+              >
+                FIT file
+              </button>
+              <button
+                type="button"
+                className="button secondary"
+                aria-pressed={source === "garmin"}
+                disabled={busy}
+                onClick={() => setSource("garmin")}
+              >
+                Garmin Connect
+              </button>
+            </div>
+            {source === "garmin" ? (
+              <GarminPicker
+                timezone={timezone}
+                busy={busy}
+                setBusy={setBusy}
+                onPreview={(result) =>
+                  acceptPreview(result, {
+                    preview_id: result.structuredContent.preview_id,
+                  })
+                }
               />
-              {file && (
-                <span className="import-file-name">
-                  <File size={16} />
-                  {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
-                </span>
-              )}
-            </label>
+            ) : (
+              <>
+                <p>
+                  Choose a SUP activity to preview its route and metrics before
+                  saving.
+                </p>
+                <label className="import-file-card">
+                  <UploadSimple size={30} aria-hidden="true" />
+                  <strong>Choose your Garmin activity</strong>
+                  <span className="caption">
+                    SUP FIT or single-FIT ZIP · up to 30 MB
+                  </span>
+                  <input
+                    aria-label="Garmin activity"
+                    autoFocus
+                    type="file"
+                    accept=".fit,.zip"
+                    required
+                    disabled={busy}
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  />
+                  {file && (
+                    <span className="import-file-name">
+                      <File size={16} />
+                      {file.name} · {(file.size / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  )}
+                </label>
+              </>
+            )}
             <label>
               Display timezone
               <input
@@ -252,7 +306,12 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                 <ul>
                   {s.quality.map((q) => (
                     <li key={q.code}>
-                      {q.code.replaceAll("_", " ")}: {q.count}
+                      {q.code === "record_timestamp_end_precision"
+                        ? "Whole-second timestamp at session end; original timing retained"
+                        : q.code === "record_after_reported_end"
+                          ? `Final records match the timer stop, ${q.difference_s} s after the reported duration. Original timing retained. Records affected`
+                          : q.code.replaceAll("_", " ")}
+                      : {q.count}
                     </li>
                   ))}
                 </ul>
@@ -303,10 +362,67 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                         value={name}
                         maxLength={100}
                         placeholder={s.title}
-                        onChange={(e) => setName(e.target.value)}
+                        onChange={(e) => {
+                          setName(e.target.value);
+                          setLaunchReference(null);
+                        }}
                         disabled={busy}
                       />
                     </label>
+                    <p className="caption">
+                      Nearby launch suggestions are unconfirmed. Review the name
+                      before importing. Exact start coordinates are used for the
+                      OpenStreetMap lookup.
+                    </p>
+                    {preview.launch_suggestions?.lookup.message && (
+                      <p role="status">
+                        {preview.launch_suggestions.lookup.message}
+                      </p>
+                    )}
+                    {preview.launch_suggestions?.reason && (
+                      <p role="status">{preview.launch_suggestions.reason}</p>
+                    )}
+                    <div className="launch-suggestions">
+                      {preview.launch_suggestions?.candidates.map((c) => (
+                        <div key={c.source_ref}>
+                          <button
+                            type="button"
+                            className="text-button"
+                            disabled={busy}
+                            onClick={() => {
+                              setName(c.name);
+                              setLaunchReference(c.source_ref);
+                            }}
+                          >
+                            {c.name} · {c.distance_m} m · use name
+                          </button>
+                          <small>
+                            {c.source === "openstreetmap" ? (
+                              <a
+                                href={c.source_url}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                OpenStreetMap contributors · nearby mapped
+                                feature
+                              </a>
+                            ) : c.source === "previous_athlete_confirmation" ? (
+                              "Previously confirmed nearby start"
+                            ) : (
+                              <a
+                                href={
+                                  preview.launch_suggestions.catalog.source_url
+                                }
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Historical City beach reference
+                              </a>
+                            )}
+                          </small>
+                        </div>
+                      ))}
+                    </div>
                     <label>
                       Board
                       <select
@@ -342,11 +458,11 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
             {error}
           </p>
         )}
-        {busy && (
+        {busy && (preview || source === "file") && (
           <p role="status">
             {preview
               ? "Saving import…"
-              : "Validating file and calculating metrics…"}
+              : "Validating file, calculating metrics and finding nearby launches…"}
           </p>
         )}
         <div className="dialog-actions">
@@ -371,21 +487,23 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                 setError("");
               }}
             >
-              Choose another file
+              Choose another activity
             </button>
           )}
-          <button
-            className="button primary"
-            disabled={busy || target === "choose" || (!preview && !file)}
-          >
-            {preview
-              ? preview.duplicate_session_id
-                ? "Open existing session"
-                : target
-                  ? "Attach FIT"
-                  : "Import session"
-              : "Preview file"}
-          </button>
+          {(preview || source === "file") && (
+            <button
+              className="button primary"
+              disabled={busy || target === "choose" || (!preview && !file)}
+            >
+              {preview
+                ? preview.duplicate_session_id
+                  ? "Open existing session"
+                  : target
+                    ? "Attach FIT"
+                    : "Import session"
+                : "Preview file"}
+            </button>
+          )}
         </div>
       </form>
     </dialog>
