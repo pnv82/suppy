@@ -1,7 +1,8 @@
 # Next - Other
 
-- [ ] 
-
+- [ ] show track direction with a lgit arrows within a track. Make them barely visible not to obstruct the map view.
+check if there is a way to call the ChatGPT analysis when app in launched within the chat?
+automatic launch spot based  naming does not work now
 
 # Deferred work
 
@@ -45,16 +46,11 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 - [ ] On a specific session page, show similar sessions and allow comparison with the top five matches. Define similarity criteria (such as duration, distance, session type and available conditions), explain why each session matches, and handle missing context before implementing ranking. This session-specific feature is deferred; the global Compare screen continues to show automatic latest-10 trends.
 - [x] Decode valid single-session SUP FIT / one-FIT ZIP uploads, preview identity/route/metrics, explicitly match by time/distance, retain originals and reject malformed/unsupported activities. See `docs/engineering/fit-import.md`.
 - [ ] Profile large-import decoding and histories before adding worker scheduling, streaming/chunked uploads or lazy telemetry loading; verify actual ChatGPT host file-selection/payload limits. Current limits: 30 MB and 100,000 FIT messages.
-- [x] Retrieve nearby historical station observations independently after import and show weather at the shared chart cursor with age, station distance, coverage and retry. See `docs/engineering/weather.md`.
-- [ ] Consider a dedicated weather timeline layer and route-wide station selection if needed; the current panel follows the shared cursor using one station near the recorded launch.
-- [ ] Support precise technique evidence timing and more source-event detail when timestamps exist. Unknown-time falls/interruptions must remain untimed.
 - [ ] Expand comparison history after more sessions arrive; explicitly validate partial/null metrics and dates across locales.
-- [ ] Broader metric null-state and large-data performance checks, timeline zoom and drag-to-select. Best-window travel arrows are implemented; richer direction controls remain optional future work.
 - [ ] Split/lazy-load the current UI bundle while preserving self-contained ChatGPT resource packaging; current production JS is roughly 1 MB uncompressed.
 - [ ] add integration with Garmin, so i can load sessions data directly from there, omitting export/import step fo the fit files.
 
 ## Infrustructure
-- [x] Replace Google Sheets with SQLite persistence and separate production/development/test data; add tenant isolation and backup/restore support.
 - [ ] Before public multi-user hosting, implement authentication and bind validated identities to the existing tenant resolver; add user-facing concurrent-edit conflict handling.
 - [ ] let's deploy the app to @Sites, so i can use it
 

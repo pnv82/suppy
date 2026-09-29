@@ -252,7 +252,10 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                 <ul>
                   {s.quality.map((q) => (
                     <li key={q.code}>
-                      {q.code.replaceAll("_", " ")}: {q.count}
+                      {q.code === "record_timestamp_end_precision"
+                        ? "Whole-second timestamp at session end; original timing retained"
+                        : q.code.replaceAll("_", " ")}
+                      : {q.count}
                     </li>
                   ))}
                 </ul>

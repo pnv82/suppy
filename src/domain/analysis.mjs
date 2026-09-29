@@ -218,7 +218,7 @@ export function analyzeTelemetry(
   sourceRef = null,
   context = {},
 ) {
-  const windows = bestWindows(records, pauses, false).map((w) => ({
+  const windows = bestWindows(records, pauses, false, elapsed).map((w) => ({
     ...w,
     method: "elapsed_continuous_v1",
     source: "derived",

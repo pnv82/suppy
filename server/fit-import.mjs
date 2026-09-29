@@ -189,16 +189,39 @@ export function decodeUpload({ filename, data_base64, timezone = "UTC" }) {
     throw new Error("FIT active duration exceeds elapsed duration.");
   const quality = new Map();
   const flag = (code) => quality.set(code, (quality.get(code) || 0) + 1);
+  const startMs = Date.parse(startUtc);
+  // FIT date_time has whole-second precision; total_elapsed_time has ms precision.
+  // Keep the original timestamps/duration, allowing only the final partial second.
+  const recordEnd = Math.ceil(elapsed);
+  const endUtc = new Date(startMs + Math.round(elapsed * 1000)).toISOString();
+  const secondsLabel = (seconds) => Number(seconds.toFixed(3));
   let last = -Infinity;
   const records = (messages.recordMesgs || []).map((r, index) => {
     const timestamp = iso(r.timestamp),
-      t = timestamp
-        ? (Date.parse(timestamp) - Date.parse(startUtc)) / 1000
-        : null;
-    if (t === null || t < 0 || t > elapsed || t <= last)
+      t = timestamp ? (Date.parse(timestamp) - startMs) / 1000 : null;
+    const reject = (reason) => {
       throw new Error(
-        "FIT records have missing, unordered or out-of-session timestamps. Re-export the activity; records were not silently reordered.",
+        `FIT record ${index + 1} ${reason} Import stopped; no records were reordered or removed.`,
       );
+    };
+    if (t === null) reject("has a missing or invalid timestamp.");
+    if (t === last)
+      reject(
+        `has a duplicate timestamp (${timestamp}), the same as record ${index}.`,
+      );
+    if (t < last)
+      reject(
+        `goes backward by ${secondsLabel(last - t)} s (${timestamp}; record ${index}: ${iso(messages.recordMesgs[index - 1].timestamp)}).`,
+      );
+    if (t < 0)
+      reject(
+        `is ${secondsLabel(-t)} s before the session start (${timestamp}; start: ${startUtc}).`,
+      );
+    if (t > recordEnd)
+      reject(
+        `is ${secondsLabel(t - elapsed)} s after the session end (${timestamp}; end: ${endUtc}; elapsed: ${elapsed} s), beyond FIT whole-second timestamp precision.`,
+      );
+    if (t > elapsed) flag("record_timestamp_end_precision");
     if (t - last > 15 && index) flag("telemetry_gap_over_15s");
     last = t;
     let lat = Number.isFinite(r.positionLat)

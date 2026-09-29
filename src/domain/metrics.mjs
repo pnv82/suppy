@@ -215,13 +215,18 @@ export function interpolate(records, t) {
 }
 
 // Small deterministic display estimate. No coaching inference or LLM calls.
-export function bestWindows(records, pauses = [], requireGps = true) {
+export function bestWindows(
+  records,
+  pauses = [],
+  requireGps = true,
+  elapsed = Infinity,
+) {
   const runs = validRuns(records, pauses, requireGps);
   return [300, 600, 1200].map((duration) => {
     let best = null;
     for (const run of runs) {
       const min = run[0].elapsed_s,
-        max = run.at(-1).elapsed_s - duration;
+        max = Math.min(run.at(-1).elapsed_s, elapsed) - duration;
       if (max < min) continue;
       const candidates = [
         ...new Set([
