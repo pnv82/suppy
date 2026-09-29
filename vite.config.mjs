@@ -9,7 +9,12 @@ export default defineConfig({
     include: ["react", "react-dom/client"],
   },
   server: {
-    proxy: { "/api": "http://127.0.0.1:3001", "/mcp": "http://127.0.0.1:3001" },
+    proxy: {
+      "/api": "http://127.0.0.1:3001",
+      "/mcp": "http://127.0.0.1:3001",
+      "/auth/config": "http://127.0.0.1:3001",
+      "/.well-known": "http://127.0.0.1:3001",
+    },
     host: "0.0.0.0",
     allowedHosts: ["terminal.local"],
     warmup: {

@@ -16,6 +16,7 @@ import {
   subscribe,
   callTool,
   askChatGPT,
+  embedded,
 } from "./services/client.mjs";
 import {
   shortDate,
@@ -46,8 +47,23 @@ const defaultDraft = (t, end = t) => ({
   note: "",
 });
 
-export function App() {
-  const [data, setData] = useState(null),
+export function App({ account }) {
+  const [workspace, setWorkspace] = useState(null);
+  useEffect(
+    () => (embedded ? subscribe((next) => setWorkspace(next)) : undefined),
+    [],
+  );
+  return (
+    <Workspace
+      key={embedded ? workspace?.tenantId || "unlinked" : "standalone"}
+      account={account}
+      initialData={embedded ? workspace : null}
+    />
+  );
+}
+
+function Workspace({ account, initialData }) {
+  const [data, setData] = useState(initialData),
     [connected, setConnected] = useState(false);
   const { page, sessionId, navigate } = useNavigation();
   const setPage = (page) => navigate({ page });
@@ -238,6 +254,9 @@ export function App() {
   if (!data)
     return (
       <main className="loading-state">
+        {account && (
+          <NavigationRail account={account} page={page} onNavigate={setPage} />
+        )}
         <Waves size={38} />
         <h1>Suppy</h1>
         <p>{error || "Loading your sessions…"}</p>
@@ -257,6 +276,7 @@ export function App() {
         Skip to content
       </a>
       <NavigationRail
+        account={account}
         page={page}
         onNavigate={setPage}
         onImport={() => setImportOpen(true)}
@@ -490,6 +510,7 @@ export function App() {
           {page === "ChatGPT" && session && (
             <ChatGPTPage
               connected={connected}
+              authenticated={Boolean(account)}
               session={session}
               onPrepare={(q) => perform(() => prepare(q))}
               busy={busy}

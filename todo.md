@@ -77,9 +77,10 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 
 ## Infrustructure
 - [x] Replace Google Sheets with SQLite persistence and separate production/development/test data; add tenant isolation and backup/restore support.
-- [ ] Before public multi-user hosting, implement authentication and bind validated identities to the existing tenant resolver; add user-facing concurrent-edit conflict handling.
+- [x] Auth0 Google login and verified REST/MCP identity are bound to tenant-scoped storage, with empty account provisioning and account-state invalidation. See [authentication.md](docs/engineering/authentication.md).
+- [ ] Before public hosting, choose the HTTPS URL, register its immutable Auth0 API Identifier/callbacks and ChatGPT client, configure production Google credentials, verify live linking, and approve Render publication. User-facing concurrent-edit conflict handling remains deferred.
 - [ ] let's deploy the app to @Sites, so i can use it
 
 ## Intentionally outside this prototype
 
-Authentication, user sharing, public deployment, automatic Garmin sync, extra import formats, video-link management and training-plan generation. Public distribution also requires a hosted/authenticated MCP design and account-level review. None is implemented or implied by local connection instructions.
+User sharing, public deployment, automatic Garmin sync, extra import formats, video-link management and training-plan generation. Authentication is implemented under the 2026-09-29 authorization; public distribution and live ChatGPT account linking still require HTTPS/provider setup and separate publication approval.

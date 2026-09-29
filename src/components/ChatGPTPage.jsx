@@ -4,6 +4,7 @@ import { shortDate } from "./SessionViews.jsx";
 
 export function ChatGPTPage({
   connected,
+  authenticated = false,
   session,
   onPrepare,
   busy,
@@ -88,47 +89,57 @@ export function ChatGPTPage({
         </section>
         <section className="connect-panel">
           <h2>Connect your app</h2>
-          <p>
-            Start the local server, then connect it through a Secure MCP Tunnel.
-            Setup is done once in your account.
-          </p>
-          <ol className="connection-steps">
-            <li>
-              <strong>Build and run locally</strong>
-              <code>
-                npm run build
-                <br />
-                npm start
-              </code>
-              <span>Your app and MCP endpoint run on port 3001.</span>
-            </li>
-            <li>
-              <strong>Create a Secure MCP Tunnel</strong>
-              <span>
-                Forward to <code>http://127.0.0.1:3001/mcp</code> using the
-                official tunnel client.
-              </span>
-            </li>
-            <li>
-              <strong>Add it to ChatGPT</strong>
-              <span>
-                Enable Developer mode in Settings, create a plugin with your
-                tunnel, and select it in a conversation.
-              </span>
-            </li>
-          </ol>
-          <a
-            className="text-button"
-            href="https://developers.openai.com/plugins/deploy/connect-chatgpt"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Official connection guide <ArrowSquareOut size={16} />
-          </a>
-          <p className="caption">
-            The project README includes all setup steps. Developer mode and
-            tunnels depend on account and workspace availability.
-          </p>
+          {authenticated ? (
+            <p>
+              Google sign-in protects your standalone workspace. ChatGPT account
+              linking needs a hosted HTTPS Suppy endpoint. Until then, you can
+              prepare a prompt here and copy it into a conversation.
+            </p>
+          ) : (
+            <>
+              <p>
+                Start the local server, then connect it through a Secure MCP
+                Tunnel. Setup is done once in your account.
+              </p>
+              <ol className="connection-steps">
+                <li>
+                  <strong>Build and run locally</strong>
+                  <code>
+                    npm run build
+                    <br />
+                    npm start
+                  </code>
+                  <span>Your app and MCP endpoint run on port 3001.</span>
+                </li>
+                <li>
+                  <strong>Create a Secure MCP Tunnel</strong>
+                  <span>
+                    Forward to <code>http://127.0.0.1:3001/mcp</code> using the
+                    official tunnel client.
+                  </span>
+                </li>
+                <li>
+                  <strong>Add it to ChatGPT</strong>
+                  <span>
+                    Enable Developer mode in Settings, create a plugin with your
+                    tunnel, and select it in a conversation.
+                  </span>
+                </li>
+              </ol>
+              <a
+                className="text-button"
+                href="https://developers.openai.com/plugins/deploy/connect-chatgpt"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Official connection guide <ArrowSquareOut size={16} />
+              </a>
+              <p className="caption">
+                The project README includes all setup steps. Developer mode and
+                tunnels depend on account and workspace availability.
+              </p>
+            </>
+          )}
         </section>
       </div>
     </>

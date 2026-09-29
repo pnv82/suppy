@@ -7,6 +7,8 @@ import {
   ChatCircleDots,
   UploadSimple,
   Target,
+  SignOut,
+  UserSwitch,
 } from "@phosphor-icons/react";
 
 const destinations = [
@@ -17,8 +19,9 @@ const destinations = [
   ["ChatGPT", ChatCircleDots],
 ];
 
-export function NavigationRail({ page, onNavigate, onImport }) {
+export function NavigationRail({ page, onNavigate, onImport, account }) {
   const [labelsHidden, setLabelsHidden] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const reveal = () => setLabelsHidden(false);
   return (
     <header
@@ -29,8 +32,10 @@ export function NavigationRail({ page, onNavigate, onImport }) {
     >
       <button
         className="rail-button rail-brand"
-        aria-label="Suppy home"
-        onClick={() => onNavigate("Home")}
+        aria-label={account ? "Suppy account" : "Suppy home"}
+        popoverTarget={account ? "account-menu" : undefined}
+        aria-expanded={account ? accountOpen : undefined}
+        onClick={account ? undefined : () => onNavigate("Home")}
         onFocus={reveal}
         onMouseEnter={reveal}
       >
@@ -39,6 +44,27 @@ export function NavigationRail({ page, onNavigate, onImport }) {
           Suppy
         </span>
       </button>
+      {account && (
+        <div
+          id="account-menu"
+          className="account-menu"
+          popover="auto"
+          role="dialog"
+          aria-label="Google account"
+          onToggle={(event) => setAccountOpen(event.newState === "open")}
+        >
+          <strong>{account.label}</strong>
+          {account.email && account.email !== account.label && (
+            <p>{account.email}</p>
+          )}
+          <button className="button plain" onClick={account.onSwitch}>
+            <UserSwitch size={18} /> Switch Google account
+          </button>
+          <button className="button plain" onClick={account.onLogout}>
+            <SignOut size={18} /> Sign out
+          </button>
+        </div>
+      )}
       <nav aria-label="Main navigation">
         {destinations.map(([name, Icon]) => (
           <button
@@ -66,6 +92,7 @@ export function NavigationRail({ page, onNavigate, onImport }) {
           className="rail-button"
           aria-label="Import FIT"
           onClick={onImport}
+          disabled={!onImport}
           onFocus={reveal}
           onMouseEnter={reveal}
         >

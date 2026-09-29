@@ -28,7 +28,7 @@ Historical station weather retrieval is approved and implemented independently a
 
 ## Scope boundary
 
-No authentication, multi-user sharing, broad import compatibility, Garmin account sync, in-app coaching analysis, training-plan generator, or public deployment in this slice. A small local Node/MCP server persists data in SQLite for the UI and ChatGPT. Tenant-scoped keys and a trusted request-identity resolver provide the foundation for multiple users; public authenticated hosting remains future work.
+The 2026-09-29 authorization adds Google sign-in through Auth0 and an empty private workspace per account. Sign out and Switch Google account live in the existing navigation. Existing local history remains separate; it is not transferred automatically. The app stays local until a hosting URL is chosen, with authenticated hosting prepared as a separate publication step. Multi-user sharing, broad import compatibility, Garmin account sync, in-app coaching analysis and a training-plan generator remain outside scope.
 
 The app supports validated SUP FIT/one-FIT ZIP import and deterministic 5/10/20-minute distance/time windows, channel-weighted interval evidence and coverage. Calculated evidence stays separate from device summaries and stored historical results. Interpretation and coaching run in the external LLM; advanced sensor validation and richer analysis remain in `todo.md`. See [responsibilities](llm%20vs%20app.md) and [import contract](../engineering/fit-import.md).
 

@@ -2149,6 +2149,23 @@ td small {
 }
 
 /* Compact left navigation keeps the full viewport height for review. */
+.auth-screen { padding-inline: 24px; }
+.auth-screen p { max-width: 420px; overflow-wrap: anywhere; }
+.account-menu {
+  position: fixed;
+  inset: 14px auto auto calc(var(--rail-width) + 8px);
+  width: min(290px, calc(100vw - var(--rail-width) - 20px));
+  margin: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #183248;
+  background: white;
+  box-shadow: 0 8px 28px #12283f25;
+  overflow-wrap: anywhere;
+}
+.account-menu p { margin-top: 4px; font-size: 12px; color: var(--muted); }
+.account-menu button { width: 100%; justify-content: flex-start; white-space: normal; margin-top: 8px; }
 :root {
   --rail-width: 64px;
 }

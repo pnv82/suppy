@@ -14,6 +14,10 @@ npm start
 
 Open **http://127.0.0.1:3001**. Keep that terminal open. Stop it with Ctrl+C.
 
+For Google authentication, copy `.env.example` to `.env` before starting. This workspace is configured for your Auth0 SPA and the local Suppy API, `http://127.0.0.1:3001/mcp`. Choose **Continue with Google**; account actions open from the Suppy icon in the navigation rail. Each verified account starts with an empty private workspace. Your existing `local` history and original uploads are preserved; they are not assigned automatically to a Google account. See [Auth0 configuration, token checks and future Render setup](docs/engineering/authentication.md).
+
+Without authentication configuration, the existing local mode remains available on loopback. To deliberately open the previous history, set `SUP_AUTH_MODE=local` in your terminal before starting. Never expose that mode publicly. Hosted operation fails at startup without Auth0 and explicit HTTPS origin/storage configuration. `render.yaml` prepares hosting but does not publish it.
+
 The address bar tracks the page and selected session. Copy it to bookmark a view, for example `http://127.0.0.1:3001/?page=sessions&session=24162211256`. Supported pages are `home`, `sessions`, `boards`, `goals`, and `chatgpt`. A session-only link opens its review. Refresh and browser Back/Forward restore the view; unknown session IDs show an unavailable message. Links require this local app and its source data to be available; saved edits survive server restarts.
 
 For UI development, use `npm run dev` instead: Vite runs on port 5173, with the local API/MCP server on 3001. Do not run both start and dev at once. Rebuild before testing the embedded ChatGPT UI: it uses the built bundle.
@@ -49,6 +53,8 @@ The app is designed to run **inside the ChatGPT conversation**, with tools for r
 
 ### 1. Start the local app
 
+These private-tunnel instructions use the explicit local mode. Set `$env:SUP_AUTH_MODE = "local"` in the terminal before starting; this opens the existing `local` tenant. Auth0 mode uses protected-resource discovery and account linking, which will be verified after a final HTTPS endpoint is available.
+
 Run `npm run build` and `npm start` as above. The MCP endpoint is:
 
 ```text
@@ -74,7 +80,7 @@ Replace `YOUR_TUNNEL_ID`. Keep both terminals running. Tunnel creation needs the
 
 #### If `doctor` fails at `oauth_metadata`
 
-This prototype does not implement OAuth. Its `/.well-known/*` discovery URLs must return **404**, indicating that metadata is absent. A `200` response containing the app's HTML causes `invalid character '<' looking for beginning of value`. The Node server now keeps discovery URLs out of its UI route fallback.
+In local mode (`SUP_AUTH_MODE=local`), `/.well-known/*` discovery URLs return **404**, indicating that metadata is absent. A `200` response containing the app's HTML causes `invalid character '<' looking for beginning of value`. The Node server keeps discovery URLs out of its UI route fallback. In Auth0 mode, protected-resource discovery instead returns real JSON metadata and private tools require a verified access token; use the [authentication contract](docs/engineering/authentication.md#mcp-account-linking).
 
 After updating the server, restart `npm start` (or `npm run dev`) and rerun these commands in the terminal where you already configured `CONTROL_PLANE_API_KEY`:
 
@@ -109,7 +115,7 @@ You can also save a note in the embedded UI and choose **Save & ask ChatGPT abou
 
 After changing server tools or rebuilding the UI, restart the server, refresh the connection metadata in ChatGPT and use a new conversation. Refresh the standalone page to see changes made from another client. The local MCP handshake/tool/resource flow is tested; your account's tunnel, embedding and actual model/tool selection still need a live account check.
 
-No OpenAI model API key is required by this app. A tunnel runtime credential is separate. This repository does not create or manage your tunnel automatically. Keep this unauthenticated prototype local/private.
+No OpenAI model API key is required by this app. A tunnel runtime credential is separate. This repository does not create or manage your tunnel automatically. Keep unauthenticated local mode private. Authenticated public ChatGPT linking remains deferred until the final HTTPS URL and provider/client registration are configured; the local Auth0 API Identifier will be replaced with a newly registered hosted API.
 
 ## Structure for implementation agents
 
@@ -118,6 +124,8 @@ src/App.jsx                 Navigation, selected session and action orchestratio
 src/components/             Review, timeline, compare and ChatGPT screens
 src/domain/metrics.mjs       Pure selectors, interpolation and display estimates
 src/services/client.mjs     REST / MCP Apps bridge
+src/auth/AuthBoundary.jsx   Auth0 SDK gate and account lifecycle
+server/auth.mjs             JWT verification, discovery and trusted tenant identity
 server/database.mjs         SQLite schema, transactions and tenant repositories
 server/store.mjs            Persistent domain operations and presentation adapter
 server/tools.mjs            Validated synchronous domain tools
@@ -154,6 +162,6 @@ Historical import capture: 2026-09-26 03:24:26 UTC. Original source ranges, refe
 
 The map uses OpenStreetMap with visible attribution and normal browser tile caching. Only the visible map area is requested; no offline tile download. See the [tile policy](https://operations.osmfoundation.org/policies/tiles/). A production map service decision is deferred.
 
-Navigation uses a compact left icon rail. Labels are persistent from 1400 px upward. On smaller screens, hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail.
+Navigation uses a compact left icon rail. Labels are persistent from 1400 px upward. On smaller screens, hover or keyboard-focus an icon to see its label; the active page is highlighted. Import FIT is at the bottom of the rail. In authenticated standalone mode, the Suppy icon opens account actions; Home remains in the navigation group.
 
 The app is named Suppy. Existing SUP_DB_PATH/SUP_PORT environment names, local storage paths and operator-created tunnel profile names remain valid. Refresh ChatGPT connection metadata after this release; the embedded resource now uses ui://suppy/dashboard.html.

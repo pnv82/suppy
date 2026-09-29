@@ -4,6 +4,16 @@ import { fileURLToPath } from "node:url";
 import { resolve, extname, sep } from "node:path";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
+import { z } from "zod";
+import {
+  authenticationConfig,
+  createAuth0Resolver,
+  AuthenticationError,
+  authenticationChallenge,
+  protectedResourceMetadata,
+  accessScope,
+} from "./auth.mjs";
 import { createStore } from "./store.mjs";
 import { openDatabase, validateTenantId } from "./database.mjs";
 import { descriptions, toolSchemas } from "./tools.mjs";
@@ -37,8 +47,14 @@ function widgetHtml() {
 export function createMcpServer(
   store,
   weatherService = createWeatherService(),
+  options = {},
 ) {
   const server = new McpServer({ name: "suppy", version: "0.1.0" });
+  const securitySchemes =
+    options.authConfig?.mode === "auth0"
+      ? [{ type: "oauth2", scopes: [accessScope] }]
+      : [{ type: "noauth" }];
+  const definitions = [];
   server.registerResource(
     "sup-dashboard",
     resourceUri,
@@ -83,49 +99,76 @@ export function createMcpServer(
       "fetch_session_weather",
       "set_session_wind",
     ].includes(name);
-    server.registerTool(
+    const definition = {
+      title: name
+        .split("_")
+        .map((s) => s[0].toUpperCase() + s.slice(1))
+        .join(" "),
+      description: descriptions[name],
+      inputSchema: toolSchemas[name],
+      annotations: {
+        readOnlyHint: readOnly,
+        destructiveHint: [
+          "delete_custom_interval",
+          "delete_goal",
+          "delete_annotation",
+          "delete_board",
+          "delete_session",
+        ].includes(name),
+        idempotentHint: ![
+          "upsert_annotation",
+          "upsert_board",
+          "upsert_goal",
+        ].includes(name),
+        openWorldHint: [
+          "suggest_launch_name",
+          "fetch_session_weather",
+          "commit_fit_import",
+        ].includes(name),
+      },
+      _meta: {
+        ui: { resourceUri },
+        "openai/outputTemplate": resourceUri,
+        securitySchemes,
+      },
+    };
+    definitions.push({
       name,
-      {
-        title: name
-          .split("_")
-          .map((s) => s[0].toUpperCase() + s.slice(1))
-          .join(" "),
-        description: descriptions[name],
-        inputSchema: toolSchemas[name],
-        annotations: {
-          readOnlyHint: readOnly,
-          destructiveHint: [
-            "delete_custom_interval",
-            "delete_goal",
-            "delete_annotation",
-            "delete_board",
-            "delete_session",
-          ].includes(name),
-          idempotentHint: ![
-            "upsert_annotation",
-            "upsert_board",
-            "upsert_goal",
-          ].includes(name),
-          openWorldHint: [
-            "suggest_launch_name",
-            "fetch_session_weather",
-            "commit_fit_import",
-          ].includes(name),
-        },
-        _meta: { ui: { resourceUri }, "openai/outputTemplate": resourceUri },
-      },
-      async (args) => {
-        try {
-          return await dispatchTool(store, name, args, weatherService);
-        } catch (error) {
-          return {
-            isError: true,
-            content: [{ type: "text", text: error.message }],
-          };
-        }
-      },
-    );
+      ...definition,
+      inputSchema: z.toJSONSchema(toolSchemas[name], { io: "input" }),
+      securitySchemes,
+    });
+    server.registerTool(name, definition, async (args) => {
+      if (options.authenticationFailure)
+        return {
+          isError: true,
+          content: [
+            { type: "text", text: options.authenticationFailure.message },
+          ],
+          _meta: {
+            "mcp/www_authenticate": [
+              authenticationChallenge(
+                options.authConfig,
+                options.authenticationFailure,
+              ),
+            ],
+          },
+        };
+      try {
+        return await dispatchTool(store, name, args, weatherService);
+      } catch (error) {
+        return {
+          isError: true,
+          content: [{ type: "text", text: error.message }],
+        };
+      }
+    });
   }
+  // SDK v1 preserves _meta but drops top-level securitySchemes. Its public low-level
+  // handler API lets discovery advertise both locations without changing tool execution.
+  server.server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: definitions,
+  }));
   return server;
 }
 
@@ -147,10 +190,11 @@ function json(res, status, body) {
 }
 
 export function createHttpServer(store, options = {}) {
+  const authConfig = options.authConfig ?? authenticationConfig();
   const weatherService =
     options.weatherService ??
     createWeatherService({ provider: options.weatherProvider });
-  if (store && options.resolveTenant)
+  if (store && (options.resolveTenant || authConfig.mode === "auth0"))
     throw new Error(
       "A fixed store cannot be combined with a request tenant resolver.",
     );
@@ -161,24 +205,58 @@ export function createHttpServer(store, options = {}) {
     ? null
     : (options.database ?? openDatabase(options.dbPath));
   const tenantId = options.tenantId ?? process.env.SUP_TENANT_ID ?? "local";
-  if (database && !options.resolveTenant) database.createTenant(tenantId);
+  const resolveTenant =
+    options.resolveTenant ??
+    (authConfig.mode === "auth0"
+      ? createAuth0Resolver(authConfig, database, options.authOptions)
+      : null);
+  if (database && !resolveTenant) database.createTenant(tenantId);
   const server = http.createServer(async (req, res) => {
     try {
       const path = new URL(req.url, "http://localhost").pathname;
-      // Local prototype: refuse cross-site browser writes. Secure Tunnel forwards server-side MCP.
+      if (path === "/healthz" && req.method === "GET")
+        return json(res, 200, { status: "ok" });
+      // Browser origins are exact. Server-to-server ChatGPT requests have no Origin.
       if (
         req.headers.origin &&
-        !/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(req.headers.origin)
+        !authConfig.allowedOrigins.includes(req.headers.origin)
       )
         return json(res, 403, {
-          error: "Use the local app or the ChatGPT MCP connection.",
+          error: "Origin is not allowed.",
         });
+      if (path === "/auth/config" && req.method === "GET")
+        return json(
+          res,
+          200,
+          authConfig.mode === "auth0"
+            ? {
+                mode: "auth0",
+                domain: authConfig.domain,
+                clientId: authConfig.clientId,
+                audience: authConfig.audience,
+                scope: accessScope,
+              }
+            : { mode: "local" },
+        );
+      if (
+        [
+          "/.well-known/oauth-protected-resource",
+          "/.well-known/oauth-protected-resource/mcp",
+        ].includes(path) &&
+        authConfig.mode === "auth0" &&
+        req.method === "GET"
+      )
+        return json(res, 200, protectedResourceMetadata(authConfig));
       let requestStore = store;
+      let authenticationFailure;
+      let mcpBody;
+      if (path === "/mcp" && req.method === "POST")
+        mcpBody = await readJson(req);
       if (path === "/mcp" || path.startsWith("/api/")) {
         if (!requestStore) {
           try {
-            const identity = options.resolveTenant
-              ? await options.resolveTenant(req)
+            const identity = resolveTenant
+              ? await resolveTenant(req)
               : tenantId;
             validateTenantId(identity);
             requestStore = createStore({
@@ -186,8 +264,33 @@ export function createHttpServer(store, options = {}) {
               tenantId: identity,
               launchLookup: options.launchLookup,
             });
-          } catch {
-            return json(res, 403, { error: "Tenant access denied." });
+          } catch (error) {
+            if (!(error instanceof AuthenticationError))
+              return json(res, 403, { error: "Tenant access denied." });
+            authenticationFailure = error;
+            res.setHeader(
+              "WWW-Authenticate",
+              authenticationChallenge(authConfig, error),
+            );
+            // Public MCP discovery contains code and schemas only. Private tool calls
+            // receive a challenge in the result so the host can open account linking.
+            const discovery =
+              !req.headers.authorization &&
+              [
+                "initialize",
+                "notifications/initialized",
+                "ping",
+                "tools/list",
+                "resources/list",
+                "resources/templates/list",
+                "resources/read",
+              ].includes(mcpBody?.method);
+            if (!(
+              path === "/mcp" &&
+              req.method === "POST" &&
+              (discovery || mcpBody?.method === "tools/call")
+            ))
+              return json(res, error.status, { error: error.message });
           }
         }
       }
@@ -198,7 +301,10 @@ export function createHttpServer(store, options = {}) {
             error: "This stateless MCP endpoint accepts POST requests.",
           });
         }
-        const mcp = createMcpServer(requestStore, weatherService);
+        const mcp = createMcpServer(requestStore, weatherService, {
+          authConfig,
+          authenticationFailure,
+        });
         const transport = new StreamableHTTPServerTransport({
           sessionIdGenerator: undefined,
           enableJsonResponse: true,
@@ -208,7 +314,7 @@ export function createHttpServer(store, options = {}) {
           mcp.close();
         });
         await mcp.connect(transport);
-        return await transport.handleRequest(req, res, await readJson(req));
+        return await transport.handleRequest(req, res, mcpBody);
       }
       if (path === "/api/dashboard" && req.method === "GET")
         return json(res, 200, requestStore.dashboard());
@@ -223,7 +329,7 @@ export function createHttpServer(store, options = {}) {
       if (path.startsWith("/api/"))
         return json(res, 404, { error: "Unknown endpoint" });
       // Discovery clients must see missing metadata, never the SPA's HTML fallback.
-      // This local/private prototype does not implement OAuth.
+      // Only resource discovery is served here; Auth0 owns authorization discovery.
       if (path === "/.well-known" || path.startsWith("/.well-known/"))
         return json(res, 404, {
           error: "Discovery metadata is not available.",
@@ -265,11 +371,16 @@ if (
   process.argv[1] &&
   fileURLToPath(import.meta.url) === resolve(process.argv[1])
 ) {
-  const port = Number(process.env.SUP_PORT || 3001);
+  if (existsSync(".env")) process.loadEnvFile(".env");
+  const authConfig = authenticationConfig();
+  const hosted =
+    process.env.NODE_ENV === "production" || process.env.RENDER === "true";
+  const port = Number(process.env.PORT || process.env.SUP_PORT || 3001);
   const server = createHttpServer();
-  server.listen(port, "127.0.0.1", () =>
+  const host = hosted ? "0.0.0.0" : "127.0.0.1";
+  server.listen(port, host, () =>
     console.log(
-      `Suppy: http://127.0.0.1:${port} | MCP: /mcp | SQLite | tenant: ${process.env.SUP_TENANT_ID || "local"}`,
+      `Suppy: http://${host}:${port} | MCP: /mcp | SQLite | authentication: ${authConfig.mode}`,
     ),
   );
   for (const signal of ["SIGINT", "SIGTERM"])

@@ -1,0 +1,32 @@
+# Preparation only. Create a new HTTPS Auth0 API before approving publication.
+services:
+  - type: web
+    name: suppy
+    runtime: node
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: off
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /healthz
+    disk:
+      name: suppy-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUP_AUTH_MODE
+        value: auth0
+      - key: SUP_DB_PATH
+        value: /var/data/production.sqlite
+      - key: SUP_AUTH0_DOMAIN
+        value: dev-ye73ceq0c8p2tiz8.us.auth0.com
+      - key: SUP_AUTH0_CLIENT_ID
+        value: fv9qphrYRycRrMBWE3SXUmaD2r2gSVRg
+      - key: SUP_PUBLIC_URL
+        sync: false
+      - key: SUP_AUTH0_AUDIENCE
+        sync: false
+      - key: SUP_ALLOWED_ORIGIN
+        sync: false
