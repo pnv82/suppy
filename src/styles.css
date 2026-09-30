@@ -3536,3 +3536,39 @@ td small {
 .garmin-activities .caption {
   display: block;
 }
+
+.goal-page-note { margin: -8px 0 20px; max-width: 850px; }
+.goal-buckets { display: grid; gap: 24px; }
+.goal-bucket { border: 1px solid var(--line); border-radius: 12px; background: #fff; overflow: hidden; }
+.goal-bucket-heading { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: #f6f9f9; border-bottom: 1px solid var(--line); }
+.goal-bucket-heading h2 { margin: 0; font-size: 16px; }
+.goal-bucket-heading h2 span { margin-left: 6px; color: #5d727b; font-size: 12px; font-weight: 500; }
+.goal-bucket-heading p { margin: 0; color: #5d727b; font-size: 12px; }
+.goal-list { list-style: none; margin: 0; padding: 0; }
+.goal-row { display: grid; grid-template-columns: minmax(150px, 1.1fr) minmax(190px, 1.4fr) minmax(140px, 1fr) 100px; align-items: center; gap: 20px; padding: 20px; }
+.goal-row + .goal-row { border-top: 1px solid var(--line); }
+.goal-identity h3 { margin: 0 0 6px; font-size: 15px; }
+.goal-row .caption { font-size: 11px; line-height: 1.5; }
+.goal-best { display: grid; gap: 4px; min-width: 0; }
+.goal-best strong { font-size: 20px; font-variant-numeric: tabular-nums; }
+.goal-field-label, .goal-settings label { font-size: 11px; color: #526a75; }
+.goal-session-link { padding: 0; color: #007783; text-align: left; font-size: 12px; overflow-wrap: anywhere; }
+.goal-session-link:hover { text-decoration: underline; }
+.goal-settings { display: grid; gap: 8px; }
+.goal-settings label { display: grid; gap: 5px; }
+.goal-settings input { width: 100%; min-width: 0; height: 36px; padding: 6px 9px; }
+.goal-save-actions, .goal-order { display: flex; gap: 4px; }
+.goal-arrange { display: grid; gap: 8px; justify-items: center; }
+.goal-order .button { min-width: 38px; min-height: 36px; padding: 6px; }
+.goal-empty { padding: 20px; margin: 0; color: #5d727b; font-size: 13px; }
+@media (max-width: 1000px) {
+  .goal-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .goal-arrange { display: flex; justify-content: flex-end; }
+}
+@media (max-width: 600px) {
+  .goal-row { padding: 16px; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .goal-bucket-heading { align-items: flex-start; flex-direction: column; gap: 5px; padding: 14px 16px; }
+  .goal-settings { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: end; }
+  .goal-arrange { justify-content: space-between; }
+  .goal-row .button, .goal-settings input { min-height: 44px; }
+}

@@ -502,6 +502,8 @@ function Workspace({ account, initialData }) {
           {page === "Goals" && (
             <Goals
               goals={data.goals || []}
+              sessions={data.sessions}
+              onOpen={openSession}
               busy={busy}
               onAction={boardAction}
             />

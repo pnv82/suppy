@@ -51,3 +51,7 @@ Interval tiles replace start/end text with time-weighted interval cadence and di
 ## Personal Garmin import (2026-09-29)
 
 The user approved a personal Garmin Connect integration. On-demand account connection, MFA, SUP activity browsing and original-file preview/save reuse the deterministic FIT import pipeline. Credentials are entered only in the direct local app; the widget uses safe tools after local sign-in. Tokens are temporary and tenant-scoped. No automatic synchronization is implemented. See [Garmin contracts](garmin-connect.md).
+
+## Goals configuration (2026-09-30)
+
+The Goals page now exposes the existing catalog directly, with current best results across all history, source-session links, inline targets and ordered Active/Inactive buckets. Configuration and atomic reorder operations are tenant-scoped and shared by REST/MCP. Only active targets with values appear in Home trends. No additional coaching goals were implemented. See [goals.md](goals.md).

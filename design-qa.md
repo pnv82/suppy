@@ -374,3 +374,11 @@ Added a distinct possible-fall signal for sustained 1°C cooling during spatiall
 Read-only recomputation of West Cost Rental found five candidate cooling episodes near 27:14, 38:18, 48:17, 51:18 and 59:18, alongside three existing low-speed events. These are hypotheses, not a confirmed count of falls. The previously confirmed September 20 fall retains its stronger abrupt-slowdown classification. No athlete annotations or source files were changed.
 
 Validation: all 116 tests passed, including stationary support, baseline settling, transient cooling rejection, pauses/gaps/nulls, continued-cooling grouping and warming rearm. Build passed after restoring declared npm dependencies (no package/lockfile edits). Actual desktop/narrow browser validation was attempted against an isolated synthetic SQLite fixture but blocked by the browser client with ERR_BLOCKED_BY_CLIENT; no rendered-UI claim is made for this change.
+
+## Goals configuration — 2026-09-30
+
+Validated the built app through the Browser skill using separate local synthetic and empty SQLite databases on ports 3002/3003; production history was not modified. Desktop checks at 1440×1000 and narrow checks at 390×844 covered the six directly visible metric settings, all-history best results with source labels, empty Active/Inactive buckets, missing results and unset cadence thresholds. Neither narrow state overflowed horizontally.
+
+Saved a 5 mph 20-minute target and a 20-minute cadence target above 30 spm; synthetic evidence returned 21.67 minutes. Verified keyboard activation and up reordering, retained focus after bucket movement, saved order/targets after reload, source-session navigation, and Home target appearance/removal on activation/deactivation. Inactive cadence targets were absent from Home's metric selector. Draft edits disable rearrangement until saved or reset. The server tests cover atomic invalid-order rejection, tenant boundaries, restart persistence, clearing targets and all-history best selection without substituting historical/mismatched windows.
+
+Validation: 118 tests passed; production build passed with existing bundle-size and upstream Zod annotation warnings. The shared embedded bundle builds; a live ChatGPT account session was not exercised.

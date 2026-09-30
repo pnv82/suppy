@@ -85,6 +85,7 @@ export function createMcpServer(
       "add_custom_interval",
       "delete_custom_interval",
       "upsert_goal",
+      "reorder_goals",
       "delete_goal",
       "set_session_summary",
       "upsert_annotation",

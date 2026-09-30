@@ -122,7 +122,7 @@ The session picker initially lists the latest ten. Search covers the complete st
 
 Home now presents its chronological trend above the latest-ten grid, in both desktop and phone reading order.
 
-Goals is a separate navigation section for adding/editing/deleting explicit athlete targets. The Home chart selector includes all requested speed scopes and saved cadence thresholds. Matching goals use light dashed lines and text labels. This does not restore the removed training-focus panel or next-outing technique pinning.
+Goals is a configuration page exposing all existing metrics without an add dropdown. Inline targets and current best results sit in ordered Active/Inactive buckets. Up/down and Activate/Deactivate buttons support pointer, touch and keyboard use, preserving focus after movement. Unset goals start inactive; saved settings and results remain visible when inactive. Current best uses all history and links to its source session. Home shows only active, set targets as light dashed lines and text labels; its cadence options also exclude inactive/unset targets. This does not restore the removed training-focus panel or next-outing technique pinning.
 
 Import uses a two-step Choose file / Review & save dialog, with a native accessible file chooser, filename/size confirmation, centered route preview and grouped distance/time/sensor metrics. The phone modal scrolls internally; action buttons wrap. Existing duplicate, candidate, missing-data and error behavior is retained.
 

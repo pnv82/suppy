@@ -56,3 +56,5 @@ The top row has previous (older) / next (newer) controls, disabled at the ends. 
 Interval tiles replace start/end text with time-weighted interval cadence and distance per stroke. Missing interval stroke distance now calculates lazily as a labelled cadence-integral estimate, with matched coverage and missing-data rules; whole-session stroke distance is never substituted. Map/chart interval boundaries remain unchanged.
 
 User-approved extension: on-demand personal Garmin Connect sign-in/MFA and SUP activity import, using the same reviewed original-file pipeline. See [Garmin contracts](../engineering/garmin-connect.md).
+
+Current Goals configuration exposes the six existing metric types directly with inline targets, best supported historical results and ordered Active/Inactive buckets. There is no dropdown/add step. Missing targets remain unset; inactive settings persist and are excluded from Home trends. See [goal contracts](../engineering/goals.md).

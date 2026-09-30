@@ -34,6 +34,7 @@ export function Compare({
   onAction,
   onManage,
 }) {
+  goals = goals.filter((g) => g.active !== false && g.target_si != null);
   const [editing, setEditing] = useState(null);
   const actionTrigger = useRef(null);
   const [basis, setBasis] = useState("best20"),

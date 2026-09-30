@@ -1,3 +1,3 @@
 # Goals
 
-Future target display/editor with metric, unit, duration/scope and optional deadline. Preserve the current 5 mph reference without inventing a formal race goal. Persist goals in the tenant’s session aggregate.
+The configuration page exposes the full existing catalog with inline targets, current best results, ordered Active/Inactive buckets and keyboard-accessible movement. See [the contract](../../../docs/engineering/goals.md). SI values and tenant-scoped SQLite settings are shared by REST and MCP; missing targets remain null.

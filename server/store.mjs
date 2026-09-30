@@ -7,7 +7,7 @@ import { validRuns, sessionStatistics } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
 import { launchPoint, launchSuggestions } from "./launch-names.mjs";
 import { lookupLaunchPlaces } from "./launch-lookup.mjs";
-import { longestCadenceRun } from "../src/domain/goals.mjs";
+import { configuredGoals, longestCadenceRun } from "../src/domain/goals.mjs";
 import { customIntervalEvidence } from "../src/domain/intervals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
@@ -102,7 +102,10 @@ export function createStore({
     };
     const cadenceGoals = repo
       .goals()
-      .filter((g) => g.metric === "cadence_duration");
+      .filter(
+        (g) =>
+          g.metric === "cadence_duration" && g.cadence_threshold_spm != null,
+      );
     session = {
       ...session,
       goalMetrics: Object.fromEntries(
@@ -319,7 +322,7 @@ export function createStore({
       defaultBoardId: repo.defaultBoard(),
       issues,
       storage: "sqlite",
-      goals: repo.goals(),
+      goals: configuredGoals(repo.goals()),
       tenantId,
     };
   }
@@ -433,7 +436,7 @@ export function createStore({
     const deterministic = compactAnalysis(s.deterministic);
     return {
       ...summary,
-      goals: repo.goals(),
+      goals: configuredGoals(repo.goals()),
       windows: (s.windows || []).map((w) => ({
         ...w,
         statistics: compactInterval(w.statistics),
@@ -597,8 +600,13 @@ export function createStore({
   const writes = {
     upsertGoal({ goal_id, ...goal }) {
       const existing = repo.goals();
-      if (goal_id && !existing.some((g) => g.id === goal_id))
-        throw new Error("Goal not found.");
+      const previous = configuredGoals(existing).find((g) => g.id === goal_id);
+      if (goal_id && !previous) throw new Error("Goal not found.");
+      if (
+        goal_id?.startsWith("catalog:") &&
+        goal_id !== `catalog:${goal.metric}`
+      )
+        throw new Error("Catalog metric cannot change.");
       if (!goal_id && existing.length >= 20)
         throw new Error("Keep at most 20 goals.");
       if (
@@ -613,6 +621,8 @@ export function createStore({
           "A goal for this metric and threshold already exists. Edit it instead.",
         );
       const result = {
+        active: previous?.active ?? true,
+        position: previous?.position ?? configuredGoals(existing).length,
         ...goal,
         id: goal_id || randomUUID(),
         source: "athlete_reported",
@@ -624,6 +634,30 @@ export function createStore({
         repo.save(s);
       }
       return result;
+    },
+    reorderGoals({ active_ids, inactive_ids }) {
+      const goals = configuredGoals(repo.goals());
+      const ids = [...active_ids, ...inactive_ids];
+      if (
+        ids.length !== goals.length ||
+        new Set(ids).size !== ids.length ||
+        ids.some((id) => !goals.some((g) => g.id === id))
+      )
+        throw new Error(
+          "Goals changed. Refresh and include every goal exactly once.",
+        );
+      ids.forEach((id, position) =>
+        repo.saveGoal({
+          ...goals.find((g) => g.id === id),
+          position,
+          active: position < active_ids.length,
+        }),
+      );
+      for (const s of repo.sessions()) {
+        s.revision++;
+        repo.save(s);
+      }
+      return { goals: configuredGoals(repo.goals()) };
     },
     deleteGoal({ goal_id }) {
       if (!repo.goals().some((g) => g.id === goal_id))
