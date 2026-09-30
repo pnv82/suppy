@@ -382,3 +382,17 @@ Validated the built app through the Browser skill using separate local synthetic
 Saved a 5 mph 20-minute target and a 20-minute cadence target above 30 spm; synthetic evidence returned 21.67 minutes. Verified keyboard activation and up reordering, retained focus after bucket movement, saved order/targets after reload, source-session navigation, and Home target appearance/removal on activation/deactivation. Inactive cadence targets were absent from Home's metric selector. Draft edits disable rearrangement until saved or reset. The server tests cover atomic invalid-order rejection, tenant boundaries, restart persistence, clearing targets and all-history best selection without substituting historical/mismatched windows.
 
 Validation: 118 tests passed; production build passed with existing bundle-size and upstream Zod annotation warnings. The shared embedded bundle builds; a live ChatGPT account session was not exercised.
+
+## Goals refinement and approved additions — 2026-09-30
+
+Product Design review used a fresh screenshot of the original Goals implementation, then compared it with the refined app at the same 1440px desktop width. Original rows permanently exposed forms, save buttons and reorder controls, while repeating explanatory/source text. The revised page shows compact goal/scope, Best and Target columns, with a single action menu; editing/evidence live in a modal and reorder arrows appear only in Reorder mode. All eleven goals occupy less page height than the previous six in the synthetic review. Phone rows reflow best/target beneath the title without horizontal overflow.
+
+Flow checks on isolated synthetic and empty SQLite databases (ports 3002/3003):
+
+1. Browse — healthy: desktop 1440×1000 and phone 390×844, all eleven types, unset references and missing matches. Empty workspace exposes eleven unavailable results without invented values.
+2. Edit — healthy: keyboard open, 30→60-minute duration save, cadence reference save, disclosure/alternate units, invalid HR target prevented, Escape/cancel and focus restoration. A cadence outside the synthetic support produces a dash instead of substituted data.
+3. Practice — healthy: reported left/right counts load, edit/save updates the weaker-direction percentage; counts remain separate from telemetry. Synthetic 8/10 left and 8/10 right gives 80%. Server tests reject successes exceeding attempts and cross-tenant sessions.
+4. Organize — healthy: temporary reorder controls, keyboard move, activation/deactivation, focus and persistence after server restart/reload.
+5. Home — healthy: five metric-specific goal options, correct bpm/%/speed units, at-most economy target, correct duration/reference scope and athlete-reported source for turns.
+
+Screenshots accepted after inspection: goals-before.png, goals-after.png, goals-phone.png and goals-details-phone.png in the current Codex visualization artifact directory. Browser captures with incomplete viewport resizing were discarded. Final checks: 125 tests passed; production build passed with existing dependency/chunk warnings. No production data or original uploads were changed. Full WCAG certification, live ChatGPT embedding and field calibration of the new sampled-block policies were not claimed.

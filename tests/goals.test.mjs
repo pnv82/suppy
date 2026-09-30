@@ -42,7 +42,7 @@ test("goals persist with SI targets and tenant-scoped edits/deletion", () => {
       a.dashboard().goals.find((goal) => goal.id === g.id).target_si,
       2.2352,
     );
-    assert.equal(b.dashboard().goals.length, 6);
+    assert.equal(b.dashboard().goals.length, 11);
     assert.ok(
       b
         .dashboard()
@@ -196,4 +196,16 @@ test("best results search all history, retain zero, and never substitute histori
     0,
   );
   assert.equal(bestGoalResult([], byMetric("max_speed")), null);
+});
+
+test("editing a previously unset catalog goal preserves the default order", () => {
+  const initial = configuredGoals();
+  const saved = {
+    ...initial.find((g) => g.metric === "endurance"),
+    target_si: 2,
+  };
+  assert.deepEqual(
+    configuredGoals([saved]).map((g) => g.id),
+    initial.map((g) => g.id),
+  );
 });

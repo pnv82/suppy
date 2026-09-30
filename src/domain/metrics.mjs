@@ -231,9 +231,10 @@ export function bestWindows(
   pauses = [],
   requireGps = true,
   elapsed = Infinity,
+  durations = [300, 600, 1200],
 ) {
   const runs = validRuns(records, pauses, requireGps);
-  return [300, 600, 1200].map((duration) => {
+  return durations.map((duration) => {
     let best = null;
     for (const run of runs) {
       const min = run[0].elapsed_s,

@@ -60,3 +60,7 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 User sharing, public deployment, automatic Garmin sync, extra import formats, video-link management and training-plan generation. Authentication is implemented under the 2026-09-29 authorization; public distribution and live ChatGPT account linking still require HTTPS/provider setup and separate publication approval.
 
 - Validate temperature-assisted possible-fall detection against more athlete-timed falls and non-fall stops/immersions; measure false alarms and missed events before claiming reliability. Current speed/cooling thresholds are provisional.
+
+## Goal measurement validation
+
+The approved goal types are implemented; field calibration remains deferred. Validate cadence-band ±3 spm/SD ≤5, effort-economy pace ±3% and HR SD ≤5 against repeated same-board, comparable-condition sessions. Check sensitivity of sampled five-minute rankings to candidate spacing and sensor artifacts. Turns/footwork remains an athlete report; do not infer success from watch telemetry. No universal achievement threshold or condition normalization is established by these app policies. See docs/engineering/goals.md.

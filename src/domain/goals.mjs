@@ -7,12 +7,73 @@ export const GOAL_METRICS = {
   best_1200: "Best 20-minute speed",
   average_speed: "Average speed",
   cadence_duration: "Longest time above cadence",
+  endurance: "Longer endurance",
+  stroke_effectiveness: "Stroke effectiveness",
+  effort_economy: "Effort economy",
+  tracking_control: "Tracking control",
+  turns_footwork: "Turns and footwork",
 };
+
+export const EXTENDED_GOALS = [
+  "endurance",
+  "stroke_effectiveness",
+  "effort_economy",
+  "tracking_control",
+  "turns_footwork",
+];
+export const goalUnit = (g) =>
+  g.metric === "cadence_duration"
+    ? "min"
+    : g.metric === "effort_economy"
+      ? "bpm"
+      : g.metric === "tracking_control"
+        ? "/100"
+        : g.metric === "turns_footwork"
+          ? "%"
+          : "mph";
+export const goalFactor = (g) =>
+  g.metric === "cadence_duration"
+    ? 60
+    : ["effort_economy", "tracking_control", "turns_footwork"].includes(
+          g.metric,
+        )
+      ? 1
+      : 0.44704;
+export const goalValue = (g, v) => (v == null ? null : v / goalFactor(g));
+export const goalLowerIsBetter = (g) => g.metric === "effort_economy";
+export function goalScope(g) {
+  if (g.metric === "endurance")
+    return `${(g.window_s ?? 1800) / 60} min continuous`;
+  if (g.metric === "stroke_effectiveness")
+    return g.cadence_spm == null
+      ? "Choose a cadence"
+      : `5 min at ${g.cadence_spm} ±3 spm`;
+  if (g.metric === "effort_economy")
+    return g.pace_mps == null
+      ? "Choose a pace"
+      : `5 min at ${(g.pace_mps / 0.44704).toFixed(2)} mph`;
+  if (g.metric === "tracking_control") return "Eligible session sections";
+  if (g.metric === "turns_footwork") return "Both directions · reported";
+  if (g.metric === "cadence_duration")
+    return g.cadence_threshold_spm == null
+      ? "Choose a threshold"
+      : `Above ${g.cadence_threshold_spm} spm`;
+  return g.metric.startsWith("best_")
+    ? `${Number(g.metric.slice(5)) / 60} min continuous`
+    : "Whole session";
+}
 
 // Unconfigured catalog entries are available settings, never invented targets.
 export function configuredGoals(saved = []) {
-  const goals = saved.map((g, i) => ({ active: true, position: i, ...g }));
-  for (const metric of Object.keys(GOAL_METRICS)) {
+  const goals = saved.map((g, i) => ({
+    active: true,
+    position: i,
+    window_s: 1800,
+    cadence_spm: null,
+    pace_mps: null,
+    ...g,
+  }));
+  for (const [position, metric] of Object.keys(GOAL_METRICS).entries()) {
     if (!goals.some((g) => g.metric === metric))
       goals.push({
         id: `catalog:${metric}`,
@@ -20,7 +81,10 @@ export function configuredGoals(saved = []) {
         target_si: null,
         cadence_threshold_spm: null,
         active: false,
-        position: goals.length,
+        position,
+        window_s: 1800,
+        cadence_spm: null,
+        pace_mps: null,
       });
   }
   return goals.sort((a, b) => a.position - b.position);
@@ -32,7 +96,10 @@ export function bestGoalResult(sessions, goal) {
   let best = null;
   for (const session of sessions) {
     let value, source;
-    if (goal.metric === "cadence_duration") {
+    if (EXTENDED_GOALS.includes(goal.metric)) {
+      value = session.goalMetrics?.[goal.id]?.value_si;
+      source = session.goalMetrics?.[goal.id]?.source;
+    } else if (goal.metric === "cadence_duration") {
       value = session.goalMetrics?.[goal.id]?.value_s;
       source = "Calculated continuous cadence duration";
     } else if (goal.metric === "max_speed") {
@@ -50,13 +117,20 @@ export function bestGoalResult(sessions, goal) {
         ? `Calculated continuous ${duration / 60}-minute speed`
         : "Calculated session average (supported data)";
     }
-    if (Number.isFinite(value) && (!best || value > best.value_si))
+    if (
+      Number.isFinite(value) &&
+      (!best ||
+        (goalLowerIsBetter(goal)
+          ? value < best.value_si
+          : value > best.value_si))
+    )
       best = {
         value_si: value,
         session_id: session.id,
         name: session.title || session.location,
         date: session.date,
         source,
+        evidence: session.goalMetrics?.[goal.id] ?? null,
       };
   }
   return best;

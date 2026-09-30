@@ -58,3 +58,5 @@ Interval tiles replace start/end text with time-weighted interval cadence and di
 User-approved extension: on-demand personal Garmin Connect sign-in/MFA and SUP activity import, using the same reviewed original-file pipeline. See [Garmin contracts](../engineering/garmin-connect.md).
 
 Current Goals configuration exposes the six existing metric types directly with inline targets, best supported historical results and ordered Active/Inactive buckets. There is no dropdown/add step. Missing targets remain unset; inactive settings persist and are excluded from Home trends. See [goal contracts](../engineering/goals.md).
+
+Goals now includes the five explicitly approved additions: Longer endurance, Stroke effectiveness, Effort economy, Tracking control, and Turns and footwork. Goal values remain athlete-selected; the last category uses reported practice, not telemetry inference. See [the current goal contract](../engineering/goals.md).

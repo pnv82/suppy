@@ -20,6 +20,14 @@ import {
 } from "recharts";
 import { latestSessions, mph, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
+import {
+  EXTENDED_GOALS,
+  GOAL_METRICS,
+  goalValue,
+  goalUnit,
+  goalScope,
+  goalLowerIsBetter,
+} from "../domain/goals.mjs";
 import { fmt, shortDate } from "./SessionViews.jsx";
 import { MetricDetails } from "./MetricEvidence.jsx";
 
@@ -57,12 +65,19 @@ export function Compare({
       ),
       ...Object.fromEntries(
         goals
-          .filter((g) => g.metric === "cadence_duration")
+          .filter(
+            (g) =>
+              g.metric === "cadence_duration" ||
+              EXTENDED_GOALS.includes(g.metric),
+          )
           .map((g) => [
             `goal:${g.id}`,
-            session.goalMetrics?.[g.id]?.value_s == null
-              ? null
-              : session.goalMetrics[g.id].value_s / 60,
+            goalValue(
+              g,
+              g.metric === "cadence_duration"
+                ? session.goalMetrics?.[g.id]?.value_s
+                : session.goalMetrics?.[g.id]?.value_si,
+            ),
           ]),
       ),
       dps: view.dps,
@@ -98,10 +113,21 @@ export function Compare({
     best_1200: ["Best 20-minute speed", "mph", 2, "#008591"],
     ...Object.fromEntries(
       goals
-        .filter((g) => g.metric === "cadence_duration")
+        .filter(
+          (g) =>
+            g.metric === "cadence_duration" ||
+            EXTENDED_GOALS.includes(g.metric),
+        )
         .map((g) => [
           `goal:${g.id}`,
-          [`Longest above ${g.cadence_threshold_spm} spm`, "min", 2, "#6273c9"],
+          [
+            g.metric === "cadence_duration"
+              ? `Longest above ${g.cadence_threshold_spm} spm`
+              : `${GOAL_METRICS[g.metric]} · ${goalScope(g)}`,
+            goalUnit(g),
+            2,
+            "#6273c9",
+          ],
         ]),
     ),
     dps: ["Estimated distance per stroke", "m/stroke", 2, "#7952c7"],
@@ -110,6 +136,7 @@ export function Compare({
     hr: ["Heart rate", "bpm", 0, "#d54d72"],
   };
   const effectiveMetric = options[metric] ? metric : "speed";
+  const selectedGoal = goals.find((g) => `goal:${g.id}` === effectiveMetric);
   const [title, unit, dp, color] = options[effectiveMetric];
   const applicableGoals = goals.filter(
     (g) =>
@@ -154,17 +181,21 @@ export function Compare({
           <div>
             <h2>{title} over time</h2>
             <p>
-              {effectiveMetric === "maxSpeed"
-                ? "Whole-session maximum"
-                : effectiveMetric === "average_speed" ||
-                    effectiveMetric.startsWith("goal:")
-                  ? "Whole session"
-                  : effectiveMetric.startsWith("best_")
-                    ? `Best ${Number(effectiveMetric.slice(5)) / 60} min`
-                    : basis === "best20"
-                      ? "Best 20 min"
-                      : "Whole session"}{" "}
-              · chronological · derived telemetry
+              {selectedGoal
+                ? goalScope(selectedGoal)
+                : effectiveMetric === "maxSpeed"
+                  ? "Whole-session maximum"
+                  : effectiveMetric === "average_speed"
+                    ? "Whole session"
+                    : effectiveMetric.startsWith("best_")
+                      ? `Best ${Number(effectiveMetric.slice(5)) / 60} min`
+                      : basis === "best20"
+                        ? "Best 20 min"
+                        : "Whole session"}{" "}
+              · chronological ·{" "}
+              {selectedGoal?.metric === "turns_footwork"
+                ? "athlete-reported practice"
+                : "derived telemetry"}
             </p>
           </div>
           <label className="inline-label">
@@ -224,16 +255,12 @@ export function Compare({
               {applicableGoals.map((g) => (
                 <ReferenceLine
                   key={g.id}
-                  y={
-                    g.metric === "cadence_duration"
-                      ? g.target_si / 60
-                      : mph(g.target_si)
-                  }
+                  y={goalValue(g, g.target_si)}
                   stroke="#91acb5"
                   strokeDasharray="5 5"
                   ifOverflow="extendDomain"
                   label={{
-                    value: `Goal ${fmt(g.metric === "cadence_duration" ? g.target_si / 60 : mph(g.target_si), 2)} ${unit}`,
+                    value: `Goal ${goalLowerIsBetter(g) ? "≤ " : ""}${fmt(goalValue(g, g.target_si), 2)} ${unit}`,
                     position: "insideTopRight",
                     fill: "#536f7a",
                     fontSize: 11,
@@ -247,7 +274,7 @@ export function Compare({
           {applicableGoals
             .map(
               (g) =>
-                `Goal: ${fmt(g.metric === "cadence_duration" ? g.target_si / 60 : mph(g.target_si), 2)} ${unit}. `,
+                `Goal: ${goalLowerIsBetter(g) ? "at most " : ""}${fmt(goalValue(g, g.target_si), 2)} ${unit}. `,
             )
             .join("")}
           {unit} · Conditions, boards and coverage vary. These descriptive

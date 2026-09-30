@@ -66,3 +66,5 @@ set_session_summary is a small version-1 text contract, independent of the full 
 ## Goal configuration contract
 
 Tenant goals expose `id`, `metric`, nullable `target_si`, nullable `cadence_threshold_spm`, `active` and `position`. Unset catalog entries are inactive settings, not athlete goals or default performance targets. Activation and ordering persist atomically through `reorder_goals`; targets are edited independently. Results use all available history and retain missing/source boundaries. See [goals.md](../engineering/goals.md).
+
+The five approved additional goal metrics are `endurance`, `stroke_effectiveness`, `effort_economy`, `tracking_control`, and `turns_footwork`. Optional comparison fields are `window_s`, `cadence_spm`, and `pace_mps`; numeric targets remain nullable. Economy minimizes bpm; other metrics maximize their stated units. Reported turns use a tenant-validated session reference and success/attempt counts for both directions, stored separately from telemetry evidence. See [goal measurement and persistence contracts](../engineering/goals.md).

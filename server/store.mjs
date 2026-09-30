@@ -7,7 +7,15 @@ import { validRuns, sessionStatistics } from "../src/domain/metrics.mjs";
 import { presentWeather } from "../src/domain/weather.mjs";
 import { launchPoint, launchSuggestions } from "./launch-names.mjs";
 import { lookupLaunchPlaces } from "./launch-lookup.mjs";
-import { configuredGoals, longestCadenceRun } from "../src/domain/goals.mjs";
+import {
+  configuredGoals,
+  longestCadenceRun,
+  EXTENDED_GOALS,
+} from "../src/domain/goals.mjs";
+import {
+  extendedGoalEvidence,
+  GOAL_METHOD,
+} from "../src/domain/goal-evidence.mjs";
 import { customIntervalEvidence } from "../src/domain/intervals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
@@ -132,6 +140,17 @@ export function createStore({
       return {
         ...session,
         deterministic: null,
+        goalMetrics: {
+          ...session.goalMetrics,
+          ...Object.fromEntries(
+            configuredGoals(repo.goals())
+              .filter((g) => EXTENDED_GOALS.includes(g.metric))
+              .map((g) => [
+                g.id,
+                extendedGoalEvidence({ ...session, deterministic: null }, g),
+              ]),
+          ),
+        },
         windows: (session.windows || []).map((w) => ({
           ...w,
           start: null,
@@ -182,9 +201,23 @@ export function createStore({
       if (analysisCache.size > 30)
         analysisCache.delete(analysisCache.keys().next().value);
     }
+    const extendedGoals = configuredGoals(repo.goals()).filter((g) =>
+      EXTENDED_GOALS.includes(g.metric),
+    );
+    const goalSignature = JSON.stringify([GOAL_METHOD, extendedGoals]);
+    if (cached.goalSignature !== goalSignature) {
+      cached.goalEvidence = Object.fromEntries(
+        extendedGoals.map((g) => [
+          g.id,
+          extendedGoalEvidence({ ...session, deterministic: cached.value }, g),
+        ]),
+      );
+      cached.goalSignature = goalSignature;
+    }
     return {
       ...session,
       deterministic: cached.value,
+      goalMetrics: { ...session.goalMetrics, ...cached.goalEvidence },
       windows: cached.value.windows,
       customIntervals: cached.customIntervals,
     };
@@ -621,6 +654,7 @@ export function createStore({
           "A goal for this metric and threshold already exists. Edit it instead.",
         );
       const result = {
+        ...previous,
         active: previous?.active ?? true,
         position: previous?.position ?? configuredGoals(existing).length,
         ...goal,
@@ -634,6 +668,28 @@ export function createStore({
         repo.save(s);
       }
       return result;
+    },
+    setGoalPractice({ goal_id, session_id, result }) {
+      get(session_id); // Resolve the related session only inside this tenant.
+      const goal = configuredGoals(repo.goals()).find((g) => g.id === goal_id);
+      if (!goal || goal.metric !== "turns_footwork")
+        throw new Error("Practice goal not found.");
+      const practice_results = (goal.practice_results || []).filter(
+        (r) => r.session_id !== session_id,
+      );
+      if (result)
+        practice_results.push({
+          ...result,
+          session_id,
+          source: "athlete_reported",
+          updated_at_utc: new Date().toISOString(),
+        });
+      repo.saveGoal({ ...goal, practice_results });
+      for (const s of repo.sessions()) {
+        s.revision++;
+        repo.save(s);
+      }
+      return { goal_id, session_id, result };
     },
     reorderGoals({ active_ids, inactive_ids }) {
       const goals = configuredGoals(repo.goals());

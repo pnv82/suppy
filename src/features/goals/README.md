@@ -1,3 +1,3 @@
 # Goals
 
-The configuration page exposes the full existing catalog with inline targets, current best results, ordered Active/Inactive buckets and keyboard-accessible movement. See [the contract](../../../docs/engineering/goals.md). SI values and tenant-scoped SQLite settings are shared by REST and MCP; missing targets remain null.
+Compact Active/Inactive rows expose eleven approved goal types, best results and targets. Editing, evidence and reported practice are disclosed in modal dialogs; Reorder temporarily reveals movement controls. See [the contract](../../../docs/engineering/goals.md) for measurements, SI conversion and tenant-scoped persistence shared by REST/MCP.

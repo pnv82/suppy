@@ -55,3 +55,7 @@ The user approved a personal Garmin Connect integration. On-demand account conne
 ## Goals configuration (2026-09-30)
 
 The Goals page now exposes the existing catalog directly, with current best results across all history, source-session links, inline targets and ordered Active/Inactive buckets. Configuration and atomic reorder operations are tenant-scoped and shared by REST/MCP. Only active targets with values appear in Home trends. No additional coaching goals were implemented. See [goals.md](goals.md).
+
+## Approved goal expansion and lighter configuration (2026-09-30)
+
+Added longer endurance (30/60-minute continuous speed), stroke effectiveness (speed at chosen cadence), effort economy (HR at chosen pace), tracking control and athlete-reported turns/footwork success in both directions. Configurable targets are unset by default. Compact read-first rows show Best/Target; row activation opens a focused editor, menus hold bucket/source/practice actions, and Reorder temporarily reveals movement controls. No extra session-review height. See [goals.md](goals.md) for exact methods and reporting boundaries.
