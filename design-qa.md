@@ -366,3 +366,11 @@ Used an injected personal-account adapter and synthetic FITs in the isolated in-
 
 All 107 tests pass, including actual MCP transport with a synthetic connected account and separate tests for credentials, tenant isolation, provider errors and original bytes/provenance. Production build and foundation audit pass; preexisting Zod annotations and bundle-size warnings remain. No live Garmin credentials were used; live sign-in/download validation remains a user account check.
 Embedded AppBridge browser check also confirms that a disconnected widget shows local-app sign-in instructions and a connection refresh button, with no credential fields. The safe Garmin tools were exercised over real MCP transport with the synthetic account.
+
+## Stationary footwork cooling — 2026-09-29
+
+Added a distinct possible-fall signal for sustained 1°C cooling during spatially corroborated low speed, without a preceding moving-speed requirement. Stable-temperature footwork alone remains unclassified. Continued cooling is grouped until warming; timestamp details explicitly refer to cooling, not exact fall onset. Existing marker/annotation flow and vertical layout are unchanged.
+
+Read-only recomputation of West Cost Rental found five candidate cooling episodes near 27:14, 38:18, 48:17, 51:18 and 59:18, alongside three existing low-speed events. These are hypotheses, not a confirmed count of falls. The previously confirmed September 20 fall retains its stronger abrupt-slowdown classification. No athlete annotations or source files were changed.
+
+Validation: all 116 tests passed, including stationary support, baseline settling, transient cooling rejection, pauses/gaps/nulls, continued-cooling grouping and warming rearm. Build passed after restoring declared npm dependencies (no package/lockfile edits). Actual desktop/narrow browser validation was attempted against an isolated synthetic SQLite fixture but blocked by the browser client with ERR_BLOCKED_BY_CLIENT; no rendered-UI claim is made for this change.

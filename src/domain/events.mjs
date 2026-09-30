@@ -1,6 +1,6 @@
 import { finite, geoDistance, overlaps } from "./telemetry.mjs";
 
-export const EVENT_METHOD = "selective_movement_v2";
+export const EVENT_METHOD = "selective_movement_v3";
 export const EVENT_POLICY = Object.freeze({
   entry_speed_mps: 0.5,
   exit_speed_mps: 0.7,
@@ -15,6 +15,10 @@ export const EVENT_POLICY = Object.freeze({
   annotation_tolerance_s: 15,
   low_speed_event_minimum_s: 20,
   movement_context_s: 30,
+  stationary_temperature_drop_c: 1,
+  stationary_temperature_baseline_s: 30,
+  stationary_temperature_hold_s: 15,
+  thermal_rearm_rise_c: 1,
 });
 export function movementEvidence(records, pauses, elapsed, annotations = []) {
   const events = [];
@@ -101,6 +105,16 @@ export function movementEvidence(records, pauses, elapsed, annotations = []) {
     }));
   const paused = explicit.reduce((n, p) => n + p.end_s - p.start_s, 0);
   const falls = fallCandidates(records, pauses, events, annotations, elapsed);
+  falls.push(
+    ...stationaryCoolingCandidates(
+      records,
+      pauses,
+      events,
+      annotations,
+      elapsed,
+      falls,
+    ),
+  );
   const slowEvents = events
     .filter((low) => {
       if (
@@ -157,9 +171,10 @@ export function movementEvidence(records, pauses, elapsed, annotations = []) {
     explicit_paused_s: paused,
     unknown_s: Math.max(0, elapsed - supported - paused),
     limitations: [
-      "Possible falls require abrupt supported speed loss and sustained cooling; thresholds are provisional, not calibrated probabilities.",
+      "Possible falls use sustained cooling with either abrupt speed loss or corroborated low speed. Stationary cooling is a more sensitive, weaker signal; thresholds are provisional, not calibrated probabilities.",
       "Low-speed events require 20 supported seconds with nearby movement before and after; low speed alone does not identify a cause.",
       "Watch temperature is not ambient or water temperature. Splashing or deliberate immersion can resemble a fall; brief or thermally neutral falls can be missed.",
+      "Continued cooling is one episode until the watch warms again; repeated immersions may not be separable. Stationary event times bracket cooling, not exact fall times.",
       "Missing cadence is never treated as stopped paddling; ground movement can include drift.",
     ],
   };
@@ -182,7 +197,7 @@ export function detectedEventLabel(event) {
 
 export function detectedEventDescription(event) {
   return event.type === "possible_fall"
-    ? `${(event.evidence.temperature_drop_c * 1.8).toFixed(1)}°F (${event.evidence.temperature_drop_c}°C) cooling and abrupt slowdown; unconfirmed`
+    ? `${(event.evidence.temperature_drop_c * 1.8).toFixed(1)}°F (${event.evidence.temperature_drop_c}°C) cooling ${event.evidence.signal === "cooling_at_low_speed" ? "during low-speed movement; possible immersion, timing may lag" : "and abrupt slowdown"}; unconfirmed`
     : "Sustained low speed with movement before and after; cause unknown";
 }
 
@@ -257,6 +272,7 @@ function fallCandidates(records, pauses, lows, annotations, elapsed) {
         annotations,
       ),
       evidence: {
+        signal: "cooling_with_abrupt_slowdown",
         prior_speed_mps: before.speed_mps,
         stopped_speed_mps: stopped.speed_mps,
         supported_low_speed_s: low.end_s - low.start_s,
@@ -272,6 +288,130 @@ function fallCandidates(records, pauses, lows, annotations, elapsed) {
         source_record_range: [
           records[onset - 1].source_record_index ?? onset - 1,
           (records[match.index].source_record_index ?? match.index) + 1,
+        ],
+      },
+    });
+  }
+  return result;
+}
+
+// A stationary drill has no moving-to-stopped transition. Look for a new,
+// sustained thermal step during spatially corroborated low-speed support.
+// Rearm only after warming, so a long cooling episode is not counted repeatedly.
+function stationaryCoolingCandidates(
+  records,
+  pauses,
+  lows,
+  annotations,
+  elapsed,
+  abruptFalls,
+) {
+  const result = [];
+  let floor = null;
+  const continuous = (a, b) =>
+    b.elapsed_s > a.elapsed_s &&
+    b.elapsed_s - a.elapsed_s <= EVENT_POLICY.gap_limit_s &&
+    finite(a.temperature_c) &&
+    finite(b.temperature_c) &&
+    !overlaps(a.elapsed_s, b.elapsed_s, pauses);
+  for (let i = 1; i < records.length; i++) {
+    const before = records[i - 1],
+      current = records[i];
+    if (!continuous(before, current)) {
+      floor = null;
+      continue;
+    }
+    if (floor !== null) {
+      if (current.temperature_c >= floor + EVENT_POLICY.thermal_rearm_rise_c)
+        floor = null;
+      else {
+        floor = Math.min(floor, current.temperature_c);
+        continue;
+      }
+    }
+    if (
+      before.temperature_c - current.temperature_c <
+      EVENT_POLICY.stationary_temperature_drop_c
+    )
+      continue;
+    const low = lows.find(
+      (l) => l.start_s <= current.elapsed_s && l.end_s >= current.elapsed_s,
+    );
+    if (!low) continue;
+    let baseline = i - 1;
+    while (
+      baseline > 0 &&
+      before.elapsed_s - records[baseline].elapsed_s <
+        EVENT_POLICY.stationary_temperature_baseline_s &&
+      continuous(records[baseline - 1], records[baseline]) &&
+      records[baseline - 1].temperature_c === before.temperature_c
+    )
+      baseline--;
+    if (
+      before.elapsed_s - records[baseline].elapsed_s <
+      EVENT_POLICY.stationary_temperature_baseline_s
+    )
+      continue;
+    let end = i;
+    while (
+      end + 1 < records.length &&
+      records[end].elapsed_s - current.elapsed_s <
+        EVENT_POLICY.stationary_temperature_hold_s &&
+      continuous(records[end], records[end + 1]) &&
+      records[end + 1].temperature_c <=
+        before.temperature_c - EVENT_POLICY.stationary_temperature_drop_c
+    )
+      end++;
+    if (
+      records[end].elapsed_s > elapsed ||
+      records[end].elapsed_s - current.elapsed_s <
+        EVENT_POLICY.stationary_temperature_hold_s
+    )
+      continue;
+    floor = current.temperature_c;
+    // Keep the stronger abrupt-slowdown explanation for the same cooling step.
+    if (
+      abruptFalls.some(
+        (e) =>
+          current.elapsed_s >= e.start_s &&
+          current.elapsed_s <= e.evidence.temperature_confirmed_s,
+      )
+    )
+      continue;
+    const supportStart = Math.min(
+      baseline,
+      records.findIndex((r) => r.elapsed_s === low.start_s),
+    );
+    const supportEnd = Math.max(
+      end,
+      records.findIndex((r) => r.elapsed_s === low.end_s),
+    );
+    result.push({
+      type: "possible_fall",
+      source: "derived",
+      status: "candidate",
+      start_s: before.elapsed_s,
+      end_s: records[end].elapsed_s,
+      timing_basis: "temperature_change",
+      boundary_uncertainty_s: current.elapsed_s - before.elapsed_s,
+      annotation_ids: relatedAnnotations(
+        before.elapsed_s,
+        records[end].elapsed_s,
+        annotations,
+      ),
+      evidence: {
+        signal: "cooling_at_low_speed",
+        temperature_before_c: before.temperature_c,
+        temperature_after_c: current.temperature_c,
+        temperature_drop_c: before.temperature_c - current.temperature_c,
+        temperature_change_bracket_s: [before.elapsed_s, current.elapsed_s],
+        temperature_confirmed_s: records[end].elapsed_s,
+        supported_low_speed_s: low.end_s - low.start_s,
+        low_speed_interval_s: [low.start_s, low.end_s],
+        cadence_zero_observed: low.cadence_zero_observed,
+        source_record_range: [
+          records[supportStart].source_record_index ?? supportStart,
+          (records[supportEnd].source_record_index ?? supportEnd) + 1,
         ],
       },
     });

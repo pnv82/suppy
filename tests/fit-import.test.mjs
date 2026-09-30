@@ -67,7 +67,7 @@ test("temperature preserves negative values/nulls and existing uploads refresh o
   const bytes = Buffer.from(repo.fitSource(session_id).fit_bytes);
   assert.equal(db.forTenant("bob").fitSource(session_id), null);
   const context = store.context(session_id);
-  assert.equal(context.deterministic.method, "sup_deterministic_v5");
+  assert.equal(context.deterministic.method, "sup_deterministic_v6");
   assert.deepEqual(context.deterministic.movement.events, []);
   const refreshed = repo.get(session_id);
   assert.equal(refreshed.records[1].temperature_c, -3);

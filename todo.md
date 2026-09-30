@@ -26,7 +26,6 @@ The current slice intentionally prioritizes the light UI and ChatGPT-native skel
 
 Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md#part-ii-suspended-research-and-future-work). These items are outside the active delivery stages. Review their independent-evidence and promotion gates before bringing one forward.
 
-- [ ] [S1: Local course variability, tracking/zig-zag and eventual paddle-side inference](docs/product/key%20metrics.md#s1-local-course-variability-tracking-and-zig-zag). The four-component [TCS_v1](docs/engineering/tracking-control-score.md) and score colors are implemented by explicit user request. Athlete-labelled interval/session validation, anchor/weight calibration, independent accuracy/sensitivity checks and paddle-side inference remain future work.
 - [ ] [S2: Fall/remount and semantic interruption detection](docs/product/key%20metrics.md#s2-fallremount-and-semantic-interruption-classification). Collect independently timed labels and assess false positives; ordinary stops must not become probable falls.
 - [ ] [S3: Automatic effort intervals and exhaustive segment labels](docs/product/key%20metrics.md#s3-automatic-effort-intervals-and-exhaustive-segment-labels). Preserve explicit lap/workout evidence first.
 - [ ] [S4: Environmental normalization and historical benchmarks](docs/product/key%20metrics.md#s4-environmental-normalization-and-historical-benchmarks). Validate conditions/equipment support before normalized claims.
@@ -55,7 +54,6 @@ Dedicated reference: [Part II of the metrics plan](docs/product/key%20metrics.md
 - [x] Replace Google Sheets with SQLite persistence and separate production/development/test data; add tenant isolation and backup/restore support.
 - [x] Auth0 Google login and verified REST/MCP identity are bound to tenant-scoped storage, with empty account provisioning and account-state invalidation. See [authentication.md](docs/engineering/authentication.md).
 - [ ] Before public hosting, choose the HTTPS URL, register its immutable Auth0 API Identifier/callbacks and ChatGPT client, configure production Google credentials, verify live linking, and approve Render publication. User-facing concurrent-edit conflict handling remains deferred.
-- [ ] let's deploy the app to @Sites, so i can use it
 
 ## Intentionally outside this prototype
 

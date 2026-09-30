@@ -182,6 +182,8 @@ export function MetricDetails({ session, duration, onClose }) {
                 : ""}{" "}
               · {timeLabel(event.start_s)}–{timeLabel(event.end_s)}
               {` · ${detectedEventDescription(event)}`}
+              {event.timing_basis === "temperature_change" &&
+                ` · cooling observed ${timeLabel(event.evidence.temperature_change_bracket_s[0])}–${timeLabel(event.evidence.temperature_change_bracket_s[1])}; exact fall time unknown`}
               {event.onset_bracket_s &&
                 ` · onset bracket ${timeLabel(event.onset_bracket_s[0])}–${timeLabel(event.onset_bracket_s[1])}`}
               {event.boundary_uncertainty_s != null

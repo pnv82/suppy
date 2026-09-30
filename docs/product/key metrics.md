@@ -258,37 +258,6 @@ Stages A–D and the bounded zig-zag promotion are implemented together under th
 
 These sections retain the original advanced topics with review corrections. They are **not release requirements or implementation instructions for the active stages**. Future work must identify its question, data, validation and promotion decision. See [future-work references](../../todo.md#suspended-metrics-research).
 
-## S1. Local course variability, tracking and zig-zag
-
-**Partly promoted:** the bounded local path-straightness experiment in §8.1 is active by explicit user request. The alternatives below, quality bands, paddle-side inference and claims of validated tracking accuracy remain suspended. GPS measures course over ground, not board heading or intended line. Current sampling has not been shown to resolve the proposed oscillations. Wind/current/chop, deliberate steering and geometry remain confounders.
-
-Retain the two-scale experiment:
-
-```text
-reference_course(t) = bearing(position(t - 15s), position(t + 15s))
-local_course(t)     = bearing(position(t - 3s), position(t + 3s))
-course_error(t)     = circular_difference(local_course, reference_course)
-```
-
-Call the reference an estimated local route direction. The 30-second/six-second windows are experimental. Require independent positions and adequate displacement relative to uncertainty; interpolation creates no new directional information. Never cross pauses or unsupported GPS gaps. Angular averaging/differences must be circular, including turn detection around north.
-
-Candidate exclusions: pauses, invalid GPS, inadequate displacement, supported low-speed periods, turns, launch/landing and tight geometry. Do not depend on an unvalidated fall detector. Proposed turn rules (20-degree reference change over 20 seconds or 1.5 degrees/second for several seconds) need validation and edge buffers covering smoothing support.
-
-Possible descriptive outputs: supported duration/distance, time-weighted median/P90 absolute course deviation, suitable circular dispersion, complete cycles/minute and excursion amplitude. Define one-sided versus peak-to-peak amplitude. Require hysteresis/minimum duration; left-right-left is one full cycle. The original sign-change counter counts half-cycles; its three-degree threshold is unvalidated.
-
-Calculate displacement, direction and reference over consistent support. Do not multiply one-record raw GPS distance by an angle from a different multi-record smoothing window.
-
-```text
-projection_ratio = sum(delta_distance * cos(course_error_radians))
-                   / sum(delta_distance)
-lateral_motion_m = sum(abs(delta_distance * sin(course_error_radians)))
-```
-
-With a positive denominator, the ratio can range from -1 to 1. A forward-only 0–1 interpretation requires explicit eligibility, not silent clipping. A changing reference gives local alignment, not net progress toward a fixed destination. Zero distance yields unavailable. Lateral motion is not extra path length or recoverable wasted distance.
-
-Do not ship the old 98.4/95.2/90.0 quality bands or present the promoted experimental score as calibrated accuracy. The bounded score’s single decimal is display precision, not an accuracy guarantee. Paddle-side inference remains a separate study requiring independent stroke-side labels and appropriate sensor resolution.
-
-**Promotion gate:** identifiable signal across irregular sampling/noise/curvature using synthetic truth and independent reference observations; held-out error/sensitivity and minimum resolvable angle/event. Agreement with the same watch track is insufficient.
 
 ## S2. Fall/remount and semantic interruption classification
 
@@ -312,15 +281,6 @@ Do not implement one exclusive list mixing PADDLING_HARD, TURN, PAUSED, PROBABLE
 
 **Promotion gate:** no forced hard intervals in held-out easy sessions; measured false positives/boundary errors in interval sessions; turns/missing sensors do not manufacture intensity.
 
-## S4. Environmental normalization and historical benchmarks
-
-**Why suspended:** station weather is not on-water wind; current, waves, shelter and drafting are not reliably measured. Similar HR/cadence does not establish equal effort/resistance.
-
-Retain future contextual inputs: wind speed/from direction, current estimates with provenance, wave height/period/direction, air/water temperature and board/setup. Use circular angles and explicit from/toward conventions. Descriptive wind alignment is not a speed correction.
-
-Future benchmarks may show speed near specified HR/cadence bands or DPS near a cadence band. Expose actual bands/tolerances, unique support, equipment and conditions. No extrapolated values without observations; arbitrary HR bands are not physiological zones. Active latest-10 trends remain descriptive.
-
-**Promotion gate:** sufficient supported comparisons/context and independent model evaluation before adjusted speed, causal fitness change or normalized scores. New current/wave services need explicit scope. Existing station retrieval remains a separate post-import service.
 
 ## S5. Physiological fatigue models and composite indices
 

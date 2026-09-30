@@ -9,7 +9,7 @@ import {
   SPEED_LIMIT_MPS,
 } from "./speed-quality.mjs";
 
-export const ANALYSIS_METHOD = "sup_deterministic_v5";
+export const ANALYSIS_METHOD = "sup_deterministic_v6";
 export const POLICY = Object.freeze({
   gap_limit_s: 15,
   distance_speed_limit_mps: 8,
