@@ -133,3 +133,5 @@ Click, tap or keyboard-activate a detected-event diamond to pin its start/end on
 ## Goals refinement (2026-09-30)
 
 Goals is read-first: compact rows with a small category icon, title/scope, best result, target and overflow menu. Active/Inactive headings share column labels. Editing opens one modal; methods and evidence stay behind an explicit disclosure. Reorder is an explicit temporary mode, with labelled keyboard-accessible up/down controls. Menus hold Move to active/inactive, View best session, and Record practice for turns/footwork. Phone rows keep best and target side by side below the title. No default inline forms or repeated explanatory paragraphs. All eleven goal types remain directly discoverable. Targets, conditions, source boundaries and practice observations follow [goals.md](../engineering/goals.md).
+
+An info button on each goal opens a short, plain-language calculation hint without opening its editor. Hints support touch and keyboard use, close with Escape or outside interaction, and fit the viewport on phones. The same explanation appears in the editor’s measurement disclosure; the page keeps its compact row height.

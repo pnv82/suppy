@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useId, useRef, useState } from "react";
 import {
   ArrowUp,
   ArrowDown,
@@ -11,6 +11,7 @@ import {
   PersonSimpleWalk,
   Lightning,
   Waves,
+  Info,
 } from "@phosphor-icons/react";
 import {
   GOAL_METRICS,
@@ -49,23 +50,102 @@ const iconFor = (metric) =>
             ? Timer
             : Lightning;
 const methods = {
-  endurance:
-    "Fastest continuous 30- or 60-minute effort. Pauses, missing distance and gaps over 15 seconds break the effort.",
   stroke_effectiveness:
-    "Fastest sampled 5-minute block within ±3 spm of your chosen cadence, with steady cadence and full matched distance/cadence support. Estimated metres per stroke are shown alongside speed.",
+    "We check five-minute stretches where your stroke rate stays steady and averages within 3 strokes per minute of your chosen rate. For each stretch, we divide distance by time. Your best is the fastest average among the stretches checked. Only stretches with complete distance and stroke readings count. Metres per stroke is distance divided by the estimated number of strokes.",
   effort_economy:
-    "Lowest average HR in a steady 5-minute block within ±3% of your chosen pace. Full distance/HR support is required; flagged HR sessions are excluded. The first 3 minutes are skipped. Lower is better for this comparison, not a fitness diagnosis.",
+    "After the first three minutes, we check five-minute stretches with steady speed and heart rate, within 3% of your chosen speed. Your best is the lowest average heart rate among those stretches. We need complete readings and skip sessions flagged for unreliable heart rate. Lower means fewer heartbeats at a similar speed; it does not prove improved fitness.",
   tracking_control:
-    "Highest whole-session Tracking Control Score on eligible GPS sections. Intentional turns, low speed and unsupported GPS are excluded. This describes trajectory control, not a confirmed technique assessment.",
+    "We use your GPS path to give each session a score from 0 to 100. It combines typical and larger changes in direction, how widely your path wanders, and repeated zigzags. Turns, very slow sections and poor GPS readings are left out. Higher means a steadier recorded path; your best is your highest session score.",
   turns_footwork:
-    "Successful controlled turns divided by attempts, scored using the weaker direction. Report both directions for a session. A success means completing your turn and footwork under control without a fall. This is your observation, never inferred from the watch.",
+    "For each session you report, we divide successful turns by attempts for each direction, then use the lower percentage. For example, 8 out of 10 left and 6 out of 10 right gives 60%. Count a success when you complete the turn and footwork under control without falling. Your best is your highest session percentage. These are your reports, not watch measurements.",
   cadence_duration:
-    "Longest continuously supported time strictly above your cadence threshold. Pauses, missing cadence and gaps over 15 seconds split runs. Higher cadence is not inherently better.",
+    "Cadence means strokes per minute. We time how long your recorded stroke rate stays above your chosen number and keep your longest run. Reaching or dropping below that number, pausing the recording, missing stroke readings, or a recording gap over 15 seconds starts a new run. A faster stroke rate is not always better paddling.",
   max_speed:
-    "Highest valid FIT session maximum, with recorded samples as a fallback. Sensor spikes can still affect the result.",
+    "Your fastest recorded speed across all sessions. We use the watch’s session peak, or its individual speed readings if that peak is missing or rejected as unrealistic. This is a brief peak, not a speed you held. Smaller sensor spikes can still affect it.",
   average_speed:
-    "Highest calculated average across supported session data, using the same estimator as Home.",
+    "For each session, we divide recorded distance by time over sections with usable distance and stroke-rate readings. If no matching stroke-rate data is available, we use distance readings alone. Recording pauses and missing data are left out. Your best is the highest of these session averages.",
 };
+
+function goalMethod(goal) {
+  const minutes =
+    goal.metric === "endurance"
+      ? (goal.window_s ?? 1800) / 60
+      : { best_300: 5, best_600: 10, best_1200: 20 }[goal.metric];
+  return minutes
+    ? `We find the uninterrupted ${minutes} minutes where you travelled farthest, then divide that distance by ${minutes} minutes to get your average speed. Your best is the fastest across all sessions. Recording pauses, missing distance readings and gaps over 15 seconds break an effort. Time spent stopped still counts if the recording keeps running.`
+    : methods[goal.metric];
+}
+
+function GoalHint({ goal, onOpen }) {
+  const id = useId(),
+    trigger = useRef(null),
+    hint = useRef(null);
+  const [open, setOpen] = useState(false);
+  const position = () => {
+    const button = trigger.current.getBoundingClientRect(),
+      panel = hint.current.getBoundingClientRect();
+    const left = Math.max(
+      16,
+      Math.min(
+        button.right - panel.width,
+        window.innerWidth - panel.width - 16,
+      ),
+    );
+    const top =
+      button.bottom + panel.height + 8 <= window.innerHeight - 16
+        ? button.bottom + 8
+        : Math.max(16, button.top - panel.height - 8);
+    Object.assign(hint.current.style, { left: `${left}px`, top: `${top}px` });
+  };
+  useEffect(() => {
+    if (!open) return;
+    window.addEventListener("resize", position);
+    document.addEventListener("scroll", position, true);
+    return () => {
+      window.removeEventListener("resize", position);
+      document.removeEventListener("scroll", position, true);
+    };
+  }, [open]);
+  return (
+    <>
+      <button
+        ref={trigger}
+        className="icon-button goal-hint-button"
+        aria-label={`How ${GOAL_METRICS[goal.metric]} is calculated`}
+        aria-expanded={open}
+        aria-controls={id}
+        aria-describedby={open ? id : undefined}
+        onKeyDown={(event) => {
+          if (event.key === "Tab") hint.current.hidePopover();
+        }}
+        onClick={() => {
+          if (open) hint.current.hidePopover();
+          else {
+            onOpen();
+            hint.current.showPopover();
+            position();
+          }
+        }}
+      >
+        <Info size={18} aria-hidden="true" />
+      </button>
+      <div
+        ref={hint}
+        id={id}
+        className="goal-hint"
+        popover="auto"
+        role="tooltip"
+        onToggle={(event) => setOpen(event.newState === "open")}
+      >
+        <strong>{GOAL_METRICS[goal.metric]}</strong>
+        <p>{goalMethod(goal)}</p>
+        <p className="goal-hint-note">
+          A dash means there is not enough matching data yet.
+        </p>
+      </div>
+    </>
+  );
+}
 
 function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
   const [target, setTarget] = useState(
@@ -225,13 +305,10 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
         </div>
         <details className="goal-method">
           <summary>How this is measured</summary>
+          <p>{goalMethod({ ...goal, window_s: Number(window) })}</p>
           <p>
-            {methods[goal.metric] ||
-              "Fastest calculated effort over this exact continuous duration. Pauses and unsupported gaps split efforts; historical summaries never fill missing results."}
-          </p>
-          <p>
-            Results cover all your sessions. Board, wind and water conditions
-            can differ; comparisons are not condition-normalized.
+            Best results compare all your sessions. Wind, water and your board
+            can affect them; we do not adjust the numbers for these differences.
           </p>
           {best && (
             <p>
@@ -573,6 +650,9 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                         className="goal-row-tools"
                         ref={menu === goal.id ? menuRef : null}
                       >
+                        {!reordering && (
+                          <GoalHint goal={goal} onOpen={() => setMenu(null)} />
+                        )}
                         {reordering && (
                           <div className="goal-reorder-tools">
                             <button

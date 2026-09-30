@@ -396,3 +396,11 @@ Flow checks on isolated synthetic and empty SQLite databases (ports 3002/3003):
 5. Home — healthy: five metric-specific goal options, correct bpm/%/speed units, at-most economy target, correct duration/reference scope and athlete-reported source for turns.
 
 Screenshots accepted after inspection: goals-before.png, goals-after.png, goals-phone.png and goals-details-phone.png in the current Codex visualization artifact directory. Browser captures with incomplete viewport resizing were discarded. Final checks: 125 tests passed; production build passed with existing dependency/chunk warnings. No production data or original uploads were changed. Full WCAG certification, live ChatGPT embedding and field calibration of the new sampled-block policies were not claimed.
+
+## Plain-language goal hints — 2026-09-30
+
+Each of the eleven goal rows now offers an info hint describing its calculation, relevant recording breaks and best-result selection in everyday language. The same wording appears in the edit dialog; selecting a draft endurance duration updates its explanation. Hints add no persistent explanatory text and are hidden during Reorder.
+
+Verified the built app on the existing isolated synthetic SQLite preview at 1440×1000, 390×844 and 320×740. Opened all eleven hints, including the unset/missing cadence result. Checked Enter activation, Escape with retained focus, Tab dismissal, outside dismissal, editor access/cancel, the 60→30-minute draft explanation, and temporary reorder controls. Popovers stayed within phone viewport bounds with no horizontal overflow; browser reported no errors. Inspected screenshots saved locally in ignored `data/storage/goals-hint-desktop.png` and `data/storage/goals-hint-mobile.png`.
+
+All 125 tests and the production build passed. Existing dependency annotation and large-bundle warnings remain. Calculations, stored data and original uploads were unchanged; live ChatGPT embedding was not exercised.

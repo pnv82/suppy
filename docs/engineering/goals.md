@@ -2,6 +2,8 @@
 
 Goals exposes eleven existing and user-approved goal types directly in ordered Active/Inactive sections. Each compact row shows its measurement scope, current best and target. Click a row to edit; its action menu offers activation/deactivation, source-session navigation and, for turns/footwork, Record practice. Reorder reveals up/down controls temporarily. Target forms, source dates and calculation details are disclosed in a modal; no persistent explanations, inputs or save buttons fill the list.
 
+Each row also has an info hint explaining the calculation in plain language, including relevant recording gaps, missing data and reported results. Click, tap or keyboard-activate the info button to read it; Escape, Tab, another hint or clicking outside dismisses it. Hints stay within the viewport, add no row height, and are hidden during Reorder. The edit dialog reuses the same wording, with endurance duration reflecting the selected draft value. Calculation and ranking methods are unchanged.
+
 ## Configuration and ownership
 
 Unconfigured entries have stable `catalog:<metric>` IDs, `active:false` and null target/reference inputs. Reading does not seed SQLite or invent targets. Existing saved IDs, targets and order are retained. Catalog metrics are `max_speed`, `average_speed`, `best_300`, `best_600`, `best_1200`, `cadence_duration`, `endurance`, `stroke_effectiveness`, `effort_economy`, `tracking_control`, and `turns_footwork`.
