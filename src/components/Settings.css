@@ -1,0 +1,61 @@
+.unit-settings {
+  max-width: 780px;
+  margin: 0 auto;
+}
+.unit-settings form {
+  background: #fff;
+  border: 1px solid #e6ecee;
+  border-radius: 16px;
+  padding: 24px;
+}
+.unit-settings h2 {
+  font-size: 18px;
+  margin: 0 0 8px;
+}
+.unit-setting-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 22px 0;
+  border-bottom: 1px solid #edf0f1;
+}
+.unit-setting-row strong {
+  display: block;
+  font-size: 14px;
+}
+.unit-setting-row small {
+  display: block;
+  margin-top: 5px;
+  color: #63788d;
+  font-size: 12px;
+}
+.unit-setting-row select {
+  width: 235px;
+  flex-shrink: 0;
+  min-height: 44px;
+}
+.unit-settings-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 24px;
+}
+@media (max-width: 600px) {
+  .unit-settings form {
+    padding: 16px;
+  }
+  .unit-setting-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 18px 0;
+  }
+  .unit-setting-row select {
+    width: 100%;
+  }
+  .unit-settings-actions {
+    flex-wrap: wrap;
+  }
+}

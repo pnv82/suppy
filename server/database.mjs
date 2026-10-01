@@ -83,7 +83,7 @@ export function openDatabase(path = databasePath()) {
     );
     transaction(() => {
       const version = db.prepare("PRAGMA user_version").get().user_version;
-      if (version > 5)
+      if (version > 6)
         throw new Error(
           "Database schema is newer than this app. Upgrade the app before opening it.",
         );
@@ -147,6 +147,10 @@ export function openDatabase(path = databasePath()) {
         db.exec(
           `CREATE TABLE goals (tenant_id TEXT NOT NULL REFERENCES tenants(id), id TEXT NOT NULL, data_json TEXT NOT NULL CHECK(json_valid(data_json)), PRIMARY KEY(tenant_id,id)) STRICT; PRAGMA user_version = 5;`,
         );
+      if (version < 6)
+        db.exec(
+          "ALTER TABLE preferences ADD COLUMN units_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(units_json)); PRAGMA user_version = 6;",
+        );
     });
   } catch (error) {
     db.close();
@@ -160,7 +164,9 @@ export function openDatabase(path = databasePath()) {
         id,
         new Date().toISOString(),
       );
-      db.prepare("INSERT OR IGNORE INTO preferences VALUES (?, NULL)").run(id);
+      db.prepare(
+        "INSERT OR IGNORE INTO preferences (tenant_id, default_board_id) VALUES (?, NULL)",
+      ).run(id);
     });
   }
   function forTenant(id) {
@@ -320,6 +326,16 @@ export function openDatabase(path = databasePath()) {
             "SELECT default_board_id FROM preferences WHERE tenant_id = ?",
           )
           .get(id).default_board_id,
+      units: () =>
+        JSON.parse(
+          db
+            .prepare("SELECT units_json FROM preferences WHERE tenant_id = ?")
+            .get(id).units_json,
+        ),
+      setUnits: (units) =>
+        db
+          .prepare("UPDATE preferences SET units_json = ? WHERE tenant_id = ?")
+          .run(JSON.stringify(units), id),
       setDefaultBoard: (boardId) =>
         db
           .prepare(

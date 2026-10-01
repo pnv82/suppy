@@ -1,3 +1,4 @@
+import { unitPreferences, validateUnits } from "../src/domain/units.mjs";
 import { readFileSync } from "node:fs";
 import { randomUUID, createHash } from "node:crypto";
 import { openDatabase } from "./database.mjs";
@@ -353,6 +354,7 @@ export function createStore({
         sessionCount: sessions.filter((s) => s.boardId === b.id).length,
       })),
       defaultBoardId: repo.defaultBoard(),
+      units: unitPreferences(repo.units()),
       issues,
       storage: "sqlite",
       goals: configuredGoals(repo.goals()),
@@ -631,6 +633,11 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    setUnitPreferences({ units }) {
+      const selected = validateUnits(units);
+      repo.setUnits(selected);
+      return { units: selected };
+    },
     upsertGoal({ goal_id, ...goal }) {
       const existing = repo.goals();
       const previous = configuredGoals(existing).find((g) => g.id === goal_id);

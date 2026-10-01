@@ -1,4 +1,11 @@
-export const pages = ["Home", "Sessions", "Boards", "Goals", "ChatGPT"];
+export const pages = [
+  "Home",
+  "Sessions",
+  "Boards",
+  "Goals",
+  "ChatGPT",
+  "Settings",
+];
 
 export function readRoute(href) {
   const params = new URL(href).searchParams;

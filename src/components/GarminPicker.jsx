@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { callTool, embedded } from "../services/client.mjs";
-import { fmt } from "./SessionViews.jsx";
+import { Measure } from "./Units.jsx";
 import { durationLabel } from "../domain/metrics.mjs";
 
 export function GarminPicker({ timezone, busy, setBusy, onPreview }) {
@@ -199,12 +199,7 @@ export function GarminPicker({ timezone, busy, setBusy, onPreview }) {
                               timeZone: "UTC",
                             }) + " UTC"
                           : "Start time unavailable"}{" "}
-                        ·{" "}
-                        {fmt(
-                          a.distance_m == null ? null : a.distance_m / 1609.344,
-                          2,
-                        )}{" "}
-                        mi ·{" "}
+                        · <Measure value={a.distance_m} group="distance" /> ·{" "}
                         {durationLabel(
                           a.duration_s == null ? null : a.duration_s / 60,
                         )}

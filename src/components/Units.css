@@ -1,0 +1,21 @@
+.unit-value {
+  white-space: nowrap;
+}
+.clean-metrics-table td strong .unit-value {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.unit-value .unit-symbol {
+  font-size: 0.8em;
+  font-weight: 400;
+}
+
+.weather-panel .unit-value,
+.weather-panel .unit-symbol {
+  display: inline;
+  color: inherit;
+  margin: 0;
+}
+.weather-panel .unit-value {
+  font-size: inherit;
+}

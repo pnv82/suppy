@@ -139,3 +139,7 @@ An info button on each goal opens a short, plain-language calculation hint witho
 Goals also have a subtle six-dot drag handle at the left edge. Dragging dims the source row, shows a compact floating label and marks the insertion point in either Active or Inactive, including empty buckets. The page scrolls near the viewport edge. Dropping saves once; releasing outside the buckets or pressing Escape cancels. Move up/down and bucket actions live in each goal’s menu; no dedicated Reorder button or mode is shown. Handles reserve horizontal space only, and touch scrolling remains available everywhere outside the handles.
 
 Achieved goals use a faint mint background and a small green check next to the target. The check has a “Target achieved” hint and screen-reader description; color is not the only indication. Existing row height and controls stay the same, without celebratory animation or banners. The state reflects whether the current best meets the target and is retained in either bucket.
+
+## Grouped units (2026-10-01)
+
+Settings contains four rows for speed, distance, length and temperature, with defaults matching the existing display. Primary measurements have alternate-unit hover hints; selected units also label charts and editable goals/wind. Keep this information within existing rows and details without adding persistent session-panel height. See [unit contracts](../engineering/units.md).

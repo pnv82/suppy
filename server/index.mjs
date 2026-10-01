@@ -82,6 +82,7 @@ export function createMcpServer(
   );
   for (const name of Object.keys(toolSchemas)) {
     const readOnly = ![
+      "set_unit_preferences",
       "add_custom_interval",
       "delete_custom_interval",
       "upsert_goal",

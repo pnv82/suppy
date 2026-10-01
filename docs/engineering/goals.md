@@ -44,3 +44,5 @@ Stroke/economy candidate starts use a 30-second grid plus eligible run boundarie
 The five new goal categories are authorized by the 2026-09-30 user request. New target values remain unset until entered. Original FIT/ZIP files and SQLite schema are unchanged. Pending scientific calibration remains in `todo.md`.
 
 The 20-minute effort-economy cutoff uses session elapsed time, not accumulated active time. Goal evidence method `goal_evidence_v3` replaces five-minute stroke-effectiveness blocks with 20-minute blocks and invalidates the goal-analysis cache. It retains v2's effort-economy rule: five-minute blocks starting at or after minute 20. Stroke effectiveness has no initial exclusion and can start at session time zero. Original readings and targets are unchanged.
+
+Display units follow Settings: speed targets, results and economy comparison pace use the selected speed group. Editing a value converts back to SI; achievement and progress colours still compare the exact SI values. Hover a displayed speed for alternate units. See [unit contracts](units.md).

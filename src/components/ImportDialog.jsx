@@ -1,9 +1,10 @@
+import { Measure } from "./Units.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { UploadSimple, File, Check, X } from "@phosphor-icons/react";
 import { callTool } from "../services/client.mjs";
 import { uploadArguments } from "../services/fit-import.mjs";
 import { fmt } from "./SessionViews.jsx";
-import { durationLabel, mph } from "../domain/metrics.mjs";
+import { durationLabel } from "../domain/metrics.mjs";
 import { GarminPicker } from "./GarminPicker.jsx";
 
 function RoutePreview({ runs }) {
@@ -259,7 +260,10 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
               <div>
                 <dt>Distance</dt>
                 <dd>
-                  {fmt(s.distance, 2)} <small>mi</small>
+                  <Measure
+                    value={s.distance == null ? null : s.distance * 1609.344}
+                    group="distance"
+                  />
                 </dd>
               </div>
               <div>
@@ -280,7 +284,10 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
               <div>
                 <dt>FIT avg. speed</dt>
                 <dd>
-                  {fmt(s.avgSpeed, 2)} <small>mph</small>
+                  <Measure
+                    value={s.avgSpeed == null ? null : s.avgSpeed * 0.44704}
+                    group="speed"
+                  />
                 </dd>
               </div>
               <div>
@@ -298,7 +305,12 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
             </dl>
             <p>
               Calculated best 5 / 10 / 20 min:{" "}
-              {s.windows.map((w) => fmt(mph(w.speed_mps), 2)).join(" / ")} mph
+              {s.windows.map((w, i) => (
+                <React.Fragment key={w.duration}>
+                  {i > 0 && " / "}
+                  <Measure value={w.speed_mps} group="speed" />
+                </React.Fragment>
+              ))}
             </p>
             {s.quality.length > 0 && (
               <details>
@@ -394,7 +406,13 @@ export function ImportDialog({ boards, defaultBoardId, onClose, onImported }) {
                               setLaunchReference(c.source_ref);
                             }}
                           >
-                            {c.name} · {c.distance_m} m · use name
+                            {c.name} ·{" "}
+                            <Measure
+                              value={c.distance_m}
+                              group="length"
+                              dp={0}
+                            />{" "}
+                            · use name
                           </button>
                           <small>
                             {c.source === "openstreetmap" ? (

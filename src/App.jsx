@@ -34,6 +34,8 @@ import { MetricsInspector } from "./components/MetricEvidence.jsx";
 import { ChatGPTPage } from "./components/ChatGPTPage.jsx";
 import { Boards } from "./components/Boards.jsx";
 import { Goals } from "./components/Goals.jsx";
+import { UnitsProvider } from "./components/Units.jsx";
+import { Settings } from "./components/Settings.jsx";
 import { NavigationRail } from "./components/NavigationRail.jsx";
 import { SessionHeader } from "./components/SessionHeader.jsx";
 import { useNavigation } from "./services/useNavigation.jsx";
@@ -284,7 +286,7 @@ function Workspace({ account, initialData }) {
       </main>
     );
   return (
-    <>
+    <UnitsProvider value={data.units}>
       <a href="#main" className="skip-link">
         Skip to content
       </a>
@@ -509,6 +511,9 @@ function Workspace({ account, initialData }) {
               onAction={boardAction}
             />
           )}
+          {page === "Settings" && (
+            <Settings busy={busy} onAction={boardAction} />
+          )}
           {(page === "Sessions" || page === "ChatGPT") && !session && (
             <div role="status">
               <p>
@@ -550,6 +555,6 @@ function Workspace({ account, initialData }) {
           </button>
         </div>
       )}
-    </>
+    </UnitsProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { Measure } from "./Units.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import {
   CaretDown,
@@ -179,7 +180,8 @@ export function SessionEditDialog({
                   setLaunchReference(c.source_ref);
                 }}
               >
-                {c.name} · {Math.round(c.distance_m)} m ·{" "}
+                {c.name} ·{" "}
+                <Measure value={c.distance_m} group="length" dp={0} /> ·{" "}
                 {index === 0 ? "suggested · " : ""}use name
               </button>
               <small>
@@ -455,8 +457,13 @@ export function SessionHeader({
                       {s.start}–{s.end} · {s.timezone}
                     </span>
                     <span>
-                      {fmt(s.distance, 2)} mi · {durationLabel(s.active)} active
-                      · {s.type}
+                      <Measure
+                        value={
+                          s.distance == null ? null : s.distance * 1609.344
+                        }
+                        group="distance"
+                      />{" "}
+                      · {durationLabel(s.active)} active · {s.type}
                     </span>
                     <span>
                       {s.records.length

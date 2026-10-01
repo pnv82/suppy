@@ -9,6 +9,7 @@ import {
   Target,
   SignOut,
   UserSwitch,
+  GearSix,
 } from "@phosphor-icons/react";
 
 const destinations = [
@@ -17,6 +18,7 @@ const destinations = [
   ["Boards", Stack],
   ["Goals", Target],
   ["ChatGPT", ChatCircleDots],
+  ["Settings", GearSix],
 ];
 
 export function NavigationRail({ page, onNavigate, onImport, account }) {

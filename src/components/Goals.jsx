@@ -27,11 +27,12 @@ import { timeLabel } from "../domain/metrics.mjs";
 import { goalDropOrder } from "../domain/goal-order.mjs";
 import { useGoalDrag } from "./useGoalDrag.js";
 import "./Goals.css";
+import { Measure, useUnits } from "./Units.jsx";
 
-const display = (goal, value) =>
+const display = (goal, value, preferences) =>
   value == null
     ? "—"
-    : goalValue(goal, value).toFixed(
+    : goalValue(goal, value, preferences).toFixed(
         ["effort_economy", "tracking_control", "turns_footwork"].includes(
           goal.metric,
         )
@@ -52,7 +53,7 @@ const iconFor = (metric) =>
             : Lightning;
 const methods = {
   stroke_effectiveness:
-    "We check continuous 20-minute stretches where your stroke rate stays steady and averages within 3 strokes per minute of your chosen rate. For each stretch, we divide distance by time. Your best is the fastest average among the stretches checked. Only complete stretches with uninterrupted distance and stroke readings count; shorter sessions cannot qualify. Metres per stroke is distance divided by the estimated number of strokes.",
+    "We check continuous 20-minute stretches where your stroke rate stays steady and averages within 3 strokes per minute of your chosen rate. For each stretch, we divide distance by time. Your best is the fastest average among the stretches checked. Only complete stretches with uninterrupted distance and stroke readings count; shorter sessions cannot qualify. Distance per stroke is distance divided by the estimated number of strokes.",
   effort_economy:
     "We skip the first 20 minutes of the session, then check five-minute stretches with steady speed and heart rate, within 3% of your chosen speed. A session needs at least 25 minutes to qualify. Your best is the lowest average heart rate among those stretches. We need complete readings and skip sessions flagged for unreliable heart rate. Lower means fewer heartbeats at a similar speed; it does not prove improved fitness.",
   tracking_control:
@@ -149,25 +150,37 @@ function GoalHint({ goal, onOpen }) {
 }
 
 function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
+  const units = useUnits();
   const [target, setTarget] = useState(
     goal.target_si == null
       ? ""
-      : String(Number(goalValue(goal, goal.target_si).toFixed(4))),
+      : String(
+          Number(goalValue(goal, goal.target_si, units.preferences).toFixed(4)),
+        ),
   );
   const [threshold, setThreshold] = useState(goal.cadence_threshold_spm ?? "");
   const [cadence, setCadence] = useState(goal.cadence_spm ?? "");
   const [pace, setPace] = useState(
-    goal.pace_mps == null ? "" : Number((goal.pace_mps / 0.44704).toFixed(4)),
+    goal.pace_mps == null
+      ? ""
+      : Number(units.convert(goal.pace_mps, "speed").toFixed(4)),
   );
   const [window, setWindow] = useState(goal.window_s ?? 1800);
   const [failed, setFailed] = useState(false);
-  const unit = goalUnit(goal);
+  const unit = goalUnit(goal, units.preferences);
   return (
     <EvidenceDialog title={GOAL_METRICS[goal.metric]} onClose={onClose}>
       <div className="goal-dialog-best">
         <span>Current best</span>
-        <strong>
-          {display(goal, best?.value_si)} <small>{best ? unit : ""}</small>
+        <strong
+          title={
+            unit === units.symbol("speed")
+              ? units.alternate(best?.value_si, "speed")
+              : undefined
+          }
+        >
+          {display(goal, best?.value_si, units.preferences)}{" "}
+          <small>{best ? unit : ""}</small>
         </strong>
         {best ? (
           <button
@@ -181,8 +194,9 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
           </button>
         ) : (
           <p>
-            {goalScope(goal).startsWith("Choose")
-              ? goalScope(goal) + " to find matching results."
+            {goalScope(goal, units.preferences).startsWith("Choose")
+              ? goalScope(goal, units.preferences) +
+                " to find matching results."
               : "No matching result yet."}
           </p>
         )}
@@ -195,7 +209,13 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
           const original =
             goal.target_si == null
               ? ""
-              : String(Number(goalValue(goal, goal.target_si).toFixed(4)));
+              : String(
+                  Number(
+                    goalValue(goal, goal.target_si, units.preferences).toFixed(
+                      4,
+                    ),
+                  ),
+                );
           const args = {
             goal_id: goal.id,
             metric: goal.metric,
@@ -204,7 +224,7 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
                 ? goal.target_si
                 : target === ""
                   ? null
-                  : Number(target) * goalFactor(goal),
+                  : Number(target) * goalFactor(goal, units.preferences),
             cadence_threshold_spm:
               goal.metric === "cadence_duration" && threshold !== ""
                 ? Number(threshold)
@@ -214,7 +234,13 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
           if (goal.metric === "stroke_effectiveness")
             args.cadence_spm = cadence === "" ? null : Number(cadence);
           if (goal.metric === "effort_economy")
-            args.pace_mps = pace === "" ? null : Number(pace) * 0.44704;
+            args.pace_mps =
+              pace === ""
+                ? null
+                : Number(pace) ===
+                    Number(units.convert(goal.pace_mps, "speed")?.toFixed(4))
+                  ? goal.pace_mps
+                  : units.toSI(Number(pace), "speed");
           if (await onAction("upsert_goal", args, "Goal saved.")) onClose();
           else setFailed(true);
         }}
@@ -250,13 +276,21 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
           )}
           {goal.metric === "effort_economy" && (
             <label>
-              Compare at pace (mph)
+              Compare at pace ({units.symbol("speed")})
               <input
                 type="number"
                 min="0.01"
-                max={6 / 0.44704}
+                max={units.convert(6, "speed")}
                 step="any"
                 value={pace}
+                title={
+                  pace === ""
+                    ? undefined
+                    : units.alternate(
+                        units.toSI(Number(pace), "speed"),
+                        "speed",
+                      )
+                }
                 placeholder="Not set"
                 disabled={busy}
                 onChange={(e) => setPace(e.target.value)}
@@ -294,10 +328,18 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
                           goal.metric,
                         )
                       ? 100
-                      : 30 / 0.44704
+                      : units.convert(30, "speed")
               }
               step="any"
               value={target}
+              title={
+                target === "" || unit !== units.symbol("speed")
+                  ? undefined
+                  : units.alternate(
+                      units.toSI(Number(target), "speed"),
+                      "speed",
+                    )
+              }
               placeholder="Not set"
               disabled={busy}
               onChange={(e) => setTarget(e.target.value)}
@@ -324,8 +366,13 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
           )}
           {best?.evidence?.dps_m != null && (
             <p>
-              Estimated stroke distance: {best.evidence.dps_m.toFixed(2)}{" "}
-              m/stroke ({(best.evidence.dps_m * 3.28084).toFixed(2)} ft/stroke).
+              Estimated stroke distance:{" "}
+              <Measure
+                value={best.evidence.dps_m}
+                group="length"
+                suffix="/stroke"
+              />
+              .
             </p>
           )}
           {best?.evidence?.left_attempts != null && (
@@ -335,11 +382,8 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
               {best.evidence.right_attempts} successful.
             </p>
           )}
-          {best && unit === "mph" && (
-            <p>
-              {best.value_si.toFixed(2)} m/s ·{" "}
-              {(best.value_si * 3.6).toFixed(2)} km/h.
-            </p>
+          {best && unit === units.symbol("speed") && (
+            <p>{units.alternate(best.value_si, "speed")}.</p>
           )}
         </details>
         {failed && (
@@ -497,6 +541,7 @@ function PracticeEditor({ goal, sessions, busy, onAction, onClose }) {
 }
 
 export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
+  const units = useUnits();
   const configured = configuredGoals(goals);
   const [editing, setEditing] = useState(null);
   const [practice, setPractice] = useState(null);
@@ -621,7 +666,7 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                     progress = goalProgress(goal, best),
                     achieved = progress?.state === "achieved",
                     Icon = iconFor(goal.metric),
-                    unit = goalUnit(goal);
+                    unit = goalUnit(goal, units.preferences);
                   return (
                     <li
                       className={`goal-item${progress ? ` is-${progress.state}` : ""}${drag?.id === goal.id ? " is-drag-source" : ""}${drag?.target?.active === active && drag.target.beforeId === goal.id ? " is-drop-before" : ""}`}
@@ -657,7 +702,15 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                           </span>
                           <span>
                             <strong>{GOAL_METRICS[goal.metric]}</strong>
-                            <small>{goalScope(goal)}</small>
+                            <small
+                              title={
+                                goal.metric === "effort_economy"
+                                  ? units.alternate(goal.pace_mps, "speed")
+                                  : undefined
+                              }
+                            >
+                              {goalScope(goal, units.preferences)}
+                            </small>
                           </span>
                         </span>
                         <span
@@ -667,8 +720,14 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                           }
                         >
                           <small className="mobile-label">Best</small>
-                          <strong>
-                            {display(goal, best?.value_si)}
+                          <strong
+                            title={
+                              unit === units.symbol("speed")
+                                ? units.alternate(best?.value_si, "speed")
+                                : undefined
+                            }
+                          >
+                            {display(goal, best?.value_si, units.preferences)}
                             {best && <small> {unit}</small>}
                           </strong>
                         </span>
@@ -683,7 +742,16 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                                   ? `goal-progress-target is-${progress.state}`
                                   : undefined
                               }
-                              title={progress?.label}
+                              title={
+                                [
+                                  progress?.label,
+                                  unit === units.symbol("speed")
+                                    ? units.alternate(goal.target_si, "speed")
+                                    : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ") || undefined
+                              }
                             >
                               {achieved && (
                                 <>
@@ -704,7 +772,11 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                               )}
                               <span>
                                 {goalLowerIsBetter(goal) ? "≤" : "≥"}{" "}
-                                {display(goal, goal.target_si)}{" "}
+                                {display(
+                                  goal,
+                                  goal.target_si,
+                                  units.preferences,
+                                )}{" "}
                                 <small>{unit}</small>
                               </span>
                             </span>

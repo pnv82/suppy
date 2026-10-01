@@ -1,6 +1,7 @@
+import { Measure, useUnits } from "./Units.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { X, Info, ChatCircle } from "@phosphor-icons/react";
-import { mph, timeLabel, durationLabel } from "../domain/metrics.mjs";
+import { timeLabel, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
 import { intervalTitle, reviewIntervals } from "../domain/intervals.mjs";
 import { TrackingScore } from "./TrackingScore.jsx";
@@ -49,6 +50,7 @@ export function EvidenceDialog({ title, onClose, children }) {
 }
 
 export function MetricDetails({ session, duration, onClose }) {
+  const units = useUnits();
   const view = metricView(session, duration),
     e = view.evidence,
     z = e?.tracking;
@@ -67,13 +69,10 @@ export function MetricDetails({ session, duration, onClose }) {
       <dl className="evidence-properties">
         <dt>Speed at cadence</dt>
         <dd>
-          {fmt(mph(view.speed), 2)} mph @ {fmt(view.cadence)} spm
+          <Measure value={view.speed} group="speed" /> @ {fmt(view.cadence)} spm
         </dd>
         <dt>Alternate speed</dt>
-        <dd>
-          {fmt(view.speed == null ? null : view.speed * 3.6, 2)} km/h ·{" "}
-          {fmt(view.speed, 2)} m/s
-        </dd>
+        <dd>{units.alternate(view.speed, "speed") || "—"}</dd>
         <dt>Matched support</dt>
         <dd>
           {fmt(e?.speed_cadence?.covered_s)} s /{" "}
@@ -86,8 +85,7 @@ export function MetricDetails({ session, duration, onClose }) {
         <dd>{fmt(e?.distance_per_stroke?.estimated_strokes, 1)}</dd>
         <dt>Ground distance / stroke</dt>
         <dd>
-          {fmt(view.dps, 2)} m ·{" "}
-          {fmt(view.dps == null ? null : view.dps / 0.3048, 2)} ft
+          <Measure value={view.dps} group="length" suffix="/stroke" />
         </dd>
         <dt>HR coverage</dt>
         <dd>
@@ -96,57 +94,80 @@ export function MetricDetails({ session, duration, onClose }) {
         </dd>
         <dt>Recorded speed mean / median / max</dt>
         <dd>
-          {[e?.speed_mps?.mean, e?.speed_mps?.median, e?.speed_mps?.max]
-            .map((v) => fmt(mph(v), 2))
-            .join(" / ")}{" "}
-          mph
+          {[e?.speed_mps?.mean, e?.speed_mps?.median, e?.speed_mps?.max].map(
+            (v, i) => (
+              <React.Fragment key={i}>
+                {i > 0 && " / "}
+                <Measure value={v} group="speed" />
+              </React.Fragment>
+            ),
+          )}
         </dd>
         <dt>Speed quality filter</dt>
         <dd>
           Excluded samples: {e?.speed_mps?.quality?.excluded_sample_count ?? 0},
-          outside 0–6 m/s (13.42 mph ceiling). Raw recorded maximum:{" "}
-          {fmt(mph(e?.speed_mps?.quality?.raw_max_mps), 2)} mph. Coverage
-          excludes edges touching rejected samples; smaller artifacts may
-          remain.
+          outside 0–
+          <Measure value={6} group="speed" />. Raw recorded maximum:{" "}
+          <Measure value={e?.speed_mps?.quality?.raw_max_mps} group="speed" />.
+          Coverage excludes edges touching rejected samples; smaller artifacts
+          may remain.
         </dd>
         {whole && (
           <>
             <dt>Distance / active / elapsed</dt>
             <dd>
-              {fmt(session.distance, 2)} mi · {durationLabel(session.active)} /{" "}
+              <Measure
+                value={
+                  session.distance == null ? null : session.distance * 1609.344
+                }
+                group="distance"
+              />{" "}
+              · {durationLabel(session.active)} /{" "}
               {durationLabel(session.elapsed)}
             </dd>
             <dt>Stored summary speed / HR / cadence</dt>
             <dd>
-              {fmt(session.avgSpeed, 2)} mph · {fmt(session.avgHr)} bpm ·{" "}
-              {fmt(session.cadence)} spm ·{" "}
+              <Measure
+                value={
+                  session.avgSpeed == null ? null : session.avgSpeed * 0.44704
+                }
+                group="speed"
+              />{" "}
+              · {fmt(session.avgHr)} bpm · {fmt(session.cadence)} spm ·{" "}
               {session.records.length
                 ? "FIT / imported summary"
                 : "imported historical summary"}
             </dd>
             <dt>Session maximum speed</dt>
             <dd>
-              {fmt(mph(session.statistics?.speed_mps?.max), 2)} mph ·{" "}
-              {session.statistics?.speed_mps?.max_source || "unavailable"}
+              <Measure
+                value={session.statistics?.speed_mps?.max}
+                group="speed"
+              />{" "}
+              · {session.statistics?.speed_mps?.max_source || "unavailable"}
             </dd>
             {session.statistics?.speed_mps?.summary_max_excluded && (
               <>
                 <dt>Excluded FIT maximum</dt>
                 <dd>
                   Original FIT maximum{" "}
-                  {fmt(
-                    mph(session.statistics.speed_mps.raw_summary_max_mps),
-                    2,
-                  )}{" "}
-                  mph excluded by the speed sanity ceiling; the displayed
-                  maximum uses supported records, or remains unavailable.
+                  <Measure
+                    value={session.statistics.speed_mps.raw_summary_max_mps}
+                    group="speed"
+                  />{" "}
+                  excluded by the speed sanity ceiling; the displayed maximum
+                  uses supported records, or remains unavailable.
                 </dd>
               </>
             )}
             <dt>FIT total-stroke DPS</dt>
             <dd>
-              {fmt(session.statistics?.distance_per_stroke?.value_m, 2)}{" "}
-              m/stroke · separate device-total estimate
+              <Measure
+                value={session.statistics?.distance_per_stroke?.value_m}
+                group="length"
+                suffix="/stroke"
+              />{" "}
+              · separate device-total estimate
             </dd>
             <dt>Moving / low speed / timer paused / unknown</dt>
             <dd>
@@ -183,7 +204,7 @@ export function MetricDetails({ session, duration, onClose }) {
                 ? " (linked to athlete annotation)"
                 : ""}{" "}
               · {timeLabel(event.start_s)}–{timeLabel(event.end_s)}
-              {` · ${detectedEventDescription(event)}`}
+              {` · ${detectedEventDescription(event, units.preferences)}`}
               {event.timing_basis === "temperature_change" &&
                 ` · cooling observed ${timeLabel(event.evidence.temperature_change_bracket_s[0])}–${timeLabel(event.evidence.temperature_change_bracket_s[1])}; exact fall time unknown`}
               {event.onset_bracket_s &&
@@ -204,7 +225,7 @@ export function MetricDetails({ session, duration, onClose }) {
         <dt>Eligible coverage</dt>
         <dd>
           {fmt(z?.coverage_pct)}% · {fmt(z?.covered_s)} s ·{" "}
-          {fmt(z?.valid_distance_m)} m
+          <Measure value={z?.valid_distance_m} group="length" />
         </dd>
         <dt>Data support</dt>
         <dd>{z?.confidence?.toLowerCase() || "Unavailable"}</dd>
@@ -214,8 +235,14 @@ export function MetricDetails({ session, duration, onClose }) {
               {component.label} · {fmt(component.weight * 100)}%
             </dt>
             <dd>
-              {fmt(component.value, 2)} {component.unit} ·{" "}
-              {fmt(component.score, 1)} / 100
+              {component.unit === "m" ? (
+                <Measure value={component.value} group="length" />
+              ) : (
+                <>
+                  {fmt(component.value, 2)} {component.unit}
+                </>
+              )}{" "}
+              · {fmt(component.score, 1)} / 100
             </dd>
           </React.Fragment>
         ))}
@@ -299,7 +326,7 @@ export function MetricsInspector({
         </h2>
         <p className="paired-headline">
           <GoalMetric progress={progress.speed}>
-            {fmt(mph(view.speed), 2)} <small>mph</small>
+            <Measure value={view.speed} group="speed" />
           </GoalMetric>{" "}
           <span>
             @ {fmt(view.cadence)} <small>spm</small>
@@ -313,9 +340,16 @@ export function MetricsInspector({
       <dl className="inspector-properties">
         <dt>{selected == null ? "Distance" : "Time"}</dt>
         <dd>
-          {selected == null
-            ? `${fmt(session.distance, 2)} mi`
-            : `${timeLabel(view.window?.start)} – ${timeLabel(view.window?.end)}`}
+          {selected == null ? (
+            <Measure
+              value={
+                session.distance == null ? null : session.distance * 1609.344
+              }
+              group="distance"
+            />
+          ) : (
+            `${timeLabel(view.window?.start)} – ${timeLabel(view.window?.end)}`
+          )}
         </dd>
         <dt>{selected == null ? "Active / elapsed" : "Duration"}</dt>
         <dd>
@@ -325,7 +359,7 @@ export function MetricsInspector({
         </dd>
         <dt>Distance / stroke · est.</dt>
         <dd>
-          {fmt(view.dps, 2)} m/stroke
+          <Measure value={view.dps} group="length" suffix="/stroke" />
           {view.dps != null && !view.paired && <small> · partial</small>}
         </dd>
         <dt>Matched coverage</dt>
@@ -432,12 +466,13 @@ export function DriftDetails({ session, onClose, onInspect }) {
                       ))}
                     </div>
                     <p>
-                      {[pair.early, pair.late]
-                        .map(
-                          (w) =>
-                            `${fmt(mph(w.speed_mps), 2)} mph @ ${fmt(w.cadence_spm)} spm · ${fmt(w.heart_rate_bpm)} bpm`,
-                        )
-                        .join(" → ")}
+                      {[pair.early, pair.late].map((w, i) => (
+                        <React.Fragment key={i}>
+                          {i > 0 && " → "}
+                          <Measure value={w.speed_mps} group="speed" />
+                          {` @ ${fmt(w.cadence_spm)} spm · ${fmt(w.heart_rate_bpm)} bpm`}
+                        </React.Fragment>
+                      ))}
                     </p>
                     <p className="caption">
                       Speed {fmt(pair.changes.speed_pct, 1)}% · DPS{" "}

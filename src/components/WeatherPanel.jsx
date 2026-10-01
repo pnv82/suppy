@@ -1,11 +1,13 @@
+import { Measure, useUnits } from "./Units.jsx";
 import React, { useEffect, useState } from "react";
 import { callTool } from "../services/client.mjs";
 import { observationAt, weatherInput } from "../domain/weather.mjs";
-import { timeLabel, mph } from "../domain/metrics.mjs";
+import { timeLabel } from "../domain/metrics.mjs";
 
 const value = (n, unit, digits = 1) =>
   Number.isFinite(n) ? `${n.toFixed(digits)} ${unit}` : "Unknown";
 function WindAdjustment({ session }) {
+  const units = useUnits();
   const [editing, setEditing] = useState(false),
     [speed, setSpeed] = useState(""),
     [direction, setDirection] = useState(""),
@@ -14,7 +16,11 @@ function WindAdjustment({ session }) {
     [message, setMessage] = useState("");
   function edit() {
     setSpeed(
-      session.wind == null ? "" : String(Number(session.wind.toFixed(2))),
+      session.wind == null
+        ? ""
+        : String(
+            Number(units.convert(session.wind * 0.44704, "speed").toFixed(4)),
+          ),
     );
     setDirection(
       session.windFrom == null
@@ -47,8 +53,12 @@ function WindAdjustment({ session }) {
       {session.windAdjustment && (
         <p>
           <b>On-water report · whole session:</b>{" "}
-          {value(mph(session.windAdjustment.wind_speed_mps), "mph")} · from{" "}
-          {value(session.windAdjustment.wind_from_deg, "°", 0)}
+          <Measure
+            value={session.windAdjustment.wind_speed_mps}
+            group="speed"
+            dp={1}
+          />{" "}
+          · from {value(session.windAdjustment.wind_from_deg, "°", 0)}
           {session.windAdjustment.note
             ? ` · ${session.windAdjustment.note}`
             : ""}
@@ -78,7 +88,18 @@ function WindAdjustment({ session }) {
               return;
             }
             save({
-              wind_speed_mps: speed === "" ? null : Number(speed) * 0.44704,
+              wind_speed_mps:
+                speed === ""
+                  ? null
+                  : session.wind != null &&
+                      Number(speed) ===
+                        Number(
+                          units
+                            .convert(session.wind * 0.44704, "speed")
+                            .toFixed(4),
+                        )
+                    ? session.wind * 0.44704
+                    : units.toSI(Number(speed), "speed"),
               wind_from_deg: direction === "" ? null : Number(direction),
               note,
             });
@@ -90,13 +111,22 @@ function WindAdjustment({ session }) {
           </p>
           <div className="wind-form-fields">
             <label>
-              Wind (mph)
+              Wind ({units.symbol("speed")})
               <input
                 type="number"
                 min="0"
-                max="178"
+                max={units.convert(80, "speed")}
                 step="any"
                 value={speed}
+                title={
+                  speed === ""
+                    ? undefined
+                    : units.alternate(
+                        units.toSI(Number(speed), "speed"),
+                        "speed",
+                        { dp: 1 },
+                      )
+                }
                 onChange={(e) => setSpeed(e.target.value)}
                 autoFocus
               />
@@ -142,6 +172,7 @@ function WindAdjustment({ session }) {
   );
 }
 export function WeatherPanel({ session, cursor }) {
+  const units = useUnits();
   const [error, setError] = useState(""),
     [sending, setSending] = useState(false);
   const weather = session.weather,
@@ -217,9 +248,19 @@ export function WeatherPanel({ session, cursor }) {
           ? "Retrieving historical station observations. Your session is saved."
           : unavailable ||
             weather?.message ||
-            (data
-              ? `${data.station.name} (${data.station.id}) · ${(data.station.distance_m / 1609.344).toFixed(1)} mi from the first recorded GPS point`
-              : "No retrieved observations. Weather uses your recorded location and session time.")}
+            (data ? (
+              <>
+                {data.station.name} ({data.station.id}) ·{" "}
+                <Measure
+                  value={data.station.distance_m}
+                  group="distance"
+                  dp={1}
+                />{" "}
+                from the first recorded GPS point
+              </>
+            ) : (
+              "No retrieved observations. Weather uses your recorded location and session time."
+            ))}
       </p>
       {data && (
         <>
@@ -234,22 +275,24 @@ export function WeatherPanel({ session, cursor }) {
             {observation ? (
               <>
                 <span>
-                  Wind {value(mph(wind), "mph")}
+                  Wind <Measure value={wind} group="speed" dp={1} />
                   {wind === 0
                     ? " · calm"
                     : observation.wind_from_deg != null
                       ? ` · from ${value(observation.wind_from_deg, "°", 0)}`
                       : " · direction unknown"}
                 </span>
-                <span>Gust {value(mph(observation.gust_mps), "mph")}</span>
+                <span>
+                  Gust{" "}
+                  <Measure value={observation.gust_mps} group="speed" dp={1} />
+                </span>
                 <span>
                   Air{" "}
-                  {value(
-                    observation.temperature_c == null
-                      ? null
-                      : (observation.temperature_c * 9) / 5 + 32,
-                    "°F",
-                  )}
+                  <Measure
+                    value={observation.temperature_c}
+                    group="temperature"
+                    dp={1}
+                  />
                 </span>
                 <span>
                   Humidity {value(observation.relative_humidity_pct, "%", 0)}
@@ -285,8 +328,12 @@ export function WeatherPanel({ session, cursor }) {
             </p>
             <p>
               Session wind:{" "}
-              {value(mph(data.summary.wind_speed_mps.value), "mph")} over
-              covered time. Air temperature coverage:{" "}
+              <Measure
+                value={data.summary.wind_speed_mps.value}
+                group="speed"
+                dp={1}
+              />{" "}
+              over covered time. Air temperature coverage:{" "}
               {Math.round(data.summary.temperature_c.coverage_pct)}%. Nearest
               observation within 60 minutes; gaps stay unknown. Refreshes are
               limited to once every 30 seconds.
@@ -307,10 +354,10 @@ export function WeatherPanel({ session, cursor }) {
                 <thead>
                   <tr>
                     <th>Observed (UTC)</th>
-                    <th>Wind (mph)</th>
+                    <th>Wind ({units.symbol("speed")})</th>
                     <th>From (°)</th>
-                    <th>Gust (mph)</th>
-                    <th>Air (°F)</th>
+                    <th>Gust ({units.symbol("speed")})</th>
+                    <th>Air ({units.symbol("temperature")})</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -321,16 +368,30 @@ export function WeatherPanel({ session, cursor }) {
                           .replace("T", " ")
                           .replace(".000Z", "")}
                       </td>
-                      <td>{value(mph(o.wind_speed_mps), "")}</td>
-                      <td>{value(o.wind_from_deg, "", 0)}</td>
-                      <td>{value(mph(o.gust_mps), "")}</td>
                       <td>
-                        {value(
-                          o.temperature_c == null
-                            ? null
-                            : (o.temperature_c * 9) / 5 + 32,
-                          "",
-                        )}
+                        <Measure
+                          value={o.wind_speed_mps}
+                          group="speed"
+                          dp={1}
+                          showUnit={false}
+                        />
+                      </td>
+                      <td>{value(o.wind_from_deg, "", 0)}</td>
+                      <td>
+                        <Measure
+                          value={o.gust_mps}
+                          group="speed"
+                          dp={1}
+                          showUnit={false}
+                        />
+                      </td>
+                      <td>
+                        <Measure
+                          value={o.temperature_c}
+                          group="temperature"
+                          dp={1}
+                          showUnit={false}
+                        />
                       </td>
                     </tr>
                   ))}

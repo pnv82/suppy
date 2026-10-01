@@ -1,3 +1,4 @@
+import { Measure, useUnits } from "./Units.jsx";
 import { ensureWindowStatistics } from "../domain/analysis.mjs";
 import {
   detectedEventLabel,
@@ -51,8 +52,6 @@ import "leaflet/dist/leaflet.css";
 import { WeatherPanel } from "./WeatherPanel.jsx";
 import { DriftDetails } from "./MetricEvidence.jsx";
 import {
-  mph,
-  feet,
   durationLabel,
   timeLabel,
   validRuns,
@@ -109,7 +108,49 @@ function FitBounds({ points, reset }) {
   }, [map, reset]);
   return null;
 }
+
+function UnitScale() {
+  const map = useMap();
+  const units = useUnits();
+  const control = useRef(null);
+  useEffect(() => {
+    let frame;
+    const update = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        const line = control.current
+          ?.getContainer()
+          ?.querySelector(".leaflet-control-scale-line");
+        const match = line?.textContent.match(/^([\d.]+) (m|km|mi|ft)$/);
+        if (!match) return;
+        const metres =
+          Number(match[1]) *
+          { m: 1, km: 1000, mi: 1609.344, ft: 0.3048 }[match[2]];
+        line.title =
+          units.preferences.distance === "mi"
+            ? `${(metres >= 1000 ? metres / 1000 : metres).toFixed(2)} ${metres >= 1000 ? "km" : "m"}`
+            : `${(metres >= 1609.344 ? metres / 1609.344 : metres / 0.3048).toFixed(2)} ${metres >= 1609.344 ? "mi" : "ft"}`;
+      });
+    };
+    update();
+    map.on("move", update);
+    return () => {
+      map.off("move", update);
+      cancelAnimationFrame(frame);
+    };
+  }, [map, units]);
+  return (
+    <ScaleControl
+      ref={control}
+      key={units.preferences.distance}
+      position="bottomleft"
+      imperial={units.preferences.distance === "mi"}
+      metric={units.preferences.distance === "km"}
+    />
+  );
+}
 function WindDigest({ session, cursor }) {
+  const units = useUnits();
   return (
     <details
       className="wind-overlay"
@@ -131,14 +172,19 @@ function WindDigest({ session, cursor }) {
           />
         )}
         <div>
-          <strong>
+          <strong
+            title={units.alternate(
+              session.wind == null ? null : session.wind * 0.44704,
+              "speed",
+            )}
+          >
             {session.wind == null
               ? session.windFrom == null
                 ? "Wind unavailable"
                 : `From ${bearing(session.windFrom)} · speed unknown`
               : session.wind === 0
-                ? "Calm · 0 mph"
-                : `${session.windFrom == null ? "Direction unknown" : `From ${bearing(session.windFrom)}`} · ${fmt(session.wind, 2)} mph`}
+                ? `Calm · ${units.format(0, "speed")}`
+                : `${session.windFrom == null ? "Direction unknown" : `From ${bearing(session.windFrom)}`} · ${units.format(session.wind * 0.44704, "speed")}`}
           </strong>
           <span>
             {session.windSource === "athlete_reported"
@@ -209,7 +255,7 @@ export function SessionMap({ session, selected, onSelect, cursor, spot }) {
           eventHandlers={{ tileerror: () => setTileError(true) }}
         />
         <FitBounds points={all} reset={session.id} />
-        <ScaleControl position="bottomleft" imperial metric={false} />
+        <UnitScale />
         {runs.map((run, i) => (
           <Polyline
             key={i}
@@ -589,7 +635,7 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
                   <span className="window-dot" />
                   <strong>{w.id ? "Custom" : `${w.duration / 60} min`}</strong>
                   <b>
-                    {fmt(mph(w.speed_mps), 2)} <small>mph</small>
+                    <Measure value={w.speed_mps} group="speed" />
                   </b>
                 </div>
                 {w.id && (
@@ -612,7 +658,11 @@ export function BestWindows({ session, selected, onSelect, onRemove, busy }) {
                     spm
                   </span>
                   <span>
-                    {fmt(stats?.distance_per_stroke?.value_m, 2)} m/stroke
+                    <Measure
+                      value={stats?.distance_per_stroke?.value_m}
+                      group="length"
+                      suffix="/stroke"
+                    />
                     {stroke?.status === "cadence_estimate" &&
                     stroke?.value_m != null
                       ? " est."
@@ -676,6 +726,8 @@ export function Timeline({
   onAddInterval,
   busy,
 }) {
+  const units = useUnits();
+  const displaySpeed = (value) => units.convert(value, "speed");
   const [hover, setHover] = useState(null);
   const [extending, setExtending] = useState(false);
   useEffect(() => {
@@ -692,9 +744,10 @@ export function Timeline({
     );
     return chartRows(session.records).map((p) => ({
       ...p,
-      dps: dps.get(p.t) ?? null,
+      speed: p.speed == null ? null : units.convert(p.speed * 0.44704, "speed"),
+      dps: units.convert(dps.get(p.t), "length"),
     }));
-  }, [session.records, session.deterministic]);
+  }, [session.records, session.deterministic, units]);
   const max = session.elapsed,
     ticks = Array.from({ length: Math.floor(max / 20) + 1 }, (_, i) => i * 20);
   const w = reviewIntervals(session).find((w) => intervalKey(w) === selected);
@@ -837,12 +890,12 @@ export function Timeline({
       {rows.length ? (
         <div className="chart-stack">
           {[
-            ["Speed", "mph", "speed", "#008996", [0, "auto"]],
+            ["Speed", units.symbol("speed"), "speed", "#008996", [0, "auto"]],
             ["Heart rate", "bpm", "hr", "#d54d72", [60, 180]],
             third === "dps"
               ? [
                   "Distance / stroke",
-                  "m/stroke · est.",
+                  units.symbol("length") + "/stroke · est.",
                   "dps",
                   "#6273c9",
                   [0, "auto"],
@@ -855,7 +908,7 @@ export function Timeline({
                 : key === "hr"
                   ? session.statistics?.heart_rate_bpm
                   : null;
-            const convert = key === "speed" ? mph : (v) => v;
+            const convert = key === "speed" ? displaySpeed : (v) => v;
             const median = convert(stats?.median),
               peak = convert(stats?.max);
             return (
@@ -889,7 +942,7 @@ export function Timeline({
                     ", " +
                     fmt(
                       key === "speed"
-                        ? mph(usableSpeed(current?.speed_mps))
+                        ? displaySpeed(usableSpeed(current?.speed_mps))
                         : key === "hr"
                           ? current?.heart_rate_bpm
                           : key === "dps"
@@ -930,13 +983,14 @@ export function Timeline({
                     >
                       <b>{timeLabel(cursor)}</b>
                       <span>
-                        {fmt(mph(usableSpeed(current?.speed_mps)), 2)} mph ·{" "}
-                        {fmt(current?.heart_rate_bpm)} bpm
+                        {fmt(displaySpeed(usableSpeed(current?.speed_mps)), 2)}{" "}
+                        {units.symbol("speed")} · {fmt(current?.heart_rate_bpm)}{" "}
+                        bpm
                       </span>
                       <span>
                         {fmt(current?.cadence_raw)} spm
                         {key === "dps" &&
-                          ` · ${fmt(rows.findLast((p) => p.t <= cursor / 60 && p.t >= (cursor - 15) / 60)?.dps, 2)} m/stroke · trailing 30 s`}
+                          ` · ${fmt(rows.findLast((p) => p.t <= cursor / 60 && p.t >= (cursor - 15) / 60)?.dps, 2)} ${units.symbol("length")}/stroke · trailing 30 s`}
                         {!current ? " · No sample" : ""}
                       </span>
                     </div>
@@ -954,14 +1008,20 @@ export function Timeline({
                         />
                         Median{" "}
                         <b>
-                          {fmt(median, unit === "mph" ? 2 : 0)} {unit}
+                          {key === "speed" ? (
+                            <Measure value={stats?.median} group="speed" />
+                          ) : (
+                            <>
+                              {fmt(median)} {unit}
+                            </>
+                          )}
                         </b>
                       </span>
                       <span
                         title={
                           stats?.max_source === "fit_session"
                             ? "Maximum from the FIT session summary; may exceed the peak in sampled records."
-                            : unit === "mph"
+                            : key === "speed"
                               ? "Maximum of supported recorded values after the 0–6 m/s sanity filter; smaller artifacts may remain."
                               : "Maximum of supported recorded values."
                         }
@@ -969,7 +1029,13 @@ export function Timeline({
                         <i className="stat-line max-line" aria-hidden="true" />
                         Max{" "}
                         <b>
-                          {fmt(peak, unit === "mph" ? 2 : 0)} {unit}
+                          {key === "speed" ? (
+                            <Measure value={stats?.max} group="speed" />
+                          ) : (
+                            <>
+                              {fmt(peak)} {unit}
+                            </>
+                          )}
                         </b>
                       </span>
                     </div>
@@ -1133,8 +1199,8 @@ export function Timeline({
                   onManualSelection(event.end_s > event.start_s);
                   onAnnotate(event.start_s, event.end_s, event);
                 }}
-                aria-label={`Annotate ${detectedEventLabel(event)} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}; ${detectedEventDescription(event)}`}
-                title={`${detectedEventLabel(event)} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)} · ${detectedEventDescription(event)}`}
+                aria-label={`Annotate ${detectedEventLabel(event)} ${timeLabel(event.start_s)} to ${timeLabel(event.end_s)}; ${detectedEventDescription(event, units.preferences)}`}
+                title={`${detectedEventLabel(event)} · ${timeLabel(event.start_s)}–${timeLabel(event.end_s)} · ${detectedEventDescription(event, units.preferences)}`}
               >
                 <Diamond size={14} aria-hidden="true" />
               </button>

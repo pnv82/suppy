@@ -1,3 +1,4 @@
+import { formatUnit, alternateUnits } from "./units.mjs";
 import { finite, geoDistance, overlaps } from "./telemetry.mjs";
 
 export const EVENT_METHOD = "selective_movement_v3";
@@ -195,9 +196,9 @@ export function detectedEventLabel(event) {
   return event.type === "possible_fall" ? "Possible fall" : "Low-speed period";
 }
 
-export function detectedEventDescription(event) {
+export function detectedEventDescription(event, units) {
   return event.type === "possible_fall"
-    ? `${(event.evidence.temperature_drop_c * 1.8).toFixed(1)}°F (${event.evidence.temperature_drop_c}°C) cooling ${event.evidence.signal === "cooling_at_low_speed" ? "during low-speed movement; possible immersion, timing may lag" : "and abrupt slowdown"}; unconfirmed`
+    ? `${units ? `${formatUnit(event.evidence.temperature_drop_c, "temperature", units, { dp: 1, delta: true })} (${alternateUnits(event.evidence.temperature_drop_c, "temperature", units, { dp: 1, delta: true })})` : `${(event.evidence.temperature_drop_c * 1.8).toFixed(1)}°F (${event.evidence.temperature_drop_c}°C)`} cooling ${event.evidence.signal === "cooling_at_low_speed" ? "during low-speed movement; possible immersion, timing may lag" : "and abrupt slowdown"}; unconfirmed`
     : "Sustained low speed with movement before and after; cause unknown";
 }
 

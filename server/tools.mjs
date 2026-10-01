@@ -12,6 +12,16 @@ const uploadFields = {
 };
 
 export const toolSchemas = {
+  set_unit_preferences: z.object({
+    units: z
+      .object({
+        speed: z.enum(["mph", "kmh", "mps"]),
+        distance: z.enum(["mi", "km"]),
+        length: z.enum(["m", "ft"]),
+        temperature: z.enum(["F", "C"]),
+      })
+      .strict(),
+  }),
   ...garminSchemas,
   suggest_launch_name: z.object({ session_id: z.string() }),
   upsert_goal: z
@@ -185,6 +195,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  set_unit_preferences:
+    "Save the user's preferred display units by group: speed (mph/kmh/mps), distance (mi/km), length (m/ft), temperature (F/C). Applies to this tenant's UI only; stored measurements and goal targets remain SI. Defaults: mph, mi, m, F.",
   get_garmin_status:
     "Read whether the tenant's personal Garmin account is connected. Sign-in is only in the local app; never ask for credentials in chat.",
   disconnect_garmin:
@@ -260,6 +272,7 @@ export function executeTool(store, name, input) {
       .suggestLaunchName(args)
       .then((result) => toolResult(store, name, args, result));
   if (name === "upsert_goal") result = store.upsertGoal(args);
+  if (name === "set_unit_preferences") result = store.setUnitPreferences(args);
   if (name === "delete_goal") result = store.deleteGoal(args);
   if (name === "reorder_goals") result = store.reorderGoals(args);
   if (name === "set_goal_practice") result = store.setGoalPractice(args);
@@ -287,6 +300,7 @@ export function executeTool(store, name, input) {
       availableCount: dashboard.sessions.length,
       boards: dashboard.boards,
       defaultBoardId: dashboard.defaultBoardId,
+      units: dashboard.units,
       goals: dashboard.goals,
       storage: dashboard.storage,
       tenantId: dashboard.tenantId,

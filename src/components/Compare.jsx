@@ -18,7 +18,7 @@ import {
   Tooltip,
   ReferenceLine,
 } from "recharts";
-import { latestSessions, mph, durationLabel } from "../domain/metrics.mjs";
+import { latestSessions, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
 import {
   EXTENDED_GOALS,
@@ -29,6 +29,7 @@ import {
   goalLowerIsBetter,
   sessionGoalProgress,
 } from "../domain/goals.mjs";
+import { Measure, useUnits } from "./Units.jsx";
 import { GoalMetric } from "./GoalTrophy.jsx";
 import { fmt, shortDate } from "./SessionViews.jsx";
 import { MetricDetails } from "./MetricEvidence.jsx";
@@ -44,6 +45,8 @@ export function Compare({
   onAction,
   onManage,
 }) {
+  const units = useUnits();
+  const displaySpeed = (value) => units.convert(value, "speed");
   goals = goals.filter((g) => g.active !== false && g.target_si != null);
   const [editing, setEditing] = useState(null);
   const actionTrigger = useRef(null);
@@ -57,13 +60,13 @@ export function Compare({
       ...session,
       view,
       goalProgress: sessionGoalProgress(session, goals, duration),
-      speed: mph(view.speed),
-      maxSpeed: mph(session.statistics?.speed_mps?.max),
-      average_speed: mph(metricView(session).speed),
+      speed: displaySpeed(view.speed),
+      maxSpeed: displaySpeed(session.statistics?.speed_mps?.max),
+      average_speed: displaySpeed(metricView(session).speed),
       ...Object.fromEntries(
         [300, 600, 1200].map((d) => [
           `best_${d}`,
-          mph(metricView(session, d).speed),
+          displaySpeed(metricView(session, d).speed),
         ]),
       ),
       ...Object.fromEntries(
@@ -80,10 +83,11 @@ export function Compare({
               g.metric === "cadence_duration"
                 ? session.goalMetrics?.[g.id]?.value_s
                 : session.goalMetrics?.[g.id]?.value_si,
+              units.preferences,
             ),
           ]),
       ),
-      dps: view.dps,
+      dps: units.convert(view.dps, "length"),
       cadenceValue: view.cadence,
       tracking: view.tracking,
       hr: view.hr,
@@ -108,12 +112,17 @@ export function Compare({
     );
   };
   const options = {
-    speed: ["Speed", "mph", 2, "#008591"],
-    maxSpeed: ["Session maximum speed", "mph", 2, "#327aa6"],
-    average_speed: ["Whole-session average speed", "mph", 2, "#008591"],
-    best_300: ["Best 5-minute speed", "mph", 2, "#c9790b"],
-    best_600: ["Best 10-minute speed", "mph", 2, "#7952c7"],
-    best_1200: ["Best 20-minute speed", "mph", 2, "#008591"],
+    speed: ["Speed", units.symbol("speed"), 2, "#008591"],
+    maxSpeed: ["Session maximum speed", units.symbol("speed"), 2, "#327aa6"],
+    average_speed: [
+      "Whole-session average speed",
+      units.symbol("speed"),
+      2,
+      "#008591",
+    ],
+    best_300: ["Best 5-minute speed", units.symbol("speed"), 2, "#c9790b"],
+    best_600: ["Best 10-minute speed", units.symbol("speed"), 2, "#7952c7"],
+    best_1200: ["Best 20-minute speed", units.symbol("speed"), 2, "#008591"],
     ...Object.fromEntries(
       goals
         .filter(
@@ -126,14 +135,19 @@ export function Compare({
           [
             g.metric === "cadence_duration"
               ? `Longest above ${g.cadence_threshold_spm} spm`
-              : `${GOAL_METRICS[g.metric]} · ${goalScope(g)}`,
-            goalUnit(g),
+              : `${GOAL_METRICS[g.metric]} · ${goalScope(g, units.preferences)}`,
+            goalUnit(g, units.preferences),
             2,
             "#6273c9",
           ],
         ]),
     ),
-    dps: ["Estimated distance per stroke", "m/stroke", 2, "#7952c7"],
+    dps: [
+      "Estimated distance per stroke",
+      units.symbol("length") + "/stroke",
+      2,
+      "#7952c7",
+    ],
     cadenceValue: ["Recorded cadence", "spm", 0, "#6273c9"],
     tracking: ["Tracking Control Score", "/100", 1, "#91a3b0"],
     hr: ["Heart rate", "bpm", 0, "#d54d72"],
@@ -185,7 +199,7 @@ export function Compare({
             <h2>{title} over time</h2>
             <p>
               {selectedGoal
-                ? goalScope(selectedGoal)
+                ? goalScope(selectedGoal, units.preferences)
                 : effectiveMetric === "maxSpeed"
                   ? "Whole-session maximum"
                   : effectiveMetric === "average_speed"
@@ -258,12 +272,12 @@ export function Compare({
               {applicableGoals.map((g) => (
                 <ReferenceLine
                   key={g.id}
-                  y={goalValue(g, g.target_si)}
+                  y={goalValue(g, g.target_si, units.preferences)}
                   stroke="#91acb5"
                   strokeDasharray="5 5"
                   ifOverflow="extendDomain"
                   label={{
-                    value: `Goal ${goalLowerIsBetter(g) ? "≤ " : ""}${fmt(goalValue(g, g.target_si), 2)} ${unit}`,
+                    value: `Goal ${goalLowerIsBetter(g) ? "≤ " : ""}${fmt(goalValue(g, g.target_si, units.preferences), 2)} ${unit}`,
                     position: "insideTopRight",
                     fill: "#536f7a",
                     fontSize: 11,
@@ -274,12 +288,18 @@ export function Compare({
           </ResponsiveContainer>
         </div>
         <p className="caption">
-          {applicableGoals
-            .map(
-              (g) =>
-                `Goal: ${goalLowerIsBetter(g) ? "at most " : ""}${fmt(goalValue(g, g.target_si), 2)} ${unit}. `,
-            )
-            .join("")}
+          {applicableGoals.map((g) => (
+            <span
+              key={g.id}
+              title={
+                unit === units.symbol("speed")
+                  ? units.alternate(g.target_si, "speed")
+                  : undefined
+              }
+            >
+              {`Goal: ${goalLowerIsBetter(g) ? "at most " : ""}${fmt(goalValue(g, g.target_si, units.preferences), 2)} ${unit}. `}
+            </span>
+          ))}
           {unit} · Conditions, boards and coverage vary. These descriptive
           trends do not establish improved fitness or technique.
         </p>
@@ -334,7 +354,13 @@ export function Compare({
                       </span>
                     </button>
                     <small>
-                      {fmt(s.distance, 2)} mi · {durationLabel(s.active)} ·{" "}
+                      <Measure
+                        value={
+                          s.distance == null ? null : s.distance * 1609.344
+                        }
+                        group="distance"
+                      />{" "}
+                      · {durationLabel(s.active)} ·{" "}
                       {boards.find((b) => b.id === s.boardId)?.name ||
                         "Board unknown"}
                     </small>
@@ -342,7 +368,7 @@ export function Compare({
                   <td data-label="Speed @ cadence">
                     <strong>
                       <GoalMetric progress={s.goalProgress.speed}>
-                        {fmt(s.speed, 2)} <span>mph</span>
+                        <Measure value={s.view.speed} group="speed" />
                       </GoalMetric>
                       {change(index, "speed")}{" "}
                       <span className="metric-cadence-value">
@@ -364,7 +390,10 @@ export function Compare({
                   >
                     <strong>
                       <GoalMetric progress={s.goalProgress.maxSpeed}>
-                        {fmt(s.maxSpeed, 2)} <span>mph</span>
+                        <Measure
+                          value={s.statistics?.speed_mps?.max}
+                          group="speed"
+                        />
                       </GoalMetric>
                       {change(index, "maxSpeed")}
                     </strong>
@@ -377,7 +406,11 @@ export function Compare({
                   </td>
                   <td data-label="Distance / stroke">
                     <strong>
-                      {fmt(s.dps, 2)} <span>m/stroke</span>
+                      <Measure
+                        value={s.view.dps}
+                        group="length"
+                        suffix="/stroke"
+                      />
                       {change(index, "dps")}
                     </strong>
                     <small>

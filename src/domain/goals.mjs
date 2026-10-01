@@ -1,4 +1,5 @@
 import { metricView } from "./metric-view.mjs";
+import { DEFAULT_UNITS, unitDefinition, formatUnit } from "./units.mjs";
 
 export const GOAL_METRICS = {
   max_speed: "Maximum speed",
@@ -21,7 +22,7 @@ export const EXTENDED_GOALS = [
   "tracking_control",
   "turns_footwork",
 ];
-export const goalUnit = (g) =>
+export const goalUnit = (g, units = DEFAULT_UNITS) =>
   g.metric === "cadence_duration"
     ? "min"
     : g.metric === "effort_economy"
@@ -30,16 +31,17 @@ export const goalUnit = (g) =>
         ? "/100"
         : g.metric === "turns_footwork"
           ? "%"
-          : "mph";
-export const goalFactor = (g) =>
+          : unitDefinition("speed", units).symbol;
+export const goalFactor = (g, units = DEFAULT_UNITS) =>
   g.metric === "cadence_duration"
     ? 60
     : ["effort_economy", "tracking_control", "turns_footwork"].includes(
           g.metric,
         )
       ? 1
-      : 0.44704;
-export const goalValue = (g, v) => (v == null ? null : v / goalFactor(g));
+      : unitDefinition("speed", units).factor;
+export const goalValue = (g, v, units = DEFAULT_UNITS) =>
+  v == null ? null : v / goalFactor(g, units);
 export const goalLowerIsBetter = (g) => g.metric === "effort_economy";
 export function goalAchieved(goal, best) {
   if (
@@ -112,7 +114,7 @@ export function sessionGoalAchievements(session, goals = [], selected = null) {
   );
 }
 
-export function goalScope(g) {
+export function goalScope(g, units = DEFAULT_UNITS) {
   if (g.metric === "endurance")
     return `${(g.window_s ?? 1800) / 60} min continuous`;
   if (g.metric === "stroke_effectiveness")
@@ -122,7 +124,7 @@ export function goalScope(g) {
   if (g.metric === "effort_economy")
     return g.pace_mps == null
       ? "Choose a pace"
-      : `5 min at ${(g.pace_mps / 0.44704).toFixed(2)} mph`;
+      : `5 min at ${formatUnit(g.pace_mps, "speed", units)}`;
   if (g.metric === "tracking_control") return "Eligible session sections";
   if (g.metric === "turns_footwork") return "Both directions · reported";
   if (g.metric === "cadence_duration")

@@ -2,6 +2,7 @@ import React, { useEffect, useId, useRef, useState } from "react";
 import { Trophy } from "@phosphor-icons/react";
 import { GOAL_METRICS, goalUnit, goalValue } from "../domain/goals.mjs";
 import "./GoalTrophy.css";
+import { useUnits } from "./Units.jsx";
 
 export function GoalMetric({ progress, children }) {
   return (
@@ -27,6 +28,7 @@ export function GoalTrophy({ goal }) {
 }
 
 function ReachedGoal({ goal }) {
+  const units = useUnits();
   const id = useId();
   const trigger = useRef(null),
     hint = useRef(null);
@@ -53,7 +55,7 @@ function ReachedGoal({ goal }) {
       document.removeEventListener("scroll", position, true);
     };
   }, [open, goal]);
-  const target = `${goalValue(goal, goal.target_si).toFixed(goalUnit(goal) === "mph" ? 2 : 1)} ${goalUnit(goal)}`;
+  const target = `${goalValue(goal, goal.target_si, units.preferences).toFixed(goalUnit(goal, units.preferences) === units.symbol("speed") ? 2 : 1)} ${goalUnit(goal, units.preferences)}`;
   const label = `${GOAL_METRICS[goal.metric]} goal reached: at least ${target}`;
   return (
     <>
