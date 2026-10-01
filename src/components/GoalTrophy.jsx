@@ -6,16 +6,8 @@ import { useUnits } from "./Units.jsx";
 
 export function GoalMetric({ progress, children }) {
   return (
-    <span
-      className={`goal-metric${progress ? ` is-${progress.state}` : ""}`}
-      title={
-        progress
-          ? `${GOAL_METRICS[progress.goal.metric]} · ${progress.label}`
-          : undefined
-      }
-    >
+    <span className="goal-metric">
       {children}
-      {progress && <span className="sr-only"> · {progress.label}</span>}
       <GoalTrophy
         goal={progress?.state === "achieved" ? progress.goal : null}
       />

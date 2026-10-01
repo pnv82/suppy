@@ -148,3 +148,8 @@ Settings contains four rows for speed, distance, length and temperature, with de
 ## Configurable Home columns (2026-10-01)
 
 Columns in the existing session-list heading opens a checkbox modal with save/cancel/defaults. Desktop and phone views use the same tenant preference, retaining session links/details/actions. Optional combined best-5/10/20-minute speeds retain duration labels and missing values; additional properties are opt-in. Desktop overflow stays within the table; no default permanent vertical space is added. See [column contract](../engineering/home-columns.md).
+
+
+## Goal-result colour scope (2026-10-01)
+
+Goal achievement/gap colours belong only on Goals. Home tables/cards and session-review values use ordinary metric styling without progress tints or gap descriptions; routine sessions are not presented as failed maximum-effort attempts. Compatible goal lines/labels remain on Home trends. Existing achievement trophies and metric-specific TCS trajectory bands remain.

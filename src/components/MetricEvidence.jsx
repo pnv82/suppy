@@ -385,10 +385,7 @@ export function MetricsInspector({
         <div>
           <span title="Tracking Control Score">TCS</span>
           <GoalMetric progress={progress.tracking}>
-            <TrackingScore
-              value={view.tracking}
-              detail={progress.tracking?.label || ""}
-            />
+            <TrackingScore value={view.tracking} />
           </GoalMetric>
         </div>
         <p>Higher = steadier trajectory · {fmt(z?.coverage_pct)}% eligible</p>

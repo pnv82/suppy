@@ -445,10 +445,7 @@ export function Compare({
                   {columns.includes("tracking") && (
                     <td data-label="TCS">
                       <GoalMetric progress={s.goalProgress.tracking}>
-                        <TrackingScore
-                          value={s.tracking}
-                          detail={s.goalProgress.tracking?.label || ""}
-                        />
+                        <TrackingScore value={s.tracking} />
                       </GoalMetric>
                       {change(index, "tracking")}
                       <small>

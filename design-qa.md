@@ -486,3 +486,10 @@ Validated with isolated synthetic SQLite on port 3011. Desktop 1440×900 and nar
 ## Next: Configurable Home columns, 2026-10-01
 
 Validated in the isolated synthetic database at 1440×900 and 390×844. Enter opens Columns, Space toggles, Save persists across reload; Cancel/Escape return focus without applying a draft. Restore defaults and an empty optional selection work. Tested all 15 columns: the 1815 px table scrolls inside a 1193 px container without page overflow. The region supports keyboard horizontal scrolling; final-row actions remain visible and Escape closes them. Phone cards retain the combined 5/10/20 group and summary-only unavailable values; metric details remain accessible. Tenant isolation, restart persistence, validation, and shared REST/MCP tool metadata are tested. All 155 tests pass; production build succeeds with the existing bundle-size warning. Screenshots remain ignored QA artifacts under data/storage/qa-next-columns-*.png.
+
+
+## Goal-result colours limited to Goals — 2026-10-01
+
+Removed goal achievement/gap tints and gap descriptions from the shared session metric wrapper on Home (including combined interval highlights) and the session inspector. Goals keeps its existing red/amber/green result states. Home chart target lines/labels, achieved-target trophies and intrinsic TCS bands remain. No metric, target or persistence contract changed.
+
+All 155 tests pass and the production build succeeds with the existing chunk-size warning. Browser verification uses a separate synthetic database with achieved, near and far goals: 1440×900 Home values have transparent wrappers/default text while the chart retains Goal 4.70 mph; Goals rows retain the expected colours. Session review has no goal-gap hints. At 390×844, Home and inspector remain untinted with no horizontal overflow; summary-only cards retain dashes. Enter opens goal/metric dialogs and Escape closes them; the whole-session switch remains keyboard-operable. Production data and targets were untouched. Screenshots: ignored data/storage/goal-colors-home-desktop.png and goal-colors-home-narrow.png.
