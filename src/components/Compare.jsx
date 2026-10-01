@@ -113,7 +113,7 @@ export function Compare({
   };
   const options = {
     speed: ["Speed", units.symbol("speed"), 2, "#008591"],
-    maxSpeed: ["Session maximum speed", units.symbol("speed"), 2, "#327aa6"],
+    maxSpeed: ["Max speed (10 s)", units.symbol("speed"), 2, "#327aa6"],
     average_speed: [
       "Whole-session average speed",
       units.symbol("speed"),
@@ -201,7 +201,7 @@ export function Compare({
               {selectedGoal
                 ? goalScope(selectedGoal, units.preferences)
                 : effectiveMetric === "maxSpeed"
-                  ? "Whole-session maximum"
+                  ? "Fastest continuous 10 seconds"
                   : effectiveMetric === "average_speed"
                     ? "Whole session"
                     : effectiveMetric.startsWith("best_")
@@ -328,7 +328,7 @@ export function Compare({
                 {[
                   "Session",
                   "Speed @ cadence",
-                  "Session max",
+                  "Max speed (10 s)",
                   "Distance / stroke",
                   "TCS",
                   "HR",
@@ -385,7 +385,7 @@ export function Compare({
                     </small>
                   </td>
                   <td
-                    data-label="Session max"
+                    data-label="Max speed (10 s)"
                     title={s.statistics?.speed_mps?.max_source || "Unavailable"}
                   >
                     <strong>
@@ -400,8 +400,8 @@ export function Compare({
                     <small>
                       {s.statistics?.speed_mps?.summary_max_excluded ||
                       s.statistics?.speed_mps?.quality?.excluded_sample_count
-                        ? "filtered maximum · see details"
-                        : "whole-session maximum"}
+                        ? "filtered 10 s average · see details"
+                        : "continuous 10 s average"}
                     </small>
                   </td>
                   <td data-label="Distance / stroke">

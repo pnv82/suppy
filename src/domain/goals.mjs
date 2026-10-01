@@ -30,7 +30,7 @@ export function goalHistorySessions(
 }
 
 export const GOAL_METRICS = {
-  max_speed: "Maximum speed",
+  max_speed: "Max speed (10 s)",
   best_300: "Best 5-minute speed",
   best_600: "Best 10-minute speed",
   best_1200: "Best 20-minute speed",
@@ -209,10 +209,7 @@ export function bestGoalResult(
       source = "Calculated continuous cadence duration";
     } else if (goal.metric === "max_speed") {
       value = session.statistics?.speed_mps?.max;
-      source =
-        session.statistics?.speed_mps?.max_source === "fit_session"
-          ? "FIT session maximum"
-          : "Recorded sample maximum";
+      source = "Calculated continuous 10-second maximum speed";
     } else {
       const duration = goal.metric.startsWith("best_")
         ? Number(goal.metric.slice(5))
@@ -235,7 +232,10 @@ export function bestGoalResult(
         name: session.title || session.location,
         date: session.date,
         source,
-        evidence: session.goalMetrics?.[goal.id] ?? null,
+        evidence:
+          goal.metric === "max_speed"
+            ? (session.statistics?.speed_mps?.max_10s ?? null)
+            : (session.goalMetrics?.[goal.id] ?? null),
       };
   }
   return best;

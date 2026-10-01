@@ -3,13 +3,14 @@ import { intervalRecords } from "./telemetry.mjs";
 import { trackingEvidence } from "./tracking.mjs";
 import { movementEvidence } from "./events.mjs";
 import { matchedWindowDrift } from "./drift.mjs";
+import { maximumSpeed10s, MAX_SPEED_METHOD } from "./max-speed.mjs";
 import {
   usableSpeed,
   speedQuality,
   SPEED_LIMIT_MPS,
 } from "./speed-quality.mjs";
 
-export const ANALYSIS_METHOD = "sup_deterministic_v6";
+export const ANALYSIS_METHOD = "sup_deterministic_v7";
 export const POLICY = Object.freeze({
   gap_limit_s: 15,
   distance_speed_limit_mps: 8,
@@ -105,6 +106,10 @@ export function intervalStatistics(
       max_source: "recorded_samples",
     };
   }
+  channels.speed_mps.recorded_max = channels.speed_mps.max;
+  channels.speed_mps.max_10s = maximumSpeed10s(records, pauses, start, end);
+  channels.speed_mps.max = channels.speed_mps.max_10s.value_mps;
+  channels.speed_mps.max_source = MAX_SPEED_METHOD;
   let distance = 0,
     covered = 0,
     squaredSpeedSeconds = 0;

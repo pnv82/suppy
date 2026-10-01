@@ -50,7 +50,7 @@ Travel arrows use GPS points in timestamp order within each valid best window. A
 ## Session summary and chart references
 
 - **Duration display:** round to the nearest whole minute and format as hours/minutes (86.1 min → 1 hr 26 min). Preserve original numeric durations. The summary remains active time; the timeline remains elapsed time. Show a secondary elapsed duration in the summary when the two differ by more than one second. Timeline coordinates and annotation inputs retain elapsed minutes/seconds.
-- **Maximum speed / HR:** use `enhanced_max_speed` and `max_heart_rate` from the FIT session summary when valid. Fall back to the highest valid recorded value, then to the stored maximum HR for HR when only a summary is available. Missing speed is unavailable, never inferred from an average. FIT session maxima can exceed peaks in irregularly sampled records. No spike correction is implied.
+- **Max speed (10 s):** use `continuous_10s_speed_v1`, defined below. Original Garmin peaks remain separate in details. **Maximum HR:** prefer valid FIT session maximum, then valid recorded maximum, then stored summary HR; this behavior is unchanged.
 - **Median speed / HR:** `time_weighted_step_lower_v1` takes the lower weighted 50th percentile. Each sample is held to the next sample for weighting only when both values and elapsed timestamps are valid, the interval is positive and at most 15 seconds, and it does not overlap a recorded timer pause. Missing endpoints, longer gaps and non-increasing times contribute no duration. No extrapolation before/after records. Speed zero is valid; HR must be positive. No supported duration yields `null`. Return `covered_s` and the method with the result; this is a display estimate, not a reviewed physiological statistic.
 - **Chart rendering:** speed and HR show numeric median/max legends plus dashed median and dotted maximum horizontal lines. These remain whole-session references when a best interval is selected. Extend the axis to contain the reference values. Retain the session's HR quality warning; suspect samples are not silently discarded.
 - **Distance per stroke:** only for `stand_up_paddleboarding`, use `total_distance / total_strokes` from the same decoded FIT session. Distance must be finite and nonnegative; stroke count must be a positive integer. Never substitute `total_cycles` or average cadence when the explicit stroke field is absent. Keep meters/stroke internally and display metres/stroke with “est.”; accessible details also show feet/stroke. Store both input totals, source and `watch_estimate` status. Missing totals yield `null`. This includes ground distance during glide and environmental assistance; the count has not been checked against video/manual counting.
@@ -59,7 +59,7 @@ The REST/MCP session DTO exposes these under `statistics.speed_mps`, `statistics
 
 Garmin defines average distance per stroke for paddle sports as distance traveled per stroke in its [data-field reference](https://www8.garmin.com/manuals-apac/webhelp/forerunner570/EN-SG/GUID-F5495143-1A21-4197-83B4-B8B2DD3A7F72-1054.html). Our ratio is a transparent local estimate from the supplied totals, not a claim that the watch uses this exact internal calculation.
 
-Home defaults to best-20-minute paired speed/cadence, estimated DPS, HR and Tracking Control Score, with a whole-session scope switch. FIT maxima remain in session chart references and details.
+Home defaults to best-20-minute paired speed/cadence, estimated DPS, HR and Tracking Control Score, with a whole-session scope switch. The 10-second speed maximum is the session chart reference; the original FIT speed peak remains in details.
 
 ## Matched stroke-distance estimate
 
@@ -74,3 +74,6 @@ Zero cadence includes supported glide distance but no strokes. An all-zero strok
 See [performance-metrics.md](../engineering/performance-metrics.md) for exact formulas, gates, parameters, source ranges, cache dependencies, model-context bounds and validation limits. No backward compatibility layer is required.
 
 Opening session review calculates missing/legacy-null interval evidence only for that view; React memoization reuses it while telemetry, pauses and windows remain unchanged. Existing numeric values and current-method unavailable results are retained. Reloading can recalculate cheaply; viewing does not rewrite SQLite or raw uploads. New imports persist this evidence automatically. Session/analysis context lazily upgrades legacy cached evidence with the same method before returning it to the external LLM.
+
+
+The current maximum-speed contract is [continuous 10-second maximum](../engineering/performance-metrics.md#continuous-10-second-maximum-speed-2026-10-01): fully supported elapsed-time-weighted speed; no summary-peak fallback.

@@ -1019,15 +1019,15 @@ export function Timeline({
                       </span>
                       <span
                         title={
-                          stats?.max_source === "fit_session"
+                          key !== "speed" && stats?.max_source === "fit_session"
                             ? "Maximum from the FIT session summary; may exceed the peak in sampled records."
                             : key === "speed"
-                              ? "Maximum of supported recorded values after the 0–6 m/s sanity filter; smaller artifacts may remain."
+                              ? "Highest continuous 10-second elapsed-time-weighted speed with complete coverage, after the 0–6 m/s filter. Averaging does not validate readings."
                               : "Maximum of supported recorded values."
                         }
                       >
                         <i className="stat-line max-line" aria-hidden="true" />
-                        Max{" "}
+                        {key === "speed" ? "Max speed (10 s)" : "Max"}{" "}
                         <b>
                           {key === "speed" ? (
                             <Measure value={stats?.max} group="speed" />

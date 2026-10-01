@@ -37,10 +37,10 @@ SQLite schema 2 stores immutable original upload bytes, uncompressed FIT bytes, 
 
 ## Calculations and evidence
 
-`src/domain/analysis.mjs` owns deterministic numerical calculations, versioned as `sup_deterministic_v6`, with separate computation-time metadata. Imports persist its output separately from device summaries and historical values. Context requests also calculate evidence for previously migrated sessions, without rewriting their history.
+`src/domain/analysis.mjs` owns deterministic numerical calculations, versioned as `sup_deterministic_v7`, with separate computation-time metadata. Imports persist its output separately from device summaries and historical values. Context requests also calculate evidence for previously migrated sessions, without rewriting their history.
 
 - Best 300/600/1200-second windows use `elapsed_continuous_v1`: piecewise-linear cumulative distance, exact elapsed boundaries, earliest tie within 1e-9 m/s, gaps at most 15 s, no timer pause, no distance reset or distance-implied speed over 8 m/s. GPS is unnecessary for a numeric window; the map uses only separate valid GPS runs. Unavailable windows include a reason. No sensor-accuracy certification is implied.
-- Session and requested-interval speed, HR and raw cadence means/medians use left-held time weighting, clipped to requested boundaries. Both endpoints must be valid, ordered and at most 15 s apart; any edge overlapping a pause is excluded. Each channel returns covered seconds and percentage of the requested elapsed interval, with no endpoint extrapolation. Interval maxima use recorded samples in that interval, excluding pause interiors. Zero speed/cadence is valid; zero HR is unavailable. No supported weight returns null.
+- Session and requested-interval speed, HR and raw cadence means/medians use left-held time weighting, clipped to requested boundaries. Both endpoints must be valid, ordered and at most 15 s apart; any edge overlapping a pause is excluded. Each channel returns covered seconds and percentage of the requested elapsed interval, with no endpoint extrapolation. HR/cadence maxima use recorded samples in that interval, excluding pause interiors. Speed maxima use the continuous 10-second method below. Zero speed/cadence is valid; zero HR is unavailable. No supported weight returns null.
 - Interval distance sums eligible distance segments and returns covered time plus distance/covered-time speed; this is explicitly different from a continuous best effort. Missing interval stroke distance is lazily estimated from matched distance and integrated cadence (`matched_distance_cadence_integral_v1`), with coverage and an explicit strokes/minute assumption. This is not a measured interval stroke count. See metrics.md for edge eligibility, zero and missing-data rules. Session stroke distance remains a watch estimate from explicit SUP totals.
 - Timer stops preserve their first boundary until restart. If event-derived pause duration and elapsed-minus-active disagree by over 2 s, the entire interval is excluded from derived time calculations and flagged `timer_summary_event_mismatch`; device totals remain available. The synthetic exclusion is labelled `unresolved_timer_boundaries`, not a claim that the athlete paused throughout. Missing timer events are flagged; equal elapsed/active summaries can still support windows.
 
@@ -54,7 +54,7 @@ The local UI and MCP transport are supported; actual ChatGPT file-selection avai
 
 ## Extended performance evidence (2026-09-27)
 
-The current runtime method is `sup_deterministic_v6`. It adds shared speed/cadence support, Tracking Control Score, movement candidates, descriptive independent-window drift and a 30-second DPS chart series. Import also retains scaled fractional cadence/GPS accuracy and private lap/device/file-ID provenance. Fractional fields are preserved without guessing a cadence recombination. See [performance-metrics.md](performance-metrics.md) for formulas, gates, cache invalidation, source ranges and bounded model evidence. Old calculated methods are recomputed; no backwards compatibility layer or database reset was needed.
+The current runtime method is `sup_deterministic_v7`. It adds shared speed/cadence support, Tracking Control Score, movement candidates, descriptive independent-window drift and a 30-second DPS chart series. Import also retains scaled fractional cadence/GPS accuracy and private lap/device/file-ID provenance. Fractional fields are preserved without guessing a cadence recombination. See [performance-metrics.md](performance-metrics.md) for formulas, gates, cache invalidation, source ranges and bounded model evidence. Old calculated methods are recomputed; no backwards compatibility layer or database reset was needed.
 
 ## Launch-name suggestions
 
@@ -69,3 +69,6 @@ Records retain signed nullable `temperature_c` directly from the FIT record fiel
 ## Personal Garmin import
 
 The same decoder/preview/commit boundary also accepts originals downloaded on demand from a user-connected personal Garmin account. Temporary previews are tenant-scoped, and commits retain source activity ID/retrieval time alongside unchanged bytes and checksums. See [Garmin Connect](garmin-connect.md).
+
+
+Speed maxima now use [continuous_10s_speed_v1](performance-metrics.md#continuous-10-second-maximum-speed-2026-10-01) within reported elapsed bounds, including retained tail records. Original FIT peaks and recorded peaks remain separate evidence.

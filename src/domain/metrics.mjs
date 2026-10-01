@@ -1,4 +1,5 @@
 import { usableSpeed, speedQuality } from "./speed-quality.mjs";
+import { maximumSpeed10s, MAX_SPEED_METHOD } from "./max-speed.mjs";
 export const WINDOW_COLORS = {
   300: "#c9790b",
   600: "#7952c7",
@@ -64,8 +65,13 @@ export function sessionStatistics(
   pauses,
   fit = null,
   summaryMaxHr = null,
+  elapsedEnd = fit?.total_elapsed_time ?? Infinity,
 ) {
   const speed = telemetryStats(records, "speed_mps", pauses);
+  speed.recorded_max = speed.max;
+  speed.max_10s = maximumSpeed10s(records, pauses, 0, elapsedEnd);
+  speed.max = speed.max_10s.value_mps;
+  speed.max_source = MAX_SPEED_METHOD;
   speed.quality = speedQuality(records);
   speed.raw_summary_max_mps = Number.isFinite(fit?.enhanced_max_speed)
     ? fit.enhanced_max_speed
@@ -73,13 +79,7 @@ export function sessionStatistics(
   speed.summary_max_excluded =
     speed.raw_summary_max_mps !== null &&
     usableSpeed(speed.raw_summary_max_mps) === null;
-  if (speed.quality.excluded_sample_count || speed.summary_max_excluded)
-    speed.max_source = speed.max === null ? null : "filtered_fit_records";
   const hr = telemetryStats(records, "heart_rate_bpm", pauses);
-  if (usableSpeed(fit?.enhanced_max_speed) !== null) {
-    speed.max = fit.enhanced_max_speed;
-    speed.max_source = "fit_session";
-  }
   if (Number.isFinite(fit?.max_heart_rate) && fit.max_heart_rate > 0) {
     hr.max = fit.max_heart_rate;
     hr.max_source = "fit_session";

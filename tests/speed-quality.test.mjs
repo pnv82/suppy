@@ -29,7 +29,7 @@ test("18 mph spike is excluded without clipping, stitching gaps or modifying sou
     enhanced_max_speed: 18 * 0.44704,
   }).speed_mps;
   assert.equal(stats.max, 2);
-  assert.equal(stats.max_source, "filtered_fit_records");
+  assert.equal(stats.max_source, "continuous_10s_speed_v1");
   assert.equal(stats.raw_summary_max_mps, 18 * 0.44704);
   assert.equal(stats.summary_max_excluded, true);
   assert.equal(
@@ -49,6 +49,7 @@ test("existing stored FIT maximum is filtered consistently in dashboard and MCP 
   const state = fixtureState(),
     s = state.sessions[0];
   s.statistics.speed_mps.max = 18 * 0.44704;
+  s.statistics.speed_mps.max_source = "fit_session";
   delete s.statistics.speed_mps.raw_summary_max_mps;
   s.records[30].speed_mps = 18 * 0.44704;
   for (const r of s.records) r.temperature_c = null;

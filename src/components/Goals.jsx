@@ -64,7 +64,7 @@ const methods = {
   cadence_duration:
     "Cadence means strokes per minute. We time how long your recorded stroke rate stays above your chosen number and keep your longest run. Reaching or dropping below that number, pausing the recording, missing stroke readings, or a recording gap over 15 seconds starts a new run. A faster stroke rate is not always better paddling.",
   max_speed:
-    "Your fastest recorded speed across all sessions. We use the watch’s session peak, or its individual speed readings if that peak is missing or rejected as unrealistic. This is a brief peak, not a speed you held. Smaller sensor spikes can still affect it.",
+    "Your fastest elapsed-time-weighted average over a continuous 10-second window. All 10 seconds need supported speed readings; pauses, missing or rejected readings and gaps over 15 seconds break an effort. No watch peak is substituted. Averaging reduces spike influence but does not validate measurements.",
   average_speed:
     "For each session, we divide recorded distance by time over sections with usable distance and stroke-rate readings. If no matching stroke-rate data is available, we use distance readings alone. Recording pauses and missing data are left out. Your best is the highest of these session averages.",
 };

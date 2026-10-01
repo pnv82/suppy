@@ -92,16 +92,18 @@ export function MetricDetails({ session, duration, onClose }) {
           {fmt(e?.heart_rate_bpm?.coverage_pct)}%
           {session.hrQuality ? ` · ${session.hrQuality}` : ""}
         </dd>
-        <dt>Recorded speed mean / median / max</dt>
+        <dt>Recorded speed mean / median / peak</dt>
         <dd>
-          {[e?.speed_mps?.mean, e?.speed_mps?.median, e?.speed_mps?.max].map(
-            (v, i) => (
-              <React.Fragment key={i}>
-                {i > 0 && " / "}
-                <Measure value={v} group="speed" />
-              </React.Fragment>
-            ),
-          )}
+          {[
+            e?.speed_mps?.mean,
+            e?.speed_mps?.median,
+            e?.speed_mps?.recorded_max,
+          ].map((v, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && " / "}
+              <Measure value={v} group="speed" />
+            </React.Fragment>
+          ))}
         </dd>
         <dt>Speed quality filter</dt>
         <dd>
@@ -111,6 +113,16 @@ export function MetricDetails({ session, duration, onClose }) {
           <Measure value={e?.speed_mps?.quality?.raw_max_mps} group="speed" />.
           Coverage excludes edges touching rejected samples; smaller artifacts
           may remain.
+        </dd>
+        <dt>{whole ? "Maximum-speed window" : "Interval max speed (10 s)"}</dt>
+        <dd>
+          <Measure value={e?.speed_mps?.max_10s?.value_mps} group="speed" />
+          {e?.speed_mps?.max_10s?.start_s != null
+            ? ` · ${timeLabel(e.speed_mps.max_10s.start_s)}–${timeLabel(e.speed_mps.max_10s.end_s)} · 10 s supported (100%)`
+            : ` · ${e?.speed_mps?.max_10s?.reason || "No supported 10-second window."}`}{" "}
+          Left-held elapsed-time average; no pauses, missing or rejected
+          readings, or gaps over 15 s. Averaging reduces spike influence but
+          does not validate measurements. Method: continuous_10s_speed_v1.
         </dd>
         {whole && (
           <>
@@ -138,7 +150,7 @@ export function MetricDetails({ session, duration, onClose }) {
                 ? "FIT / imported summary"
                 : "imported historical summary"}
             </dd>
-            <dt>Session maximum speed</dt>
+            <dt>Max speed (10 s)</dt>
             <dd>
               <Measure
                 value={session.statistics?.speed_mps?.max}
@@ -146,17 +158,18 @@ export function MetricDetails({ session, duration, onClose }) {
               />{" "}
               · {session.statistics?.speed_mps?.max_source || "unavailable"}
             </dd>
-            {session.statistics?.speed_mps?.summary_max_excluded && (
+            {session.statistics?.speed_mps?.raw_summary_max_mps != null && (
               <>
-                <dt>Excluded FIT maximum</dt>
+                <dt>Original Garmin peak</dt>
                 <dd>
                   Original FIT maximum{" "}
                   <Measure
                     value={session.statistics.speed_mps.raw_summary_max_mps}
                     group="speed"
                   />{" "}
-                  excluded by the speed sanity ceiling; the displayed maximum
-                  uses supported records, or remains unavailable.
+                  {session.statistics.speed_mps.summary_max_excluded
+                    ? "exceeds the speed sanity ceiling."
+                    : "is a device summary, separate from the 10-second average."}
                 </dd>
               </>
             )}

@@ -101,14 +101,20 @@ export function createStore({
       ...session,
       statistics: {
         ...session.statistics,
-        speed_mps: sessionStatistics(session.records, session.pauses, {
-          enhanced_max_speed:
-            session.deviceSummary?.enhanced_max_speed ??
-            session.statistics?.speed_mps?.raw_summary_max_mps ??
-            (session.statistics?.speed_mps?.max_source === "fit_session"
-              ? session.statistics.speed_mps.max
-              : null),
-        }).speed_mps,
+        speed_mps: sessionStatistics(
+          session.records,
+          session.pauses,
+          {
+            enhanced_max_speed:
+              session.deviceSummary?.enhanced_max_speed ??
+              session.statistics?.speed_mps?.raw_summary_max_mps ??
+              (session.statistics?.speed_mps?.max_source === "fit_session"
+                ? session.statistics.speed_mps.max
+                : null),
+          },
+          null,
+          Number.isFinite(session.elapsed) ? session.elapsed * 60 : 0,
+        ).speed_mps,
       },
     };
     const cadenceGoals = repo

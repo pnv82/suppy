@@ -155,7 +155,7 @@ test("median weights covered time rather than record counts and excludes pauses/
   assert.equal(telemetryStats(stationary, "heart_rate_bpm").max, null);
   assert.equal(telemetryStats([], "speed_mps").median, null);
 });
-test("session references retain FIT maxima and only derive stroke distance from explicit SUP totals", (t) => {
+test("session references retain 10-second maxima and original FIT peaks and only derive stroke distance from explicit SUP totals", (t) => {
   const fit = {
     sport: "stand_up_paddleboarding",
     enhanced_max_speed: 3,
@@ -164,8 +164,9 @@ test("session references retain FIT maxima and only derive stroke distance from 
     total_strokes: 250,
   };
   const stats = sessionStatistics(track, [], fit);
-  assert.equal(stats.speed_mps.max, 3);
-  assert.equal(stats.speed_mps.max_source, "fit_session");
+  assert.equal(stats.speed_mps.max, 2);
+  assert.equal(stats.speed_mps.raw_summary_max_mps, 3);
+  assert.equal(stats.speed_mps.max_source, "continuous_10s_speed_v1");
   assert.equal(stats.distance_per_stroke.value_m, 4);
   assert.equal(stats.distance_per_stroke.status, "watch_estimate");
   assert.ok(Math.abs(feet(4) - 13.12335958) < 1e-7);
@@ -188,7 +189,7 @@ test("session references retain FIT maxima and only derive stroke distance from 
   assert.equal(missing.heart_rate_bpm.max, 175);
   assert.equal(missing.heart_rate_bpm.max_source, "stored_summary");
   const context = testStore(t).context("24495535896");
-  assert.equal(context.statistics.speed_mps.max, 2.552);
+  assert.equal(context.statistics.speed_mps.max, 2);
   assert.equal(context.statistics.distance_per_stroke.strokes, 2860);
 });
 test("continuous windows use actual elapsed duration, earliest tie, and distance interpolation", () => {
