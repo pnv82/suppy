@@ -505,6 +505,7 @@ function Workspace({ account, initialData }) {
           {page === "Goals" && (
             <Goals
               goals={data.goals || []}
+              historyDepth={data.goalHistoryDepth}
               sessions={data.sessions}
               onOpen={openSession}
               busy={busy}
@@ -512,7 +513,11 @@ function Workspace({ account, initialData }) {
             />
           )}
           {page === "Settings" && (
-            <Settings busy={busy} onAction={boardAction} />
+            <Settings
+              busy={busy}
+              onAction={boardAction}
+              goalHistoryDepth={data.goalHistoryDepth}
+            />
           )}
           {(page === "Sessions" || page === "ChatGPT") && !session && (
             <div role="status">

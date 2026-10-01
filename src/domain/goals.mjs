@@ -1,6 +1,34 @@
 import { metricView } from "./metric-view.mjs";
 import { DEFAULT_UNITS, unitDefinition, formatUnit } from "./units.mjs";
 
+export const DEFAULT_GOAL_HISTORY_DEPTH = 10;
+export const MAX_GOAL_HISTORY_DEPTH = 1000;
+export function validateGoalHistoryDepth(value) {
+  if (!Number.isInteger(value) || value < 1 || value > MAX_GOAL_HISTORY_DEPTH)
+    throw new Error(
+      `Choose a whole number of sessions from 1 to ${MAX_GOAL_HISTORY_DEPTH}.`,
+    );
+  return value;
+}
+
+export function goalHistorySessions(
+  sessions,
+  depth = DEFAULT_GOAL_HISTORY_DEPTH,
+) {
+  validateGoalHistoryDepth(depth);
+  // Local session date is always present in stored sessions. Recorded start time
+  // breaks same-day ties; stable input order is retained when time is unknown.
+  return [...sessions]
+    .sort((a, b) => {
+      const day = (b.date || "").localeCompare(a.date || "");
+      if (day) return day;
+      if (a.startUtc && b.startUtc)
+        return Date.parse(b.startUtc) - Date.parse(a.startUtc);
+      return (b.start || "").localeCompare(a.start || "");
+    })
+    .slice(0, depth);
+}
+
 export const GOAL_METRICS = {
   max_speed: "Maximum speed",
   best_300: "Best 5-minute speed",
@@ -163,11 +191,15 @@ export function configuredGoals(saved = []) {
   return goals.sort((a, b) => a.position - b.position);
 }
 
-export function bestGoalResult(sessions, goal) {
+export function bestGoalResult(
+  sessions,
+  goal,
+  historyDepth = DEFAULT_GOAL_HISTORY_DEPTH,
+) {
   if (goal.metric === "cadence_duration" && goal.cadence_threshold_spm == null)
     return null;
   let best = null;
-  for (const session of sessions) {
+  for (const session of goalHistorySessions(sessions, historyDepth)) {
     let value, source;
     if (EXTENDED_GOALS.includes(goal.metric)) {
       value = session.goalMetrics?.[goal.id]?.value_si;

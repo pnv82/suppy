@@ -83,7 +83,7 @@ export function openDatabase(path = databasePath()) {
     );
     transaction(() => {
       const version = db.prepare("PRAGMA user_version").get().user_version;
-      if (version > 6)
+      if (version > 7)
         throw new Error(
           "Database schema is newer than this app. Upgrade the app before opening it.",
         );
@@ -150,6 +150,10 @@ export function openDatabase(path = databasePath()) {
       if (version < 6)
         db.exec(
           "ALTER TABLE preferences ADD COLUMN units_json TEXT NOT NULL DEFAULT '{}' CHECK(json_valid(units_json)); PRAGMA user_version = 6;",
+        );
+      if (version < 7)
+        db.exec(
+          "ALTER TABLE preferences ADD COLUMN goal_history_depth INTEGER NOT NULL DEFAULT 10 CHECK(goal_history_depth BETWEEN 1 AND 1000); PRAGMA user_version = 7;",
         );
     });
   } catch (error) {
@@ -326,6 +330,18 @@ export function openDatabase(path = databasePath()) {
             "SELECT default_board_id FROM preferences WHERE tenant_id = ?",
           )
           .get(id).default_board_id,
+      goalHistoryDepth: () =>
+        db
+          .prepare(
+            "SELECT goal_history_depth FROM preferences WHERE tenant_id = ?",
+          )
+          .get(id).goal_history_depth,
+      setGoalHistoryDepth: (depth) =>
+        db
+          .prepare(
+            "UPDATE preferences SET goal_history_depth = ? WHERE tenant_id = ?",
+          )
+          .run(depth, id),
       units: () =>
         JSON.parse(
           db

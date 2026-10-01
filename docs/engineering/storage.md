@@ -1,6 +1,6 @@
 # Persistent storage and tenant boundaries
 
-SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 6 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage. Version 3 adds immutable weather response provenance per tenant, session and attempt. Version 4 adds private deletion archives; version 5 adds tenant-scoped SI goals; version 6 adds grouped unit preferences (`units_json`) without rewriting measurements. Existing sessions and edits are preserved.
+SQLite is the app's source of truth. The server requires Node.js 24+ and uses its bundled `node:sqlite` module, with no database daemon or native npm addon. See the [Node SQLite API](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html). Schema version 7 is created/migrated transactionally; newer unknown versions fail without resetting the database. Migrations belong in `server/database.mjs`. Version 2 adds immutable FIT upload provenance and byte storage. Version 3 adds immutable weather response provenance per tenant, session and attempt. Version 4 adds private deletion archives; version 5 adds tenant-scoped SI goals; version 6 adds grouped unit preferences (`units_json`) without rewriting measurements; version 7 adds goal history depth (default 10 sessions). Existing sessions and edits are preserved.
 
 ## Files and environments
 
@@ -29,7 +29,7 @@ Custom interval selections live in each session's JSON aggregate as `customInter
 | boards | Composite `(tenant_id, id)` key; normalized name unique per tenant |
 | sessions | Composite `(tenant_id, id)` key; local date index; board FK; revision; versioned-by-schema JSON aggregate |
 | goals | Composite tenant/id key, explicit SI target, metric, cadence threshold and athlete-report provenance |
-| preferences | One row per tenant with a nullable default board FK and grouped display-unit JSON |
+| preferences | One row per tenant with a nullable default board FK grouped display-unit JSON and goal history depth |
 | session_sources | Immutable import provenance/raw payload per tenant and session |
 | weather_sources | Immutable provider response/source metadata per tenant, session and attempt, with owning session FK; never returned by tools |
 | fit_imports | Tenant-scoped immutable original upload/FIT blobs, checksums and decoder/source provenance; FK to the owning session |

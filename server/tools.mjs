@@ -12,6 +12,9 @@ const uploadFields = {
 };
 
 export const toolSchemas = {
+  set_goal_history_depth: z.object({
+    sessions: z.number().int().min(1).max(1000),
+  }),
   set_unit_preferences: z.object({
     units: z
       .object({
@@ -195,6 +198,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  set_goal_history_depth:
+    "Set how many latest sessions assess current goal best results (1–1000, default 10). Sessions with missing goal evidence still count toward the window; no older-result fallback. Scoped to the current tenant; measurements and goal targets are unchanged.",
   set_unit_preferences:
     "Save the user's preferred display units by group: speed (mph/kmh/mps), distance (mi/km), length (m/ft), temperature (F/C). Applies to this tenant's UI only; stored measurements and goal targets remain SI. Defaults: mph, mi, m, F.",
   get_garmin_status:
@@ -248,7 +253,7 @@ export const descriptions = {
   assign_session_board:
     "Record the user-reported board for a specific session, or clear it with null. Do not infer a historical board from the default.",
   get_dashboard:
-    "Read the latest 10 SUP session summaries and the current dashboard state. Only sessions belonging to the current tenant are returned.",
+    "Read the latest 10 SUP session summaries and the current dashboard state. goalHistoryDepth controls current goal assessment; goalBestResults supplies each goal's best within that window, which can differ from the latest-ten summary list. Only sessions belonging to the current tenant are returned.",
   get_session_context:
     "Read a SUP session, its source metrics, local best-window estimates, annotations and user context before discussing it.",
   upsert_annotation:
@@ -273,6 +278,8 @@ export function executeTool(store, name, input) {
       .then((result) => toolResult(store, name, args, result));
   if (name === "upsert_goal") result = store.upsertGoal(args);
   if (name === "set_unit_preferences") result = store.setUnitPreferences(args);
+  if (name === "set_goal_history_depth")
+    result = store.setGoalHistoryDepth(args);
   if (name === "delete_goal") result = store.deleteGoal(args);
   if (name === "reorder_goals") result = store.reorderGoals(args);
   if (name === "set_goal_practice") result = store.setGoalPractice(args);
@@ -301,6 +308,8 @@ export function executeTool(store, name, input) {
       boards: dashboard.boards,
       defaultBoardId: dashboard.defaultBoardId,
       units: dashboard.units,
+      goalHistoryDepth: dashboard.goalHistoryDepth,
+      goalBestResults: dashboard.goalBestResults,
       goals: dashboard.goals,
       storage: dashboard.storage,
       tenantId: dashboard.tenantId,

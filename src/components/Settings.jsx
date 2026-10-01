@@ -1,9 +1,22 @@
 import React, { useState } from "react";
 import { UNIT_GROUPS, DEFAULT_UNITS } from "../domain/units.mjs";
 import { useUnits } from "./Units.jsx";
+import {
+  DEFAULT_GOAL_HISTORY_DEPTH,
+  MAX_GOAL_HISTORY_DEPTH,
+} from "../domain/goals.mjs";
 import "./Settings.css";
-export function Settings({ busy, onAction }) {
+export function Settings({
+  busy,
+  onAction,
+  goalHistoryDepth = DEFAULT_GOAL_HISTORY_DEPTH,
+}) {
   const { preferences } = useUnits();
+  const [historyDepth, setHistoryDepth] = useState(String(goalHistoryDepth));
+  const validDepth =
+    Number.isInteger(Number(historyDepth)) &&
+    Number(historyDepth) >= 1 &&
+    Number(historyDepth) <= MAX_GOAL_HISTORY_DEPTH;
   const [draft, setDraft] = useState(preferences);
   const changed = Object.keys(DEFAULT_UNITS).some(
     (group) => draft[group] !== preferences[group],
@@ -13,9 +26,58 @@ export function Settings({ busy, onAction }) {
       <div className="page-heading">
         <div>
           <h1>Settings</h1>
-          <p>Make the numbers feel familiar.</p>
+          <p>Make Suppy work for you.</p>
         </div>
       </div>
+      <form
+        aria-label="Goal assessment settings"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (validDepth)
+            await onAction(
+              "set_goal_history_depth",
+              { sessions: Number(historyDepth) },
+              "Goal history depth saved.",
+            );
+        }}
+      >
+        <h2>Goals</h2>
+        <label className="unit-setting-row">
+          <span>
+            <strong>History depth</strong>
+            <small id="goal-history-help">
+              Assess your current level using your latest sessions.
+            </small>
+          </span>
+          <span className="history-depth-input">
+            <input
+              aria-label="Goal history depth"
+              aria-describedby="goal-history-help"
+              type="number"
+              min="1"
+              max={MAX_GOAL_HISTORY_DEPTH}
+              step="1"
+              required
+              value={historyDepth}
+              onChange={(event) => setHistoryDepth(event.target.value)}
+              disabled={busy}
+            />
+            <span>sessions</span>
+          </span>
+        </label>
+        <div className="unit-settings-actions">
+          <span className="caption">Default: 10 sessions</span>
+          <button
+            className="button primary"
+            type="submit"
+            disabled={
+              busy || !validDepth || Number(historyDepth) === goalHistoryDepth
+            }
+          >
+            Save history depth
+          </button>
+        </div>
+      </form>
       <form
         onSubmit={async (event) => {
           event.preventDefault();

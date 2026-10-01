@@ -12,6 +12,22 @@
   font-size: 18px;
   margin: 0 0 8px;
 }
+.unit-settings form + form {
+  margin-top: 20px;
+}
+.history-depth-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.history-depth-input input {
+  width: 100px;
+  min-height: 44px;
+}
+.history-depth-input > span {
+  font-size: 13px;
+  color: #63788d;
+}
 .unit-setting-row {
   display: flex;
   flex-direction: row;

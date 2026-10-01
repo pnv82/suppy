@@ -12,6 +12,8 @@ import {
   configuredGoals,
   longestCadenceRun,
   EXTENDED_GOALS,
+  validateGoalHistoryDepth,
+  bestGoalResult,
 } from "../src/domain/goals.mjs";
 import {
   extendedGoalEvidence,
@@ -347,6 +349,8 @@ export function createStore({
   }
   function dashboard() {
     const sessions = repo.sessions().map(withMetrics).map(presentWeather);
+    const goals = configuredGoals(repo.goals());
+    const goalHistoryDepth = repo.goalHistoryDepth();
     return {
       sessions,
       boards: repo.boards().map((b) => ({
@@ -355,9 +359,16 @@ export function createStore({
       })),
       defaultBoardId: repo.defaultBoard(),
       units: unitPreferences(repo.units()),
+      goalHistoryDepth,
+      goalBestResults: Object.fromEntries(
+        goals.map((goal) => [
+          goal.id,
+          bestGoalResult(sessions, goal, goalHistoryDepth),
+        ]),
+      ),
       issues,
       storage: "sqlite",
-      goals: configuredGoals(repo.goals()),
+      goals,
       tenantId,
     };
   }
@@ -633,6 +644,10 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    setGoalHistoryDepth({ sessions }) {
+      repo.setGoalHistoryDepth(validateGoalHistoryDepth(sessions));
+      return { goalHistoryDepth: sessions };
+    },
     setUnitPreferences({ units }) {
       const selected = validateUnits(units);
       repo.setUnits(selected);

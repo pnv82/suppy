@@ -184,7 +184,7 @@ test("catalog configuration, bucket order and targets persist atomically and sta
   }
 });
 
-test("best results search all history, retain zero, and never substitute historical or mismatched windows", () => {
+test("best results support expanded history, retain zero, and never substitute historical or mismatched windows", () => {
   const goals = configuredGoals();
   const byMetric = (metric) => goals.find((g) => g.metric === metric);
   const sessions = Array.from({ length: 12 }, (_, i) => ({
@@ -202,10 +202,10 @@ test("best results search all history, retain zero, and never substitute histori
     best20: 99,
   }));
   assert.equal(
-    bestGoalResult(sessions, byMetric("max_speed")).session_id,
+    bestGoalResult(sessions, byMetric("max_speed"), 12).session_id,
     "11",
   );
-  assert.equal(bestGoalResult(sessions, byMetric("best_1200")).value_si, 3);
+  assert.equal(bestGoalResult(sessions, byMetric("best_1200"), 12).value_si, 3);
   assert.equal(
     bestGoalResult(sessions.slice(0, 11), byMetric("best_1200")),
     null,

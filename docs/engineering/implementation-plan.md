@@ -63,3 +63,7 @@ Added longer endurance (30/60-minute continuous speed), stroke effectiveness (sp
 ## Grouped unit settings (2026-10-01)
 
 Added Settings with four independently selectable measurement families: speed, distance, length and temperature. Defaults remain mph, miles, metres/stroke and Fahrenheit. Tenant preferences persist in SQLite and are shared through REST and MCP. Primary values expose alternate-unit hover text; session charts, goals, weather, map scale and import previews use the selected units. Goal/wind inputs convert to SI on save. Stored measurements, evidence calculations and target comparison logic are unchanged. See [units.md](units.md).
+
+## Goal history depth (2026-10-01)
+
+Settings now controls how many latest sessions assess current Goals results, defaulting to 10. Shared domain selection applies before metric eligibility, with no fallback to older data. Best results, source links, achieved status and gap colours use the window; per-session evidence and trophies remain scoped to their session. Tenant-scoped persistence and HTTP/MCP metadata/results are shared with the UI.

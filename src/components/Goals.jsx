@@ -21,6 +21,7 @@ import {
   goalLowerIsBetter,
   goalProgress,
   goalScope,
+  DEFAULT_GOAL_HISTORY_DEPTH,
 } from "../domain/goals.mjs";
 import { EvidenceDialog } from "./MetricEvidence.jsx";
 import { timeLabel } from "../domain/metrics.mjs";
@@ -149,7 +150,15 @@ function GoalHint({ goal, onOpen }) {
   );
 }
 
-function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
+function GoalEditor({
+  goal,
+  best,
+  historyDepth,
+  busy,
+  onAction,
+  onClose,
+  onOpen,
+}) {
   const units = useUnits();
   const [target, setTarget] = useState(
     goal.target_si == null
@@ -197,7 +206,7 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
             {goalScope(goal, units.preferences).startsWith("Choose")
               ? goalScope(goal, units.preferences) +
                 " to find matching results."
-              : "No matching result yet."}
+              : `No matching result in your latest ${historyDepth} ${historyDepth === 1 ? "session" : "sessions"}.`}
           </p>
         )}
       </div>
@@ -350,8 +359,10 @@ function GoalEditor({ goal, best, busy, onAction, onClose, onOpen }) {
           <summary>How this is measured</summary>
           <p>{goalMethod({ ...goal, window_s: Number(window) })}</p>
           <p>
-            Best results compare all your sessions. Wind, water and your board
-            can affect them; we do not adjust the numbers for these differences.
+            Best results compare your latest {historyDepth}{" "}
+            {historyDepth === 1 ? "session" : "sessions"}, or all available if
+            fewer. Wind, water and your board can affect them; we do not adjust
+            the numbers for these differences.
           </p>
           {best && (
             <p>
@@ -540,7 +551,14 @@ function PracticeEditor({ goal, sessions, busy, onAction, onClose }) {
   );
 }
 
-export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
+export function Goals({
+  goals,
+  sessions = [],
+  historyDepth = DEFAULT_GOAL_HISTORY_DEPTH,
+  busy,
+  onAction,
+  onOpen,
+}) {
   const units = useUnits();
   const configured = configuredGoals(goals);
   const [editing, setEditing] = useState(null);
@@ -630,7 +648,10 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
       <div className="goals-heading">
         <div>
           <h1>Goals</h1>
-          <p>Your next milestones.</p>
+          <p>
+            Best from your latest {historyDepth}{" "}
+            {historyDepth === 1 ? "session" : "sessions"}.
+          </p>
         </div>
       </div>
       {[true, false].map((active) => {
@@ -662,7 +683,7 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
             ) : (
               <ul className="goals-list">
                 {bucket.map((goal, index) => {
-                  const best = bestGoalResult(sessions, goal),
+                  const best = bestGoalResult(sessions, goal, historyDepth),
                     progress = goalProgress(goal, best),
                     achieved = progress?.state === "achieved",
                     Icon = iconFor(goal.metric),
@@ -889,7 +910,8 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
       {editingGoal && (
         <GoalEditor
           goal={editingGoal}
-          best={bestGoalResult(sessions, editingGoal)}
+          best={bestGoalResult(sessions, editingGoal, historyDepth)}
+          historyDepth={historyDepth}
           busy={busy}
           onAction={onAction}
           onOpen={onOpen}
