@@ -54,7 +54,7 @@ const methods = {
   stroke_effectiveness:
     "We check five-minute stretches where your stroke rate stays steady and averages within 3 strokes per minute of your chosen rate. For each stretch, we divide distance by time. Your best is the fastest average among the stretches checked. Only stretches with complete distance and stroke readings count. Metres per stroke is distance divided by the estimated number of strokes.",
   effort_economy:
-    "After the first three minutes, we check five-minute stretches with steady speed and heart rate, within 3% of your chosen speed. Your best is the lowest average heart rate among those stretches. We need complete readings and skip sessions flagged for unreliable heart rate. Lower means fewer heartbeats at a similar speed; it does not prove improved fitness.",
+    "We skip the first 20 minutes of the session, then check five-minute stretches with steady speed and heart rate, within 3% of your chosen speed. A session needs at least 25 minutes to qualify. Your best is the lowest average heart rate among those stretches. We need complete readings and skip sessions flagged for unreliable heart rate. Lower means fewer heartbeats at a similar speed; it does not prove improved fitness.",
   tracking_control:
     "We use your GPS path to give each session a score from 0 to 100. It combines typical and larger changes in direction, how widely your path wanders, and repeated zigzags. Turns, very slow sections and poor GPS readings are left out. Higher means a steadier recorded path; your best is your highest session score.",
   turns_footwork:

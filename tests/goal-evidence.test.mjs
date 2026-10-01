@@ -67,11 +67,11 @@ test("stroke effectiveness matches cadence over fully supported steady five-minu
 });
 
 test("effort economy ranks lower HR only at the configured steady pace with trustworthy joint support", () => {
-  const s = session(900),
+  const s = session(1800),
     g = goal("effort_economy", { pace_mps: 2 });
   const result = extendedGoalEvidence(s, g);
   assert.equal(result.value_si, 140);
-  assert.equal(result.start_s, 180);
+  assert.equal(result.start_s, 1200);
   assert.equal(extendedGoalEvidence(s, { ...g, pace_mps: 3 }).value_si, null);
   assert.equal(
     extendedGoalEvidence({ ...s, hrQuality: "Suspect early HR" }, g).value_si,
@@ -89,6 +89,30 @@ test("effort economy ranks lower HR only at the configured steady pace with trus
   s.records.forEach((r, i) => {
     if (i % 25 === 0) r.heart_rate_bpm = null;
   });
+  assert.equal(extendedGoalEvidence(s, g).value_si, null);
+});
+
+test("economy excludes early low HR and requires five supported minutes after minute 20", () => {
+  const g = goal("effort_economy", { pace_mps: 2 });
+  const s = session(1500);
+  for (const record of s.records)
+    record.heart_rate_bpm = record.elapsed_s < 1200 ? 90 : 140;
+  const result = extendedGoalEvidence(s, g);
+  assert.equal(result.value_si, 140);
+  assert.equal(result.start_s, 1200);
+  assert.equal(result.end_s, 1500);
+  assert.equal(result.method, "goal_evidence_v2");
+  assert.equal(
+    extendedGoalEvidence({ ...s, elapsed: 1499 / 60 }, g).value_si,
+    null,
+  );
+  assert.equal(extendedGoalEvidence(session(1200), g).value_si, null);
+  assert.equal(
+    extendedGoalEvidence({ ...s, pauses: [{ start: 1300, end: 1305 }] }, g)
+      .value_si,
+    null,
+  );
+  s.records.find((record) => record.elapsed_s === 1300).heart_rate_bpm = null;
   assert.equal(extendedGoalEvidence(s, g).value_si, null);
 });
 
@@ -210,7 +234,7 @@ test("new goal settings and practice are tenant scoped, validated, preserved on 
   });
   assert.equal(
     store.context(id).goalMetrics["catalog:effort_economy"].value_si,
-    140,
+    null, // This fixture ends before a full post-20-minute block is available.
   );
   assert.throws(() =>
     executeTool(store, "upsert_goal", {

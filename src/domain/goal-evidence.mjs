@@ -3,7 +3,8 @@ import { intervalStatistics } from "./analysis.mjs";
 import { intervalRecords } from "./telemetry.mjs";
 import { EXTENDED_GOALS } from "./goals.mjs";
 
-export const GOAL_METHOD = "goal_evidence_v1";
+export const GOAL_METHOD = "goal_evidence_v2";
+const ECONOMY_START_S = 20 * 60;
 const unavailable = (reason) => ({
   value_si: null,
   reason,
@@ -85,6 +86,10 @@ export function extendedGoalEvidence(session, goal) {
     return unavailable("Choose a comparison cadence.");
   if (economy && /suspect|unreliable|invalid/i.test(session.hrQuality || ""))
     return unavailable("Session heart rate is flagged as unreliable.");
+  if (economy && elapsed < ECONOMY_START_S + 300)
+    return unavailable(
+      "Need a full five-minute stretch after the first 20 minutes.",
+    );
   // Missing samples stay in the sequence as invalid distance, so they break runs.
   const key = economy ? "heart_rate_bpm" : "cadence_raw";
   const records = session.records.map((r) => ({
@@ -105,7 +110,7 @@ export function extendedGoalEvidence(session, goal) {
   // At least a 30-second grid, plus run boundaries. This is a best sampled block,
   // not a claim to the exact optimum of every possible continuous window.
   for (const run of validRuns(records, exclusions, false)) {
-    const min = Math.max(run[0].elapsed_s, economy ? 180 : 0);
+    const min = Math.max(run[0].elapsed_s, economy ? ECONOMY_START_S : 0);
     const max = Math.min(run.at(-1).elapsed_s, elapsed) - 300;
     if (max < min) continue;
     const starts = new Set([min, max]);
