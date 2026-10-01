@@ -682,96 +682,6 @@ input[type="range"] {
 .session-board > .text-button {
   padding-block: 10px;
 }
-.board-settings {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 28px;
-  background: var(--pale);
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 22px;
-}
-.board-settings .caption {
-  margin-top: 5px;
-}
-.board-settings label {
-  width: 310px;
-  max-width: 100%;
-  flex-shrink: 0;
-}
-.board-settings select {
-  width: 100%;
-}
-.board-library {
-  margin-top: 32px;
-  max-width: 1000px;
-}
-.board-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.board-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  border-top: 1px solid var(--line);
-  padding: 20px 0;
-}
-.board-description {
-  min-width: 0;
-}
-.board-description h2 {
-  font-size: 16px;
-  overflow-wrap: anywhere;
-}
-.board-default {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 500;
-  color: #007684;
-  background: #edf7f8;
-  padding: 3px 8px;
-  border-radius: 4px;
-  margin-left: 8px;
-}
-.board-actions,
-.board-add,
-.board-edit {
-  display: flex;
-  align-items: end;
-  gap: 10px;
-}
-.board-actions {
-  flex-shrink: 0;
-}
-.board-add,
-.board-edit {
-  width: 100%;
-}
-.board-add {
-  padding-block: 22px 16px;
-  border-top: 1px solid var(--line);
-}
-.board-add label,
-.board-edit label {
-  flex: 1;
-  min-width: 0;
-  max-width: 480px;
-}
-.board-empty {
-  padding: 25px 0;
-  color: var(--muted);
-  font-size: 13px;
-}
-.board-empty p {
-  margin-top: 6px;
-  max-width: 550px;
-}
 .home-sessions-table .board-cell {
   min-width: 130px;
   max-width: 220px;
@@ -791,28 +701,6 @@ input[type="range"] {
   .session-board > .caption {
     width: 100%;
     padding: 0;
-  }
-  .board-settings {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-    padding: 18px;
-  }
-  .board-settings label {
-    width: 100%;
-  }
-  .board-row {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .board-add,
-  .board-edit {
-    flex-wrap: wrap;
-  }
-  .board-add label,
-  .board-edit label {
-    flex-basis: 100%;
-    max-width: none;
   }
   .home-sessions-table,
   .home-sessions-table tbody {
@@ -1222,6 +1110,42 @@ input[type="range"] {
 }
 .compare-chart {
   min-width: 0;
+}
+.compare-chart-empty {
+  height: 210px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  gap: 10px;
+  padding: 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  background: var(--pale);
+  border-radius: 8px;
+}
+.compare-chart-empty > * {
+  flex-shrink: 0;
+}
+.compare-chart-empty strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 550;
+}
+.compare-chart-empty ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 600px;
+}
+.compare-chart-empty li + li {
+  margin-top: 6px;
+}
+.compare-chart-empty li > span {
+  white-space: nowrap;
+  font-weight: 550;
 }
 .trend-panel > .caption {
   display: flex;

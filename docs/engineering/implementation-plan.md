@@ -67,3 +67,7 @@ Added Settings with four independently selectable measurement families: speed, d
 ## Goal history depth (2026-10-01)
 
 Settings now controls how many latest sessions assess current Goals results, defaulting to 10. Shared domain selection applies before metric eligibility, with no fallback to older data. Best results, source links, achieved status and gap colours use the window; per-session evidence and trophies remain scoped to their session. Tenant-scoped persistence and HTTP/MCP metadata/results are shared with the UI.
+
+## Compact Boards management (2026-10-01)
+
+Boards uses compact rows, one header Add board action, a direct favorite/default star, a pencil beside the name for cell-only editing, and a delete icon at the row edge. No row menu or whole-row editor. Confirmed board deletion atomically clears linked session board fields and any matching default, increments affected session revisions and preserves the sessions. The shared REST/MCP deletion contract follows this behavior. Empty states, keyboard focus and phone layouts are covered in `design-qa.md`.

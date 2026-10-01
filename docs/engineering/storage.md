@@ -71,3 +71,7 @@ Backup uses SQLite's online backup API, includes all tenants and provenance, and
 Schema v4 adds private deleted-session and deleted-FIT archives. `delete_session({session_id})` transactionally archives the selected tenant's complete session, source/weather provenance and unchanged original/FIT bytes, then removes active session and import rows. Boards/defaults remain. The upload can be imported again, including with the same generated ID. Archives are included in backups but excluded from app queries and duplicate matching; there is no UI archive restoration flow. Source files on disk remain untouched. The tool is marked destructive and writable in MCP.
 
 `update_session_details` accepts optional `note` (up to 4000 characters) alongside name/board, committing all three atomically. Omitting note preserves existing observations.
+
+## Board deletion
+
+`delete_board({board_id})` removes the current tenant's board and clears its linked sessions' board fields to `null`, plus a matching default preference, in one transaction. Each affected session revision advances once, so saved external analysis becomes stale through the existing revision checks. Sessions assigned to another board, unassigned sessions and other tenants are unchanged. Session records, notes, telemetry and immutable source provenance remain intact. The UI confirms deletion and describes the affected assignment count; REST and MCP use the same operation.

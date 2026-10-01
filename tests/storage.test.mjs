@@ -114,6 +114,73 @@ test("SQLite preserves all edits, SI data, provenance and deletions after reopen
   restored.close();
 });
 
+test("board deletion atomically clears only linked tenant sessions and survives reopen", (t) => {
+  const path = join(directory(t), "board-delete.sqlite");
+  let db = openDatabase(path);
+  for (const tenant of ["alice", "bob"]) {
+    const state = fixtureState();
+    state.boards = [
+      { id: "shared-board-id", name: "Race board" },
+      { id: "other-board", name: "Touring" },
+    ];
+    state.defaultBoardId = "shared-board-id";
+    state.sessions[0].boardId = "shared-board-id";
+    state.sessions[1].boardId = "shared-board-id";
+    state.sessions[2].boardId = "other-board";
+    db.createTenant(tenant);
+    db.importState(tenant, state);
+  }
+  let alice = createStore({ database: db, tenantId: "alice" });
+  const ids = fixtureState().sessions.map((s) => s.id);
+  const before = ids.map((id) => alice.get(id));
+  const bobBefore = ids.map((id) =>
+    createStore({ database: db, tenantId: "bob" }).get(id),
+  );
+  const direct = new DatabaseSync(path);
+  direct.exec(
+    "CREATE TRIGGER fail_board_delete BEFORE DELETE ON boards WHEN OLD.tenant_id = 'alice' BEGIN SELECT RAISE(ABORT, 'synthetic delete failure'); END",
+  );
+  assert.throws(
+    () => alice.deleteBoard({ board_id: "shared-board-id" }),
+    /synthetic delete failure/,
+  );
+  assert.deepEqual(
+    ids.map((id) => alice.get(id)),
+    before,
+  );
+  assert.equal(alice.dashboard().defaultBoardId, "shared-board-id");
+  assert.equal(alice.dashboard().boards.length, 2);
+  direct.exec("DROP TRIGGER fail_board_delete");
+  direct.close();
+  executeTool(alice, "delete_board", { board_id: "shared-board-id" });
+  db.close();
+  db = openDatabase(path);
+  alice = createStore({ database: db, tenantId: "alice" });
+  const bob = createStore({ database: db, tenantId: "bob" });
+  assert.deepEqual(
+    ids.map((id) => alice.get(id)),
+    before.map((s) =>
+      s.boardId === "shared-board-id"
+        ? { ...s, boardId: null, revision: s.revision + 1 }
+        : s,
+    ),
+  );
+  assert.deepEqual(
+    ids.map((id) => bob.get(id)),
+    bobBefore,
+  );
+  assert.equal(alice.context(ids[0]).board, null);
+  assert.equal(alice.dashboard().defaultBoardId, null);
+  assert.deepEqual(
+    alice.dashboard().boards.map((b) => b.id),
+    ["other-board"],
+  );
+  assert.equal(bob.dashboard().defaultBoardId, "shared-board-id");
+  assert.equal(bob.dashboard().boards.length, 2);
+  assert.deepEqual(db.integrity().foreignKeys, []);
+  db.close();
+});
+
 test("tenant isolation, composite foreign keys and rollback cover identical session IDs", (t) => {
   const path = join(directory(t), "tenants.sqlite"),
     db = openDatabase(path);

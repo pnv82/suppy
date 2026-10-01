@@ -74,7 +74,7 @@ test("window arrows follow travel order on overlapping outbound and return track
   assert.deepEqual(segmentDirections(route, { start: null, end: null }), []);
 });
 
-test("board defaults never backfill history, assignments enter analysis and in-use boards are protected", (t) => {
+test("board defaults never backfill history, assignments enter analysis and deletion clears linked boards", (t) => {
   const store = testStore(t);
   const session_id = store.dashboard().sessions[0].id;
   const call = (name, args) => executeTool(store, name, args).structuredContent;
@@ -94,10 +94,6 @@ test("board defaults never backfill history, assignments enter analysis and in-u
   assert.ok(store.dashboard().sessions.every((s) => s.boardId === null));
   call("assign_session_board", { session_id, board_id: board.id });
   assert.equal(store.dashboard().boards[0].sessionCount, 1);
-  assert.throws(
-    () => call("delete_board", { board_id: board.id }),
-    /assigned to a session/,
-  );
   call("upsert_board", { board_id: board.id, name: "Race board" });
   const analysis = call("prepare_analysis_context", {
     session_id,
@@ -114,9 +110,9 @@ test("board defaults never backfill history, assignments enter analysis and in-u
   assert.equal(store.context(session_id).board.id, board.id);
   call("set_default_board", { board_id: null });
   assert.equal(store.dashboard().defaultBoardId, null);
-  call("assign_session_board", { session_id, board_id: null });
-  assert.equal(store.context(session_id).board, null);
   call("delete_board", { board_id: board.id });
+  assert.equal(store.context(session_id).board, null);
+  assert.equal(store.context(session_id).revision, 3);
   call("set_default_board", { board_id: second.id });
   call("delete_board", { board_id: second.id });
   assert.deepEqual(store.dashboard().boards, []);

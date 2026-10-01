@@ -27,7 +27,7 @@ The standalone UI reads `/api/dashboard` and posts named operations to `/api/too
 | update_training_focus | Save a speed target and valid dictionary IDs as athlete reports |
 | prepare_analysis_context | Exact deterministic interval evidence, coverage and current context plus at most 120 illustrative telemetry records; no model call |
 | upsert_board | Add a named board or rename an existing ID; reject duplicate/empty names |
-| delete_board | Remove an unused board; reject deletion while assigned |
+| delete_board | Remove a board, atomically clear its linked session assignments and matching default; preserve sessions |
 | set_default_board | Set/clear preferred board without rewriting historical assignments |
 | assign_session_board | Set/clear a session's athlete-reported board and advance its revision |
 

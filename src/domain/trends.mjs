@@ -1,3 +1,20 @@
+export function trendAvailability(rows, key, goal) {
+  const available = rows.filter((row) => Number.isFinite(row[key])).length;
+  const reasons = new Map();
+  for (const row of rows) {
+    if (Number.isFinite(row[key])) continue;
+    const reason =
+      (goal && row.goalMetrics?.[goal.id]?.reason) ||
+      "Not enough supported telemetry for this metric.";
+    reasons.set(reason, (reasons.get(reason) || 0) + 1);
+  }
+  return {
+    available,
+    total: rows.length,
+    reasons: [...reasons].map(([reason, count]) => ({ reason, count })),
+  };
+}
+
 // Three immediately preceding sessions; missing values never become zero or
 // cause us to silently choose a different historical comparison window.
 export function previousThreeChange(rows, index, key) {

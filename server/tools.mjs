@@ -255,7 +255,7 @@ export const descriptions = {
   upsert_board:
     "Create a user-named SUP board, or rename an existing board by ID. Saved in the tenant’s persistent app storage.",
   delete_board:
-    "Delete an unused board by ID at the user's request. Assigned boards must be reassigned or cleared first.",
+    "Delete a board by ID at the user's request. Clears its linked session board assignments and any matching default in the same transaction; keeps the sessions and their source data.",
   set_default_board:
     "Set the user's preferred board, or clear it with null. Suggests a board for unassigned sessions; never changes existing session assignments.",
   assign_session_board:

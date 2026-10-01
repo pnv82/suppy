@@ -160,7 +160,9 @@ export function extendedGoalEvidence(session, goal) {
   return (
     best ??
     unavailable(
-      `No supported steady ${duration / 60}-minute block matches these settings.`,
+      economy
+        ? "No steady five-minute block after minute 20 matches the selected pace with complete heart-rate and distance data."
+        : `No supported steady ${duration / 60}-minute block matches these settings.`,
     )
   );
 }

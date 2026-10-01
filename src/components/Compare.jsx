@@ -9,7 +9,7 @@ import {
   DotsThree,
 } from "@phosphor-icons/react";
 import { SessionEditDialog } from "./SessionHeader.jsx";
-import { previousThreeChange } from "../domain/trends.mjs";
+import { previousThreeChange, trendAvailability } from "../domain/trends.mjs";
 import {
   ResponsiveContainer,
   LineChart,
@@ -161,6 +161,7 @@ export function Compare({
   };
   const effectiveMetric = options[metric] ? metric : "speed";
   const selectedGoal = goals.find((g) => `goal:${g.id}` === effectiveMetric);
+  const availability = trendAvailability(newest, effectiveMetric, selectedGoal);
   const [title, unit, dp, color] = options[effectiveMetric];
   const applicableGoals = goals.filter(
     (g) =>
@@ -238,61 +239,85 @@ export function Compare({
           </label>
         </div>
         <div className="compare-chart">
-          <ResponsiveContainer width="100%" height={210} minWidth={0}>
-            <LineChart
-              data={[...newest].reverse()}
-              margin={{ top: 20, right: 24, bottom: 8, left: 0 }}
-            >
-              <CartesianGrid vertical={false} stroke="#e8edf1" />
-              <XAxis
-                dataKey="dateLabel"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#63788d" }}
-              />
-              <YAxis
-                width={70}
-                domain={
-                  effectiveMetric === "tracking" ? [0, 100] : ["auto", "auto"]
-                }
-                tickFormatter={(v) => fmt(v, dp)}
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#63788d" }}
-              />
-              <Line
-                type="linear"
-                dataKey={effectiveMetric}
-                stroke={color}
-                strokeWidth={2}
-                dot={
-                  effectiveMetric === "tracking" ? (
-                    <TrackingDot />
-                  ) : (
-                    { r: 4, fill: "white" }
-                  )
-                }
-                connectNulls={false}
-                isAnimationActive={false}
-              />
-              <Tooltip formatter={(v) => [fmt(v, dp) + " " + unit, title]} />
-              {applicableGoals.map((g) => (
-                <ReferenceLine
-                  key={g.id}
-                  y={goalValue(g, g.target_si, units.preferences)}
-                  stroke="#91acb5"
-                  strokeDasharray="5 5"
-                  ifOverflow="extendDomain"
-                  label={{
-                    value: `Goal ${goalLowerIsBetter(g) ? "≤ " : ""}${fmt(goalValue(g, g.target_si, units.preferences), 2)} ${unit}`,
-                    position: "insideTopRight",
-                    fill: "#536f7a",
-                    fontSize: 11,
-                  }}
+          {availability.available === 0 ? (
+            <div className="compare-chart-empty" role="status" tabIndex={0}>
+              <strong>
+                {availability.total
+                  ? "No qualifying results in these sessions"
+                  : "No sessions yet"}
+              </strong>
+              {availability.total ? (
+                <ul>
+                  {availability.reasons.map(({ reason, count }) => (
+                    <li key={reason}>
+                      <span>
+                        {count} {count === 1 ? "session" : "sessions"}
+                      </span>{" "}
+                      · {reason}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Import a session to see this trend.</p>
+              )}
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height={210} minWidth={0}>
+              <LineChart
+                data={[...newest].reverse()}
+                margin={{ top: 20, right: 24, bottom: 8, left: 0 }}
+              >
+                <CartesianGrid vertical={false} stroke="#e8edf1" />
+                <XAxis
+                  dataKey="dateLabel"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#63788d" }}
                 />
-              ))}
-            </LineChart>
-          </ResponsiveContainer>
+                <YAxis
+                  width={70}
+                  domain={
+                    effectiveMetric === "tracking" ? [0, 100] : ["auto", "auto"]
+                  }
+                  tickFormatter={(v) => fmt(v, dp)}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#63788d" }}
+                />
+                <Line
+                  type="linear"
+                  dataKey={effectiveMetric}
+                  stroke={color}
+                  strokeWidth={2}
+                  dot={
+                    effectiveMetric === "tracking" ? (
+                      <TrackingDot />
+                    ) : (
+                      { r: 4, fill: "white" }
+                    )
+                  }
+                  connectNulls={false}
+                  isAnimationActive={false}
+                />
+                <Tooltip formatter={(v) => [fmt(v, dp) + " " + unit, title]} />
+                {applicableGoals.map((g) => (
+                  <ReferenceLine
+                    key={g.id}
+                    y={goalValue(g, g.target_si, units.preferences)}
+                    stroke="#91acb5"
+                    strokeDasharray="5 5"
+                    ifOverflow="extendDomain"
+                    label={{
+                      value: `Goal ${goalLowerIsBetter(g) ? "≤ " : ""}${fmt(goalValue(g, g.target_si, units.preferences), 2)} ${unit}`,
+                      position: "insideTopRight",
+                      fill: "#536f7a",
+                      fontSize: 11,
+                    }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          )}
         </div>
         <p className="caption">
           {applicableGoals.map((g) => (

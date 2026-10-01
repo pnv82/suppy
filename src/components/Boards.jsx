@@ -1,211 +1,410 @@
-import React, { useState } from "react";
-import { Plus, PencilSimple, Trash, Check, Star } from "@phosphor-icons/react";
+import React, { useEffect, useId, useRef, useState } from "react";
+import {
+  Plus,
+  PencilSimple,
+  Trash,
+  Star,
+  Check,
+  X,
+  Stack,
+} from "@phosphor-icons/react";
+import { EvidenceDialog } from "./MetricEvidence.jsx";
+import "./Boards.css";
 
-function BoardRow({ board, isDefault, busy, onAction }) {
-  const [editing, setEditing] = useState(false);
-  const [name, setName] = useState(board.name);
-  if (editing)
-    return (
-      <li className="board-row">
-        <form
-          className="board-edit"
-          onSubmit={async (e) => {
-            e.preventDefault();
+function BoardEditor({ board, boards, busy, onAction, onClose }) {
+  const [name, setName] = useState(board?.name ?? "");
+  const [failed, setFailed] = useState(false);
+  const submitting = useRef(false);
+  const nameInput = useRef(null);
+  useEffect(() => nameInput.current?.focus(), []);
+  const clean = name.trim();
+  const duplicate = boards.some(
+    (item) =>
+      item.id !== board?.id && item.name.toLowerCase() === clean.toLowerCase(),
+  );
+  return (
+    <EvidenceDialog
+      title={board ? "Rename board" : "Add board"}
+      onClose={() => !submitting.current && onClose()}
+    >
+      <form
+        className="board-form"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (busy || submitting.current || !clean || duplicate) return;
+          submitting.current = true;
+          setFailed(false);
+          try {
             if (
               await onAction(
                 "upsert_board",
-                { board_id: board.id, name },
-                "Board renamed.",
+                { ...(board ? { board_id: board.id } : {}), name: clean },
+                board ? "Board renamed." : "Board added.",
               )
             )
-              setEditing(false);
-          }}
-        >
-          <label>
-            Board name
-            <input
-              autoFocus
-              required
-              maxLength={100}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <button
-            className="button primary small"
-            disabled={busy || !name.trim()}
-          >
-            <Check size={16} /> Save name
-          </button>
+              onClose();
+            else setFailed(true);
+          } finally {
+            submitting.current = false;
+          }
+        }}
+      >
+        <label>
+          Board name
+          <input
+            ref={nameInput}
+            required
+            maxLength={100}
+            value={name}
+            disabled={busy}
+            placeholder="Model, size, or a nickname"
+            aria-invalid={duplicate || undefined}
+            aria-describedby={duplicate ? "board-name-error" : undefined}
+            onChange={(event) => {
+              setName(event.target.value);
+              setFailed(false);
+            }}
+          />
+        </label>
+        {duplicate && (
+          <p className="board-form-error" id="board-name-error" role="alert">
+            A board with this name already exists.
+          </p>
+        )}
+        {failed && (
+          <p className="board-form-error" role="alert">
+            Couldn’t save this board. Your changes are still here; try again.
+          </p>
+        )}
+        <div className="dialog-actions">
           <button
             type="button"
-            className="button secondary small"
+            className="button plain small"
             disabled={busy}
-            onClick={() => setEditing(false)}
+            onClick={onClose}
           >
             Cancel
           </button>
-        </form>
-      </li>
-    );
+          <button
+            type="submit"
+            className="button primary small"
+            disabled={busy || !clean || duplicate || clean === board?.name}
+          >
+            {busy ? "Saving…" : board ? "Save name" : "Add board"}
+          </button>
+        </div>
+      </form>
+    </EvidenceDialog>
+  );
+}
+
+function BoardDelete({ board, isDefault, busy, onAction, onClose, onDeleted }) {
+  const [failed, setFailed] = useState(false);
+  const submitting = useRef(false);
   return (
-    <li className="board-row">
-      <div className="board-description">
-        <h2>
-          {board.name}{" "}
-          {isDefault && (
-            <span className="board-default">
-              <Star size={13} weight="fill" />
-              Default
-            </span>
-          )}
-        </h2>
-        <p className="caption">
-          {board.sessionCount}{" "}
-          {board.sessionCount === 1 ? "session" : "sessions"}
-          {board.sessionCount
-            ? " · Reassign sessions before deleting"
-            : " · Not yet assigned"}
-        </p>
-      </div>
-      <div className="board-actions">
-        <button
-          className="button secondary small"
-          disabled={busy}
-          aria-label={`Rename ${board.name}`}
-          onClick={() => {
-            setName(board.name);
-            setEditing(true);
-          }}
-        >
-          <PencilSimple size={16} />
-          Rename
-        </button>
-        <button
-          className="button plain small"
-          disabled={busy || board.sessionCount > 0}
-          aria-label={`Delete ${board.name}`}
-          onClick={() =>
-            onAction(
-              "delete_board",
-              { board_id: board.id },
-              "Unused board deleted.",
+    <EvidenceDialog
+      title="Delete board?"
+      onClose={() => !submitting.current && onClose()}
+    >
+      <form
+        className="board-form"
+        onSubmit={async (event) => {
+          event.preventDefault();
+          if (busy || submitting.current) return;
+          submitting.current = true;
+          setFailed(false);
+          try {
+            if (
+              await onAction(
+                "delete_board",
+                { board_id: board.id },
+                "Board deleted.",
+              )
             )
+              onDeleted();
+            else setFailed(true);
+          } finally {
+            submitting.current = false;
           }
-        >
-          <Trash size={16} />
-          Delete
-        </button>
+        }}
+      >
+        <p>
+          Delete <strong>{board.name}</strong>?
+          {board.sessionCount > 0 &&
+            ` The board field will be cleared on ${board.sessionCount} linked ${board.sessionCount === 1 ? "session" : "sessions"}. The sessions will be kept.`}
+          {isDefault ? " Your default board will also be cleared." : ""}
+        </p>
+        {failed && (
+          <p className="board-form-error" role="alert">
+            Couldn’t delete this board. Please try again.
+          </p>
+        )}
+        <div className="dialog-actions">
+          <button
+            type="button"
+            className="button plain small"
+            disabled={busy}
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button className="button small board-delete-button" disabled={busy}>
+            {busy ? "Deleting…" : "Delete board"}
+          </button>
+        </div>
+      </form>
+    </EvidenceDialog>
+  );
+}
+
+function BoardRow({ board, boards, isDefault, busy, onAction, onDelete }) {
+  const [editing, setEditing] = useState(false);
+  const [name, setName] = useState(board.name);
+  const [failed, setFailed] = useState(false);
+  const input = useRef(null),
+    pencil = useRef(null),
+    submitting = useRef(false);
+  const errorId = useId();
+  const clean = name.trim();
+  const duplicate = boards.some(
+    (item) =>
+      item.id !== board.id && item.name.toLowerCase() === clean.toLowerCase(),
+  );
+  useEffect(() => {
+    if (editing) {
+      input.current?.focus();
+      input.current?.select();
+    }
+  }, [editing]);
+  function cancel() {
+    setEditing(false);
+    setFailed(false);
+    requestAnimationFrame(() => pencil.current?.focus());
+  }
+  return (
+    <li className="boards-item">
+      <button
+        className="icon-button board-favorite"
+        disabled={busy}
+        aria-label={`Favorite ${board.name}`}
+        aria-pressed={isDefault}
+        title={
+          isDefault
+            ? "Clear favorite (default board)"
+            : "Use as favorite (default board)"
+        }
+        onClick={() =>
+          onAction(
+            "set_default_board",
+            { board_id: isDefault ? null : board.id },
+            isDefault ? "Favorite board cleared." : "Favorite board updated.",
+          )
+        }
+      >
+        <Star
+          size={19}
+          weight={isDefault ? "fill" : "regular"}
+          aria-hidden="true"
+        />
+      </button>
+      <div className="boards-name">
+        {editing ? (
+          <form
+            className="board-name-editor"
+            onKeyDown={(event) => {
+              if (event.key === "Escape" && !submitting.current) {
+                event.preventDefault();
+                cancel();
+              }
+            }}
+            onSubmit={async (event) => {
+              event.preventDefault();
+              if (busy || submitting.current || !clean || duplicate) return;
+              if (clean === board.name) {
+                cancel();
+                return;
+              }
+              submitting.current = true;
+              setFailed(false);
+              try {
+                if (
+                  await onAction(
+                    "upsert_board",
+                    { board_id: board.id, name: clean },
+                    "Board renamed.",
+                  )
+                )
+                  cancel();
+                else setFailed(true);
+              } finally {
+                submitting.current = false;
+              }
+            }}
+          >
+            <input
+              ref={input}
+              aria-label={`Name for ${board.name}`}
+              value={name}
+              required
+              maxLength={100}
+              aria-invalid={duplicate || undefined}
+              aria-describedby={duplicate || failed ? errorId : undefined}
+              disabled={busy}
+              onChange={(event) => {
+                setName(event.target.value);
+                setFailed(false);
+              }}
+            />
+            <div className="board-name-actions">
+              <button
+                className="icon-button"
+                title="Save name"
+                aria-label={`Save name for ${board.name}`}
+                disabled={busy || !clean || duplicate}
+              >
+                <Check size={17} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="icon-button"
+                title="Cancel"
+                aria-label={`Cancel renaming ${board.name}`}
+                disabled={busy}
+                onClick={cancel}
+              >
+                <X size={17} aria-hidden="true" />
+              </button>
+            </div>
+            {(duplicate || failed) && (
+              <p className="board-form-error" id={errorId} role="alert">
+                {duplicate
+                  ? "A board with this name already exists."
+                  : "Couldn’t save. Your changes are still here; try again."}
+              </p>
+            )}
+          </form>
+        ) : (
+          <>
+            <h2>{board.name}</h2>
+            <button
+              ref={pencil}
+              className="icon-button board-name-edit"
+              title="Rename board"
+              aria-label={`Rename ${board.name}`}
+              disabled={busy}
+              onClick={() => {
+                setName(board.name);
+                setEditing(true);
+              }}
+            >
+              <PencilSimple size={16} aria-hidden="true" />
+            </button>
+          </>
+        )}
       </div>
+      <span className="boards-sessions">
+        {board.sessionCount}
+        <span> {board.sessionCount === 1 ? "session" : "sessions"}</span>
+      </span>
+      <button
+        className="icon-button board-row-delete"
+        title="Delete board"
+        aria-label={`Delete ${board.name}`}
+        disabled={busy}
+        onClick={onDelete}
+      >
+        <Trash size={17} aria-hidden="true" />
+      </button>
     </li>
   );
 }
 
 export function Boards({ boards, defaultBoardId, busy, onAction }) {
-  const [name, setName] = useState("");
+  const [editor, setEditor] = useState(null);
+  const addButton = useRef(null);
   return (
-    <>
-      <div className="page-heading">
-        <div>
-          <p className="eyebrow">YOUR EQUIPMENT</p>
-          <h1>Boards</h1>
-          <p>Keep the board you used alongside each session.</p>
-        </div>
-        <span className="quiet-badge">Saved in your app</span>
+    <section className="boards-page" aria-labelledby="boards-title">
+      <div className="boards-heading">
+        <h1 id="boards-title">
+          Boards{" "}
+          <span className="boards-count">
+            {boards.length}
+            <span className="sr-only">
+              {" "}
+              saved {boards.length === 1 ? "board" : "boards"}
+            </span>
+          </span>
+        </h1>
+        <button
+          ref={addButton}
+          className="button primary small"
+          disabled={busy}
+          onClick={() => setEditor({ kind: "add" })}
+        >
+          <Plus size={17} aria-hidden="true" />
+          Add board
+        </button>
       </div>
-      <section className="board-settings" aria-labelledby="default-board-title">
-        <div>
-          <h2 id="default-board-title">Your default board</h2>
-          <p className="caption">
-            A shortcut when recording a session’s board. Existing sessions keep
-            their assignments.
-          </p>
-        </div>
-        <label>
-          Default board
-          <select
-            aria-label="Default board"
-            value={defaultBoardId ?? ""}
-            disabled={busy || !boards.length}
-            onChange={(e) =>
-              onAction(
-                "set_default_board",
-                { board_id: e.target.value || null },
-                "Default board updated.",
-              )
-            }
-          >
-            <option value="">No default</option>
-            {boards.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </section>
-      <section className="board-library" aria-labelledby="board-list-title">
-        <div className="section-heading">
-          <h2 id="board-list-title">Your boards</h2>
-          <span className="caption">{boards.length} saved</span>
-        </div>
-        {!boards.length ? (
-          <div className="board-empty">
-            <h3>No boards added yet</h3>
-            <p>
-              Add a name you recognize, such as the model and size. Your
-              existing sessions will stay “Not recorded” until you choose a
-              board.
-            </p>
+      {boards.length ? (
+        <>
+          <div className="boards-columns" aria-hidden="true">
+            <span />
+            <span>Board</span>
+            <span>Sessions</span>
+            <span />
           </div>
-        ) : (
-          <ul className="board-list">
-            {boards.map((b) => (
+          <ul className="boards-list" aria-label="Your boards">
+            {boards.map((board) => (
               <BoardRow
-                key={b.id}
-                board={b}
-                isDefault={b.id === defaultBoardId}
+                key={board.id}
+                board={board}
+                boards={boards}
+                isDefault={board.id === defaultBoardId}
                 busy={busy}
                 onAction={onAction}
+                onDelete={() => setEditor({ kind: "delete", board })}
               />
             ))}
           </ul>
-        )}
-        <form
-          className="board-add"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (
-              await onAction(
-                "upsert_board",
-                { name },
-                "Board added. You can now assign it to a session.",
-              )
-            )
-              setName("");
-          }}
-        >
-          <label>
-            New board name
-            <input
-              aria-label="New board name"
-              required
-              maxLength={100}
-              placeholder="Model and size, or a nickname"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </label>
-          <button className="button primary" disabled={busy || !name.trim()}>
-            <Plus size={18} />
-            Add board
+        </>
+      ) : (
+        <div className="boards-empty">
+          <Stack size={30} weight="light" aria-hidden="true" />
+          <h2>No boards yet</h2>
+          <p>Add your first board, then choose it when recording a session.</p>
+          <button
+            className="text-button"
+            disabled={busy}
+            onClick={() => setEditor({ kind: "add" })}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Add your first board
           </button>
-        </form>
-        <p className="caption">
-          Boards, the default and session assignments are saved in your app and
-          retained after restart.
-        </p>
-      </section>
-    </>
+        </div>
+      )}
+      {editor?.kind === "delete" ? (
+        <BoardDelete
+          board={editor.board}
+          isDefault={editor.board.id === defaultBoardId}
+          busy={busy}
+          onAction={onAction}
+          onClose={() => setEditor(null)}
+          onDeleted={() => {
+            setEditor(null);
+            requestAnimationFrame(() => addButton.current?.focus());
+          }}
+        />
+      ) : (
+        editor && (
+          <BoardEditor
+            board={editor.board}
+            boards={boards}
+            busy={busy}
+            onAction={onAction}
+            onClose={() => setEditor(null)}
+          />
+        )
+      )}
+    </section>
   );
 }

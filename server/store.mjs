@@ -19,10 +19,8 @@ import {
   validateGoalHistoryDepth,
   bestGoalResult,
 } from "../src/domain/goals.mjs";
-import {
-  extendedGoalEvidence,
-  GOAL_METHOD,
-} from "../src/domain/goal-evidence.mjs";
+import { extendedGoalEvidence } from "../src/domain/goal-evidence.mjs";
+import { resolveGoalEvidence } from "./goal-evidence-cache.mjs";
 import { customIntervalEvidence } from "../src/domain/intervals.mjs";
 // Reuse calculations across request-scoped stores, never across database or tenant boundaries.
 const databaseAnalysisCaches = new WeakMap();
@@ -217,16 +215,12 @@ export function createStore({
     const extendedGoals = configuredGoals(repo.goals()).filter((g) =>
       EXTENDED_GOALS.includes(g.metric),
     );
-    const goalSignature = JSON.stringify([GOAL_METHOD, extendedGoals]);
-    if (cached.goalSignature !== goalSignature) {
-      cached.goalEvidence = Object.fromEntries(
-        extendedGoals.map((g) => [
-          g.id,
-          extendedGoalEvidence({ ...session, deterministic: cached.value }, g),
-        ]),
-      );
-      cached.goalSignature = goalSignature;
-    }
+    cached.goalEvidence = resolveGoalEvidence(
+      (cached.goals ??= new Map()),
+      { ...session, deterministic: cached.value },
+      extendedGoals,
+      signature,
+    );
     return {
       ...session,
       deterministic: cached.value,
@@ -582,10 +576,11 @@ export function createStore({
   }
   function deleteBoard({ board_id }) {
     requireBoard(board_id);
-    if (repo.sessions().some((s) => s.boardId === board_id))
-      throw new Error(
-        "This board is assigned to a session. Change those assignments before deleting it.",
-      );
+    for (const session of repo.sessions().filter((s) => s.boardId === board_id)) {
+      session.boardId = null;
+      session.revision++;
+      repo.save(session);
+    }
     if (repo.defaultBoard() === board_id) repo.setDefaultBoard(null);
     repo.deleteBoard(board_id);
     return { deleted: board_id };

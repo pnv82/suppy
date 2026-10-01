@@ -291,6 +291,23 @@ test("MCP handshake, UI resource, tool calls and REST share persistent tenant st
       analysis.structuredContent.session.annotations[0].note,
       "MCP test",
     );
+    const removedBoard = await client.callTool({
+      name: "delete_board",
+      arguments: { board_id: boardId },
+    });
+    assert.equal(removedBoard.isError, undefined);
+    const afterDelete = await fetch(base + "/api/dashboard").then((r) =>
+      r.json(),
+    );
+    assert.equal(afterDelete.sessions.length, rest.sessions.length);
+    assert.equal(afterDelete.sessions[0].boardId, null);
+    assert.equal(
+      afterDelete.sessions[0].revision,
+      rest.sessions[0].revision + 1,
+    );
+    assert.equal(afterDelete.sessions[0].annotations[0].note, "MCP test");
+    assert.equal(afterDelete.defaultBoardId, null);
+    assert.deepEqual(afterDelete.boards, []);
     assert.equal(
       (
         await fetch(base + "/api/tools", {

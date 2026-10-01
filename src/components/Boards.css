@@ -1,0 +1,252 @@
+.boards-page {
+  max-width: 1000px;
+  margin: 8px auto 0;
+}
+.boards-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.boards-heading h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 32px;
+  letter-spacing: -1px;
+}
+.boards-count {
+  color: var(--muted);
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.boards-heading .button {
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 7px 12px;
+}
+.boards-columns,
+.boards-item {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 90px 36px;
+  gap: 12px;
+  align-items: center;
+  padding-inline: 12px;
+}
+.boards-columns {
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.boards-columns > :nth-child(3) {
+  text-align: right;
+}
+.boards-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.boards-item {
+  min-height: 72px;
+  padding-block: 14px;
+  border-bottom: 1px solid var(--line);
+}
+.boards-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  min-width: 0;
+}
+.boards-name h2 {
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.boards-sessions {
+  text-align: right;
+  color: var(--muted);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+.boards-sessions > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.board-favorite,
+.board-row-delete,
+.board-name-edit,
+.board-name-actions .icon-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+.board-favorite[aria-pressed="true"] {
+  color: #98712c;
+}
+.board-row-delete:hover {
+  color: #aa3746;
+  background: #fcf0f1;
+}
+.board-name-edit {
+  width: 30px;
+  height: 30px;
+}
+.boards-name {
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+.board-name-editor {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  max-width: 500px;
+}
+.board-name-editor input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+}
+.board-name-actions {
+  display: flex;
+}
+.board-name-editor .board-form-error {
+  flex-basis: 100%;
+  color: #a52835;
+  font-size: 12px;
+}
+.boards-empty {
+  text-align: center;
+  padding: 32px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.boards-empty > svg {
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+.boards-empty h2 {
+  font-size: 16px;
+  font-weight: 550;
+}
+.boards-empty p {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px auto 12px;
+  max-width: 310px;
+}
+.session-edit-dialog:has(.board-form) {
+  width: min(420px, calc(100vw - 32px));
+}
+.session-edit-dialog .board-form {
+  margin-top: 20px;
+  gap: 16px;
+}
+.board-form > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.board-form .dialog-actions {
+  gap: 8px;
+}
+.board-form .board-form-error {
+  color: #a52835;
+  font-size: 12px;
+  margin: 0;
+}
+.board-delete-button {
+  color: white;
+  background: #a52835;
+}
+.board-delete-button:hover {
+  background: #8b202c;
+}
+@media (max-width: 600px) {
+  .boards-page {
+    margin-top: 4px;
+  }
+  .boards-heading {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .boards-heading h1 {
+    font-size: 26px;
+    gap: 8px;
+  }
+  .boards-heading .button {
+    min-height: 44px;
+    padding-inline: 10px;
+  }
+  .boards-columns {
+    display: none;
+  }
+  .boards-list {
+    border-top: 1px solid var(--line);
+  }
+  .boards-item {
+    grid-template-columns: 36px minmax(0, 1fr) 44px;
+    column-gap: 8px;
+    row-gap: 4px;
+    padding: 14px 0;
+  }
+  .boards-name {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 5px 8px;
+  }
+  .boards-sessions {
+    grid-column: 2;
+    grid-row: 2;
+    font-size: 12px;
+    text-align: left;
+  }
+  .boards-sessions > span {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+  .board-favorite {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 36px;
+    height: 44px;
+  }
+  .board-row-delete {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    width: 44px;
+    height: 44px;
+  }
+  .board-name-edit,
+  .board-name-actions .icon-button {
+    width: 44px;
+    height: 44px;
+  }
+  .board-name-edit {
+    margin-block: -12px;
+  }
+  .board-name-editor input {
+    flex-basis: 100%;
+  }
+  .board-name-actions {
+    justify-content: flex-end;
+    width: 100%;
+  }
+  .board-form .button,
+  .boards-empty .text-button {
+    min-height: 44px;
+  }
+}
