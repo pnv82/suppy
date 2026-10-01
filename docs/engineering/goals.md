@@ -18,7 +18,9 @@ After updating server tool definitions, restart the Node server as well as rebui
 
 ## Evidence
 
-Current best searches all of the tenant's session history. Each result preserves its source session ID, date, launch title, units and method. Missing evidence is null; measured zero remains zero. Historical source summaries never fill missing calculated results. There is no automatic achievement or condition-normalized fitness claim. Conditions, equipment, intentional maneuvers and sensors remain confounders.
+Current best searches all of the tenant's session history. Each result preserves its source session ID, date, launch title, units and method. Missing evidence is null; measured zero remains zero. Historical source summaries never fill missing calculated results. Conditions, equipment, intentional maneuvers and sensors remain confounders; comparisons make no condition-normalized fitness claim.
+
+An achieved goal has a faint mint row background and a green check beside its target, with an accessible “Target achieved” description. This is a live comparison of the exact best result and an explicit positive target in SI units: at least the target for most goals, at most for effort economy, including equality. Missing/non-finite values and unset targets never qualify. Both buckets retain this indication; achievement does not activate, move, freeze or otherwise write a goal. Editing the target or changing available evidence recalculates the state. No achievement date or fitness diagnosis is inferred.
 
 | Metric | Result and eligibility |
 |---|---|

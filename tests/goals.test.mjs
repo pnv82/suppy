@@ -7,10 +7,35 @@ import {
   longestCadenceRun,
   configuredGoals,
   bestGoalResult,
+  goalAchieved,
 } from "../src/domain/goals.mjs";
 import { openDatabase } from "../server/database.mjs";
 import { createStore } from "../server/store.mjs";
 import { executeTool } from "../server/tools.mjs";
+test("achievement compares exact results, respects lower HR targets and excludes missing values", () => {
+  const speed = { metric: "max_speed", target_si: 3, active: true };
+  assert.equal(goalAchieved(speed, { value_si: 3 }), true);
+  assert.equal(goalAchieved(speed, { value_si: 4 }), true);
+  assert.equal(goalAchieved(speed, { value_si: 2.9999 }), false);
+  assert.equal(
+    goalAchieved({ ...speed, active: false }, { value_si: 3 }),
+    true,
+  );
+  const economy = { metric: "effort_economy", target_si: 140 };
+  assert.equal(goalAchieved(economy, { value_si: 135 }), true);
+  assert.equal(goalAchieved(economy, { value_si: 140 }), true);
+  assert.equal(goalAchieved(economy, { value_si: 141 }), false);
+  for (const result of [
+    null,
+    {},
+    { value_si: null },
+    { value_si: NaN },
+    { value_si: Infinity },
+  ])
+    assert.equal(goalAchieved(speed, result), false);
+  for (const target_si of [null, undefined, 0, NaN, Infinity])
+    assert.equal(goalAchieved({ ...speed, target_si }, { value_si: 4 }), false);
+});
 test("cadence duration splits at pauses, gaps, missing and equal-to-threshold samples", () => {
   const r = [0, 5, 10, 15, 20, 40, 45].map((elapsed_s) => ({
     elapsed_s,

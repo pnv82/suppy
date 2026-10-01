@@ -424,3 +424,9 @@ Recreated that setup with synthetic sessions and one cadence goal above 40 spm i
 ## Remove dedicated Reorder control — 2026-10-01
 
 Removed the Goals header's Reorder/Done button and temporary arrow mode. Drag handles remain; Move up/down now live in each goal's existing action menu alongside bucket movement, preserving keyboard alternatives. Updated screen-reader instructions and removed obsolete mode styles. Verified the built app with synthetic data at 1440×1000 and 390×844: no Reorder button, keyboard moves in both directions, focus restoration, disabled first/last movement, and movement of an unset goal with no result. No horizontal overflow or browser errors. Production build passed with the existing dependency/chunk warnings. Screenshot: ignored `data/storage/goals-no-reorder.png`.
+
+## Quiet achieved-goal state — 2026-10-01
+
+Added a faint mint row tint and small checked target badge when the current best meets an explicit target. The badge supplies a “Target achieved” description and hint. No additional row, banner, animation or stored completion flag is introduced. Exact SI comparisons include equality and reverse for effort economy; absent results/targets do not qualify.
+
+Verified synthetic desktop (1440×1000) and phone (390×844) flows: equal-target practice and exceeded tracking targets highlight; raising an economy target above the best HR highlights, lowering it clears the state; an inactive speed goal also highlights and clearing its target removes the indication. Missing cadence results remain unmarked. Keyboard editing works, descriptions are attached to the edit control, and phone rows have no horizontal overflow. No browser errors. Screenshots: ignored `data/storage/goals-achieved-desktop.png` and `goals-achieved-mobile.png`. All 131 tests and the production build passed, with only existing dependency/chunk warnings. Live ChatGPT embedding and screen-reader hardware were not exercised.

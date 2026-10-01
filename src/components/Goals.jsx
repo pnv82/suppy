@@ -9,6 +9,7 @@ import {
   Waves,
   Info,
   DotsSixVertical,
+  CheckCircle,
 } from "@phosphor-icons/react";
 import {
   GOAL_METRICS,
@@ -18,6 +19,7 @@ import {
   goalFactor,
   goalUnit,
   goalLowerIsBetter,
+  goalAchieved,
   goalScope,
 } from "../domain/goals.mjs";
 import { EvidenceDialog } from "./MetricEvidence.jsx";
@@ -616,11 +618,12 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
               <ul className="goals-list">
                 {bucket.map((goal, index) => {
                   const best = bestGoalResult(sessions, goal),
+                    achieved = goalAchieved(goal, best),
                     Icon = iconFor(goal.metric),
                     unit = goalUnit(goal);
                   return (
                     <li
-                      className={`goal-item${drag?.id === goal.id ? " is-drag-source" : ""}${drag?.target?.active === active && drag.target.beforeId === goal.id ? " is-drop-before" : ""}`}
+                      className={`goal-item${achieved ? " is-achieved" : ""}${drag?.id === goal.id ? " is-drag-source" : ""}${drag?.target?.active === active && drag.target.beforeId === goal.id ? " is-drop-before" : ""}`}
                       key={goal.id}
                       data-goal-id={goal.id}
                       aria-label={GOAL_METRICS[goal.metric]}
@@ -639,6 +642,9 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                         id={`goal-overview-${goal.id}`}
                         className="goal-overview"
                         aria-label={`Edit ${GOAL_METRICS[goal.metric]}`}
+                        aria-describedby={
+                          achieved ? `goal-achieved-${goal.id}` : undefined
+                        }
                         onClick={() => {
                           setEditing(goal.id);
                           setMenu(null);
@@ -670,10 +676,32 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                           {goal.target_si == null ? (
                             <span className="goal-unset">Set target</span>
                           ) : (
-                            <span>
-                              {goalLowerIsBetter(goal) ? "≤" : "≥"}{" "}
-                              {display(goal, goal.target_si)}{" "}
-                              <small>{unit}</small>
+                            <span
+                              className={
+                                achieved ? "goal-achieved-target" : undefined
+                              }
+                              title={achieved ? "Target achieved" : undefined}
+                            >
+                              {achieved && (
+                                <>
+                                  <CheckCircle
+                                    size={16}
+                                    weight="fill"
+                                    aria-hidden="true"
+                                  />
+                                  <span
+                                    className="sr-only"
+                                    id={`goal-achieved-${goal.id}`}
+                                  >
+                                    Target achieved
+                                  </span>
+                                </>
+                              )}
+                              <span>
+                                {goalLowerIsBetter(goal) ? "≤" : "≥"}{" "}
+                                {display(goal, goal.target_si)}{" "}
+                                <small>{unit}</small>
+                              </span>
                             </span>
                           )}
                         </span>

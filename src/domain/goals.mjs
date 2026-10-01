@@ -41,6 +41,17 @@ export const goalFactor = (g) =>
       : 0.44704;
 export const goalValue = (g, v) => (v == null ? null : v / goalFactor(g));
 export const goalLowerIsBetter = (g) => g.metric === "effort_economy";
+export function goalAchieved(goal, best) {
+  if (
+    !Number.isFinite(goal.target_si) ||
+    goal.target_si <= 0 ||
+    !Number.isFinite(best?.value_si)
+  )
+    return false;
+  return goalLowerIsBetter(goal)
+    ? best.value_si <= goal.target_si
+    : best.value_si >= goal.target_si;
+}
 export function goalScope(g) {
   if (g.metric === "endurance")
     return `${(g.window_s ?? 1800) / 60} min continuous`;
