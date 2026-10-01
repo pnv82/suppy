@@ -3,7 +3,7 @@ import { intervalStatistics } from "./analysis.mjs";
 import { intervalRecords } from "./telemetry.mjs";
 import { EXTENDED_GOALS } from "./goals.mjs";
 
-export const GOAL_METHOD = "goal_evidence_v2";
+export const GOAL_METHOD = "goal_evidence_v3";
 const ECONOMY_START_S = 20 * 60;
 const unavailable = (reason) => ({
   value_si: null,
@@ -80,13 +80,14 @@ export function extendedGoalEvidence(session, goal) {
         };
   }
   const economy = goal.metric === "effort_economy";
+  const duration = economy ? 300 : 1200;
   if (economy && goal.pace_mps == null)
     return unavailable("Choose a comparison pace.");
   if (!economy && goal.cadence_spm == null)
     return unavailable("Choose a comparison cadence.");
   if (economy && /suspect|unreliable|invalid/i.test(session.hrQuality || ""))
     return unavailable("Session heart rate is flagged as unreliable.");
-  if (economy && elapsed < ECONOMY_START_S + 300)
+  if (economy && elapsed < ECONOMY_START_S + duration)
     return unavailable(
       "Need a full five-minute stretch after the first 20 minutes.",
     );
@@ -111,17 +112,17 @@ export function extendedGoalEvidence(session, goal) {
   // not a claim to the exact optimum of every possible continuous window.
   for (const run of validRuns(records, exclusions, false)) {
     const min = Math.max(run[0].elapsed_s, economy ? ECONOMY_START_S : 0);
-    const max = Math.min(run.at(-1).elapsed_s, elapsed) - 300;
+    const max = Math.min(run.at(-1).elapsed_s, elapsed) - duration;
     if (max < min) continue;
     const starts = new Set([min, max]);
     for (let t = Math.ceil(min / step) * step; t <= max; t += step)
       starts.add(t);
     for (const start of [...starts].sort((a, b) => a - b)) {
-      const e = intervalStatistics(run, [], start, start + 300, {
+      const e = intervalStatistics(run, [], start, start + duration, {
         tracking: false,
       });
       const speed = e.distance.mean_speed_mps;
-      if (e.distance.covered_s < 300 - 1e-6) continue;
+      if (e.distance.covered_s < duration - 1e-6) continue;
       if (economy) {
         if (
           e.joint_hr_distance.coverage_pct < 100 - 1e-6 ||
@@ -146,7 +147,7 @@ export function extendedGoalEvidence(session, goal) {
           method: GOAL_METHOD,
           grid_step_s: step,
           start_s: start,
-          end_s: start + 300,
+          end_s: start + duration,
           coverage_pct: 100,
           speed_mps: speed,
           cadence_spm: e.speed_cadence.cadence_spm,
@@ -158,6 +159,8 @@ export function extendedGoalEvidence(session, goal) {
   }
   return (
     best ??
-    unavailable("No supported steady 5-minute block matches these settings.")
+    unavailable(
+      `No supported steady ${duration / 60}-minute block matches these settings.`,
+    )
   );
 }

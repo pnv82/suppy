@@ -58,7 +58,7 @@ export function goalScope(g) {
   if (g.metric === "stroke_effectiveness")
     return g.cadence_spm == null
       ? "Choose a cadence"
-      : `5 min at ${g.cadence_spm} ±3 spm`;
+      : `20 min at ${g.cadence_spm} ±3 spm`;
   if (g.metric === "effort_economy")
     return g.pace_mps == null
       ? "Choose a pace"

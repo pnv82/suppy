@@ -52,7 +52,7 @@ const iconFor = (metric) =>
             : Lightning;
 const methods = {
   stroke_effectiveness:
-    "We check five-minute stretches where your stroke rate stays steady and averages within 3 strokes per minute of your chosen rate. For each stretch, we divide distance by time. Your best is the fastest average among the stretches checked. Only stretches with complete distance and stroke readings count. Metres per stroke is distance divided by the estimated number of strokes.",
+    "We check continuous 20-minute stretches where your stroke rate stays steady and averages within 3 strokes per minute of your chosen rate. For each stretch, we divide distance by time. Your best is the fastest average among the stretches checked. Only complete stretches with uninterrupted distance and stroke readings count; shorter sessions cannot qualify. Metres per stroke is distance divided by the estimated number of strokes.",
   effort_economy:
     "We skip the first 20 minutes of the session, then check five-minute stretches with steady speed and heart rate, within 3% of your chosen speed. A session needs at least 25 minutes to qualify. Your best is the lowest average heart rate among those stretches. We need complete readings and skip sessions flagged for unreliable heart rate. Lower means fewer heartbeats at a similar speed; it does not prove improved fitness.",
   tracking_control:

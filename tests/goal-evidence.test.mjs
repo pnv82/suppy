@@ -44,12 +44,13 @@ test("endurance uses exact duration, never bridges pauses, missing distance or s
   assert.equal(extendedGoalEvidence(s, goal("endurance")).value_si, null);
 });
 
-test("stroke effectiveness matches cadence over fully supported steady five-minute blocks", () => {
-  const s = session(900),
+test("stroke effectiveness matches cadence over fully supported steady 20-minute blocks", () => {
+  const s = session(1200),
     g = goal("stroke_effectiveness", { cadence_spm: 30 });
   const result = extendedGoalEvidence(s, g);
   assert.equal(result.value_si, 2);
-  assert.equal(result.end_s - result.start_s, 300);
+  assert.equal(result.start_s, 0);
+  assert.equal(result.end_s, 1200);
   assert.equal(result.dps_m, 4);
   assert.equal(result.coverage_pct, 100);
   assert.equal(
@@ -64,6 +65,29 @@ test("stroke effectiveness matches cadence over fully supported steady five-minu
     if (i % 20 === 0) r.cadence_raw = null;
   });
   assert.equal(extendedGoalEvidence(s, g).value_si, null);
+});
+
+test("stroke effectiveness excludes shorter efforts and averages a fast five-minute burst across 20 minutes", () => {
+  const g = goal("stroke_effectiveness", { cadence_spm: 30 });
+  for (const seconds of [300, 900, 1199]) {
+    const result = extendedGoalEvidence(session(seconds), g);
+    assert.equal(result.value_si, null);
+    assert.match(result.reason, /20-minute/);
+  }
+  const s = session(1500);
+  for (const r of s.records)
+    r.distance_m =
+      3 * Math.min(r.elapsed_s, 300) + 2 * Math.max(0, r.elapsed_s - 300);
+  const result = extendedGoalEvidence(s, g);
+  assert.equal(result.start_s, 0);
+  assert.equal(result.end_s, 1200);
+  assert.equal(result.value_si, 2.25);
+  assert.equal(result.dps_m, 4.5);
+  assert.deepEqual(result.source_record_range, [0, 241]);
+  assert.equal(
+    extendedGoalEvidence({ ...s, elapsed: 1199 / 60 }, g).value_si,
+    null,
+  );
 });
 
 test("effort economy ranks lower HR only at the configured steady pace with trustworthy joint support", () => {
@@ -101,7 +125,7 @@ test("economy excludes early low HR and requires five supported minutes after mi
   assert.equal(result.value_si, 140);
   assert.equal(result.start_s, 1200);
   assert.equal(result.end_s, 1500);
-  assert.equal(result.method, "goal_evidence_v2");
+  assert.equal(result.method, "goal_evidence_v3");
   assert.equal(
     extendedGoalEvidence({ ...s, elapsed: 1499 / 60 }, g).value_si,
     null,
@@ -116,17 +140,17 @@ test("economy excludes early low HR and requires five supported minutes after mi
   assert.equal(extendedGoalEvidence(s, g).value_si, null);
 });
 
-test("five-minute blocks cannot bridge reported interruptions or pauses", () => {
-  const s = session(600),
+test("20-minute stroke blocks cannot bridge reported interruptions, pauses or telemetry gaps", () => {
+  const s = session(2400),
     g = goal("stroke_effectiveness", { cadence_spm: 30 });
   assert.equal(
-    extendedGoalEvidence({ ...s, pauses: [{ start: 299, end: 301 }] }, g)
+    extendedGoalEvidence({ ...s, pauses: [{ start: 1199, end: 1201 }] }, g)
       .value_si,
     null,
   );
   assert.equal(
     extendedGoalEvidence(
-      { ...s, annotations: [{ kind: "fall", start_s: 300, end_s: 300 }] },
+      { ...s, annotations: [{ kind: "fall", start_s: 1200, end_s: 1200 }] },
       g,
     ).value_si,
     2,
@@ -135,12 +159,14 @@ test("five-minute blocks cannot bridge reported interruptions or pauses", () => 
     extendedGoalEvidence(
       {
         ...s,
-        annotations: [{ kind: "interruption", start_s: 299, end_s: 301 }],
+        annotations: [{ kind: "interruption", start_s: 1199, end_s: 1201 }],
       },
       g,
     ).value_si,
     null,
   );
+  s.records = s.records.filter((r) => r.elapsed_s < 1190 || r.elapsed_s > 1210);
+  assert.equal(extendedGoalEvidence(s, g).value_si, null);
 });
 
 test("tracking retains supported zero and turns need reported attempts in both directions", () => {
