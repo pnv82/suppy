@@ -12,6 +12,10 @@ Unconfigured entries have stable `catalog:<metric>` IDs, `active:false` and null
 
 `reorder_goals({active_ids,inactive_ids})` must contain every current catalog ID exactly once. Membership, uniqueness and completeness are checked against the trusted tenant, then both buckets commit atomically. Moving appends to the destination; up/down reorders inside the bucket. Focus follows the moved row. Inactive or unset targets are absent from Home goal trends. Settings survive restart.
 
+The left six-dot handle also supports pointer dragging, including touch/pen pointer events. Drag within a bucket or across buckets to a marked insertion position; empty buckets accept drops. A floating label and insertion line preview the destination without changing stored order. Holding near the viewport edge scrolls the page. Only releasing inside a bucket saves, using the same atomic `reorder_goals` operation; unchanged/invalid drops do not write. Escape, pointer cancellation, loss of capture/window focus, external order changes and a busy app cancel the gesture. A six-pixel movement threshold prevents taps from rearranging goals or opening the editor. Focus returns to the moved handle after saving; a failed save leaves the original order and uses the existing error message. Reorder buttons and action menus remain the keyboard and non-drag alternatives.
+
+After updating server tool definitions, restart the Node server as well as rebuilding the frontend. A long-running server can serve a freshly built page while retaining its old in-memory tool catalog, producing “Unknown tool” for newer actions. Check MCP `tools/list` for `reorder_goals`; HTTP and MCP share the same current handler. Do not reset the database to resolve a stale process.
+
 ## Evidence
 
 Current best searches all of the tenant's session history. Each result preserves its source session ID, date, launch title, units and method. Missing evidence is null; measured zero remains zero. Historical source summaries never fill missing calculated results. There is no automatic achievement or condition-normalized fitness claim. Conditions, equipment, intentional maneuvers and sensors remain confounders.

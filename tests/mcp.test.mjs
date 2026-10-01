@@ -6,6 +6,61 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { createHttpServer } from "../server/index.mjs";
 import { toolSchemas } from "../server/tools.mjs";
 
+test("goal reorder is registered and shared by the HTTP and MCP handlers", async (t) => {
+  const server = createHttpServer(testStore(t));
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const client = new Client({ name: "goals-reorder-test", version: "1.0.0" });
+  try {
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(base + "/mcp")),
+    );
+    const { tools } = await client.listTools();
+    assert.equal(
+      tools.find((tool) => tool.name === "reorder_goals").annotations
+        .readOnlyHint,
+      false,
+    );
+    const initial = await (await fetch(base + "/api/dashboard")).json();
+    const ids = initial.goals.map((goal) => goal.id);
+    const order = {
+      active_ids: [ids.at(-1), ids[0]],
+      inactive_ids: ids.slice(1, -1),
+    };
+    const response = await fetch(base + "/api/tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "reorder_goals", arguments: order }),
+    });
+    assert.equal(response.status, 200);
+    assert.notEqual((await response.json()).isError, true);
+    const dashboard = await client.callTool({
+      name: "get_dashboard",
+      arguments: {},
+    });
+    assert.deepEqual(
+      dashboard._meta.appData.goals
+        .filter((goal) => goal.active)
+        .map((goal) => goal.id),
+      order.active_ids,
+    );
+    const moved = await client.callTool({
+      name: "reorder_goals",
+      arguments: { active_ids: [], inactive_ids: [...ids].reverse() },
+    });
+    assert.notEqual(moved.isError, true);
+    const saved = await (await fetch(base + "/api/dashboard")).json();
+    assert.ok(saved.goals.every((goal) => !goal.active));
+    assert.deepEqual(
+      saved.goals.map((goal) => goal.id),
+      [...ids].reverse(),
+    );
+  } finally {
+    await client.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("local app serves its home page, assets and routes within the build directory", async (t) => {
   const server = createHttpServer(testStore(t));
   await new Promise((r) => server.listen(0, "127.0.0.1", r));

@@ -12,6 +12,7 @@ import {
   Lightning,
   Waves,
   Info,
+  DotsSixVertical,
 } from "@phosphor-icons/react";
 import {
   GOAL_METRICS,
@@ -25,6 +26,8 @@ import {
 } from "../domain/goals.mjs";
 import { EvidenceDialog } from "./MetricEvidence.jsx";
 import { timeLabel } from "../domain/metrics.mjs";
+import { goalDropOrder } from "../domain/goal-order.mjs";
+import { useGoalDrag } from "./useGoalDrag.js";
 import "./Goals.css";
 
 const display = (goal, value) =>
@@ -502,6 +505,27 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
   const [reordering, setReordering] = useState(false);
   const [menu, setMenu] = useState(null);
   const menuRef = useRef(null);
+  const dragInstructions = useId();
+  const { root, drag, handleProps, announcement } = useGoalDrag({
+    goals: configured,
+    busy,
+    onStart: () => setMenu(null),
+    onDrop: async (id, target) => {
+      const order = goalDropOrder(
+        configured,
+        id,
+        target.active,
+        target.beforeId,
+      );
+      if (!order) return;
+      await onAction("reorder_goals", order, "Goal order saved.");
+      requestAnimationFrame(() =>
+        document
+          .getElementById(`goal-drag-${id}`)
+          ?.focus({ preventScroll: true }),
+      );
+    },
+  });
   useEffect(() => {
     if (!menu) return;
     const close = (e) => {
@@ -550,7 +574,17 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
   const editingGoal = configured.find((g) => g.id === editing),
     practiceGoal = configured.find((g) => g.id === practice);
   return (
-    <div className="goals-page">
+    <div className={`goals-page${drag ? " is-dragging" : ""}`} ref={root}>
+      <p className="sr-only" id={dragInstructions}>
+        Drag to reorder or move between Active and Inactive. For keyboard use,
+        choose Reorder for up and down controls, or use the goal’s actions menu
+        to change its bucket. Press Escape to cancel a drag.
+      </p>
+      <div className="sr-only" role="status" aria-live="polite">
+        {drag
+          ? `${drag.label}. ${drag.target ? `${drag.target.active ? "Active" : "Inactive"}, position ${drag.target.position}.` : "Outside a bucket. Release to cancel."}`
+          : announcement}
+      </div>
       <div className="goals-heading">
         <div>
           <h1>Goals</h1>
@@ -573,8 +607,9 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
           name = active ? "Active" : "Inactive";
         return (
           <section
-            className={`goal-section ${active ? "" : "is-inactive"}`}
+            className={`goal-section ${active ? "" : "is-inactive"}${drag?.target?.active === active ? " is-drop-target" : ""}`}
             key={name}
+            data-goal-bucket={active ? "active" : "inactive"}
             aria-labelledby={`goals-${name}`}
           >
             <div className="goal-section-heading">
@@ -587,9 +622,11 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
             </div>
             {!bucket.length ? (
               <p className="goals-empty">
-                {active
-                  ? "Activate a goal from its menu to get started."
-                  : "All goals are active."}
+                {drag
+                  ? "Drop here"
+                  : active
+                    ? "Activate a goal from its menu to get started."
+                    : "All goals are active."}
               </p>
             ) : (
               <ul className="goals-list">
@@ -599,10 +636,21 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                     unit = goalUnit(goal);
                   return (
                     <li
-                      className="goal-item"
+                      className={`goal-item${drag?.id === goal.id ? " is-drag-source" : ""}${drag?.target?.active === active && drag.target.beforeId === goal.id ? " is-drop-before" : ""}`}
                       key={goal.id}
+                      data-goal-id={goal.id}
                       aria-label={GOAL_METRICS[goal.metric]}
                     >
+                      <button
+                        id={`goal-drag-${goal.id}`}
+                        className="goal-drag-handle"
+                        aria-label={`Drag ${GOAL_METRICS[goal.metric]}`}
+                        aria-describedby={dragInstructions}
+                        disabled={busy}
+                        {...handleProps(goal, GOAL_METRICS[goal.metric])}
+                      >
+                        <DotsSixVertical size={18} aria-hidden="true" />
+                      </button>
                       <button
                         id={`goal-overview-${goal.id}`}
                         className="goal-overview"
@@ -729,9 +777,33 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                 })}
               </ul>
             )}
+            {drag?.target?.active === active &&
+              drag.target.beforeId == null && (
+                <div className="goal-drop-end" aria-hidden="true" />
+              )}
           </section>
         );
       })}
+      {drag && (
+        <div
+          className="goal-drag-preview"
+          aria-hidden="true"
+          style={{
+            left: Math.max(8, Math.min(drag.x + 14, window.innerWidth - 288)),
+            top: Math.max(8, Math.min(drag.y + 14, window.innerHeight - 76)),
+          }}
+        >
+          <DotsSixVertical size={18} />
+          <span>
+            <strong>{drag.label}</strong>
+            <small>
+              {drag.target
+                ? `${drag.target.active ? "Active" : "Inactive"} · Position ${drag.target.position}`
+                : "Release to cancel"}
+            </small>
+          </span>
+        </div>
+      )}
       {editingGoal && (
         <GoalEditor
           goal={editingGoal}
