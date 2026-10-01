@@ -4,6 +4,8 @@ import { mph, timeLabel, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
 import { intervalTitle, reviewIntervals } from "../domain/intervals.mjs";
 import { TrackingScore } from "./TrackingScore.jsx";
+import { GoalTrophy } from "./GoalTrophy.jsx";
+import { sessionGoalAchievements } from "../domain/goals.mjs";
 import {
   detectedEventLabel,
   detectedEventDescription,
@@ -262,11 +264,18 @@ export function MetricDetails({ session, duration, onClose }) {
   );
 }
 
-export function MetricsInspector({ session, selected, onSelect, onAsk }) {
+export function MetricsInspector({
+  session,
+  goals = [],
+  selected,
+  onSelect,
+  onAsk,
+}) {
   const [details, setDetails] = useState(false);
   const view = metricView(session, selected),
     e = view.evidence,
     z = e?.tracking;
+  const achievements = sessionGoalAchievements(session, goals, selected);
   const best =
     session.windows.find((w) => w.duration === 1200 && w.start != null) ||
     reviewIntervals(session).find((w) => w.start != null);
@@ -290,6 +299,7 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
         </h2>
         <p className="paired-headline">
           {fmt(mph(view.speed), 2)} <small>mph</small>{" "}
+          <GoalTrophy goal={achievements.speed} />
           <span>
             @ {fmt(view.cadence)} <small>spm</small>
           </span>
@@ -326,7 +336,10 @@ export function MetricsInspector({ session, selected, onSelect, onAsk }) {
       <div className="inspector-tracking">
         <div>
           <span title="Tracking Control Score">TCS</span>
-          <TrackingScore value={view.tracking} />
+          <span>
+            <TrackingScore value={view.tracking} />
+            <GoalTrophy goal={achievements.tracking} />
+          </span>
         </div>
         <p>Higher = steadier trajectory · {fmt(z?.coverage_pct)}% eligible</p>
       </div>

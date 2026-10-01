@@ -382,6 +382,7 @@ function Workspace({ account, initialData }) {
                 <MetricsInspector
                   key={session.id}
                   session={reviewSession}
+                  goals={data.goals || []}
                   selected={selected}
                   onSelect={chooseWindow}
                   onAsk={(interval) =>

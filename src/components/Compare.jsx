@@ -27,7 +27,9 @@ import {
   goalUnit,
   goalScope,
   goalLowerIsBetter,
+  sessionGoalAchievements,
 } from "../domain/goals.mjs";
+import { GoalTrophy } from "./GoalTrophy.jsx";
 import { fmt, shortDate } from "./SessionViews.jsx";
 import { MetricDetails } from "./MetricEvidence.jsx";
 
@@ -54,6 +56,7 @@ export function Compare({
     return {
       ...session,
       view,
+      achievements: sessionGoalAchievements(session, goals, duration),
       speed: mph(view.speed),
       maxSpeed: mph(session.statistics?.speed_mps?.max),
       average_speed: mph(metricView(session).speed),
@@ -339,9 +342,12 @@ export function Compare({
                   <td data-label="Speed @ cadence">
                     <strong>
                       {fmt(s.speed, 2)} <span>mph</span>
-                      {change(index, "speed")} @ {fmt(s.view.cadence)}{" "}
-                      <span>spm</span>
-                      {change(index, "cadenceValue")}
+                      <GoalTrophy goal={s.achievements.speed} />
+                      {change(index, "speed")}{" "}
+                      <span className="metric-cadence-value">
+                        @ {fmt(s.view.cadence)} <span>spm</span>
+                        {change(index, "cadenceValue")}
+                      </span>
                     </strong>
                     <small>
                       {s.speed == null
@@ -357,6 +363,7 @@ export function Compare({
                   >
                     <strong>
                       {fmt(s.maxSpeed, 2)} <span>mph</span>
+                      <GoalTrophy goal={s.achievements.maxSpeed} />
                       {change(index, "maxSpeed")}
                     </strong>
                     <small>
@@ -378,6 +385,7 @@ export function Compare({
                   </td>
                   <td data-label="TCS">
                     <TrackingScore value={s.tracking} />
+                    <GoalTrophy goal={s.achievements.tracking} />
                     {change(index, "tracking")}
                     <small>
                       {fmt(s.view.evidence?.tracking?.coverage_pct)}% eligible

@@ -52,6 +52,33 @@ export function goalAchieved(goal, best) {
     ? best.value_si <= goal.target_si
     : best.value_si >= goal.target_si;
 }
+
+// A trophy describes the displayed value in this session, never a different
+// interval or the athlete's all-time best. Conditional goals need their own
+// matched evidence, so ordinary HR, cadence and DPS values cannot earn them.
+export function sessionGoalAchievements(session, goals = [], selected = null) {
+  const view = metricView(session, selected);
+  const reached = (metric, value) =>
+    goals.find(
+      (g) =>
+        g.active !== false &&
+        g.metric === metric &&
+        goalAchieved(g, { value_si: value }),
+    ) ?? null;
+  const speedMetric =
+    selected == null
+      ? "average_speed"
+      : !view.window?.id && [300, 600, 1200].includes(selected)
+        ? `best_${selected}`
+        : null;
+  return {
+    speed: reached(speedMetric, view.speed),
+    maxSpeed: reached("max_speed", session.statistics?.speed_mps?.max),
+    tracking:
+      selected == null ? reached("tracking_control", view.tracking) : null,
+  };
+}
+
 export function goalScope(g) {
   if (g.metric === "endurance")
     return `${(g.window_s ?? 1800) / 60} min continuous`;
