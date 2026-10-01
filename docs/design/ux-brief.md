@@ -143,3 +143,8 @@ Achieved goals use a faint mint background and a small green check next to the t
 ## Grouped units (2026-10-01)
 
 Settings contains four rows for speed, distance, length and temperature, with defaults matching the existing display. Primary measurements have alternate-unit hover hints; selected units also label charts and editable goals/wind. Keep this information within existing rows and details without adding persistent session-panel height. See [unit contracts](../engineering/units.md).
+
+
+## Configurable Home columns (2026-10-01)
+
+Columns in the existing session-list heading opens a checkbox modal with save/cancel/defaults. Desktop and phone views use the same tenant preference, retaining session links/details/actions. Optional combined best-5/10/20-minute speeds retain duration labels and missing values; additional properties are opt-in. Desktop overflow stays within the table; no default permanent vertical space is added. See [column contract](../engineering/home-columns.md).

@@ -313,7 +313,7 @@ test("weather persists SI and immutable raw provenance, preserves historical sum
   assert.equal(rows.length, 1);
   assert.equal(rows[0].tenant_id, "alice");
   assert.equal(JSON.parse(rows[0].provenance_json).raw_response, csv);
-  assert.equal(raw.prepare("PRAGMA user_version").get().user_version, 7);
+  assert.equal(raw.prepare("PRAGMA user_version").get().user_version, 8);
   raw.close();
 });
 

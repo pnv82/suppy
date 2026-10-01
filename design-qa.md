@@ -481,3 +481,8 @@ All 141 tests and the production build passed with existing dependency/chunk war
 ## Next: Max speed (10 s), 2026-10-01
 
 Validated with isolated synthetic SQLite on port 3011. Desktop 1440×900 and narrow 390×844: Home trend/column, session chart reference, whole-session details, original Garmin peak, summary-only unavailable reason and renamed Goals entry. Enter opens metric details; Escape closes and returns focus; speed-chart ArrowRight remains usable. No page-width overflow at phone width. No extra persistent metric row. All 153 tests pass; production build succeeds (existing bundle-size warning). Screenshots are local QA artifacts in ignored data/storage/qa-next-max-*.png. No production data was used or changed.
+
+
+## Next: Configurable Home columns, 2026-10-01
+
+Validated in the isolated synthetic database at 1440×900 and 390×844. Enter opens Columns, Space toggles, Save persists across reload; Cancel/Escape return focus without applying a draft. Restore defaults and an empty optional selection work. Tested all 15 columns: the 1815 px table scrolls inside a 1193 px container without page overflow. The region supports keyboard horizontal scrolling; final-row actions remain visible and Escape closes them. Phone cards retain the combined 5/10/20 group and summary-only unavailable values; metric details remain accessible. Tenant isolation, restart persistence, validation, and shared REST/MCP tool metadata are tested. All 155 tests pass; production build succeeds with the existing bundle-size warning. Screenshots remain ignored QA artifacts under data/storage/qa-next-columns-*.png.

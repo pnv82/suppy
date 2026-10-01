@@ -1,0 +1,78 @@
+.home-column-options {
+  border: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 16px;
+}
+.home-column-options label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  font-size: 13px;
+}
+.home-column-options input {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.home-column-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}
+.home-column-actions > :first-child {
+  margin-right: auto;
+}
+.home-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.metrics-session-list > .table-scroll {
+  position: relative;
+  overflow-x: auto;
+}
+.home-best-windows {
+  display: flex;
+  gap: 16px;
+}
+.home-best-windows > span {
+  min-width: 76px;
+}
+.home-best-windows b {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.home-sessions-table td[data-label="Board"],
+.home-sessions-table td[data-label="Data availability"] {
+  max-width: 240px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 800px) {
+  .home-list-actions > .caption {
+    display: none;
+  }
+  .home-sessions-table td[data-label="Best 5 / 10 / 20 min"] {
+    grid-column: 1/-1;
+  }
+  .home-best-windows {
+    gap: 8px;
+    justify-content: space-between;
+  }
+  .home-best-windows > span {
+    min-width: 0;
+  }
+}
+@media (max-width: 420px) {
+  .home-column-options {
+    grid-template-columns: 1fr;
+  }
+}

@@ -112,7 +112,7 @@ test("history depth upgrades, persists and stays tenant scoped without changing 
     db.close();
     const old = new DatabaseSync(path);
     old.exec(
-      "ALTER TABLE preferences DROP COLUMN goal_history_depth; PRAGMA user_version = 6;",
+      "ALTER TABLE preferences DROP COLUMN home_columns_json; ALTER TABLE preferences DROP COLUMN goal_history_depth; PRAGMA user_version = 6;",
     );
     old.close();
     db = openDatabase(path);

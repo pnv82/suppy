@@ -30,7 +30,7 @@ Choose **Import → Garmin Connect** in the local app, sign in and complete veri
 
 ## What works now
 
-- **Home:** chronological trends above the latest-ten session grid, with Max speed (10 s) and changes over 5% versus the preceding three sessions. Row menus offer Edit, Delete, Recalculate and Refresh weather. Open any row to review that session; phone layouts show the rows as readable cards.
+- **Home:** chronological trends above the latest-ten session grid, with Max speed (10 s) and changes over 5% versus the preceding three sessions. Columns opens a saved per-account chooser, including a combined best-5/10/20-minute speed column and additional session properties. Row menus offer Edit, Delete, Recalculate and Refresh weather. Open any row to review that session; phone layouts show the rows as readable cards.
 - **Sessions:** real route, wind direction, summary metrics, synchronized speed/HR/cadence charts and a labelled current map point. Hover a chart to explore; click/tap or press Enter to pin a point. Shift-click/Shift-Enter extends to an interval; Annotate uses the fixed selection. Arrow keys move the independent current cursor.
 - **Metric inspector:** switch between whole-session and selected-interval evidence: speed at recorded cadence, estimated metres/stroke, HR and coverage. Accessible details show alternate units, source summaries and methods. Existing median/max chart references remain.
 - **Stroke distance:** matched distance/cadence estimates with explicit support; choose DPS in the third chart lane for a trailing 30-second estimate. Missing sensors remain unavailable.

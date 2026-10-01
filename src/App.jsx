@@ -485,6 +485,7 @@ function Workspace({ account, initialData }) {
           )}
           {page === "Home" && (
             <Compare
+              homeColumns={data.homeColumns}
               sessions={data.sessions}
               boards={data.boards || []}
               onOpen={openSession}

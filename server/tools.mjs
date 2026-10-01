@@ -1,3 +1,4 @@
+import { HOME_COLUMNS } from "../src/domain/home-columns.mjs";
 import { z } from "zod";
 import { latestSessions } from "../src/domain/metrics.mjs";
 import { intervalStatistics } from "../src/domain/analysis.mjs";
@@ -12,6 +13,11 @@ const uploadFields = {
 };
 
 export const toolSchemas = {
+  set_home_columns: z.object({
+    columns: z
+      .array(z.enum(Object.keys(HOME_COLUMNS)))
+      .max(Object.keys(HOME_COLUMNS).length),
+  }),
   set_goal_history_depth: z.object({
     sessions: z.number().int().min(1).max(1000),
   }),
@@ -198,6 +204,8 @@ for (const name of Object.keys(toolSchemas))
   toolSchemas[name] = toolSchemas[name].strict();
 
 export const descriptions = {
+  set_home_columns:
+    "Save the user-selected optional columns for the Home session list. Session links, details and actions remain visible. Empty columns hides all optional metrics. Tenant-scoped; does not alter measurements.",
   set_goal_history_depth:
     "Set how many latest sessions assess current goal best results (1–1000, default 10). Sessions with missing goal evidence still count toward the window; no older-result fallback. Scoped to the current tenant; measurements and goal targets are unchanged.",
   set_unit_preferences:
@@ -276,6 +284,7 @@ export function executeTool(store, name, input) {
     return store
       .suggestLaunchName(args)
       .then((result) => toolResult(store, name, args, result));
+  if (name === "set_home_columns") result = store.setHomeColumns(args);
   if (name === "upsert_goal") result = store.upsertGoal(args);
   if (name === "set_unit_preferences") result = store.setUnitPreferences(args);
   if (name === "set_goal_history_depth")
@@ -308,6 +317,7 @@ export function executeTool(store, name, input) {
       boards: dashboard.boards,
       defaultBoardId: dashboard.defaultBoardId,
       units: dashboard.units,
+      homeColumns: dashboard.homeColumns,
       goalHistoryDepth: dashboard.goalHistoryDepth,
       goalBestResults: dashboard.goalBestResults,
       goals: dashboard.goals,

@@ -135,7 +135,7 @@ test("tenant preferences persist through schema upgrade/reopen without altering 
   // Exercise adding the preference column to the previous schema with existing data.
   const legacy = new DatabaseSync(path);
   legacy.exec(
-    "ALTER TABLE preferences DROP COLUMN goal_history_depth; ALTER TABLE preferences DROP COLUMN units_json; PRAGMA user_version = 5;",
+    "ALTER TABLE preferences DROP COLUMN home_columns_json; ALTER TABLE preferences DROP COLUMN goal_history_depth; ALTER TABLE preferences DROP COLUMN units_json; PRAGMA user_version = 5;",
   );
   legacy.close();
   db = openDatabase(path);

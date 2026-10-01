@@ -1,3 +1,7 @@
+import {
+  DEFAULT_HOME_COLUMNS,
+  validateHomeColumns,
+} from "../src/domain/home-columns.mjs";
 import { unitPreferences, validateUnits } from "../src/domain/units.mjs";
 import { readFileSync } from "node:fs";
 import { randomUUID, createHash } from "node:crypto";
@@ -365,6 +369,7 @@ export function createStore({
       })),
       defaultBoardId: repo.defaultBoard(),
       units: unitPreferences(repo.units()),
+      homeColumns: repo.homeColumns() ?? [...DEFAULT_HOME_COLUMNS],
       goalHistoryDepth,
       goalBestResults: Object.fromEntries(
         goals.map((goal) => [
@@ -650,6 +655,11 @@ export function createStore({
     return context(session_id);
   }
   const writes = {
+    setHomeColumns({ columns }) {
+      const selected = validateHomeColumns(columns);
+      repo.setHomeColumns(selected);
+      return { homeColumns: selected };
+    },
     setGoalHistoryDepth({ sessions }) {
       repo.setGoalHistoryDepth(validateGoalHistoryDepth(sessions));
       return { goalHistoryDepth: sessions };

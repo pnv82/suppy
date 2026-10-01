@@ -1,3 +1,5 @@
+import { HOME_COLUMNS, DEFAULT_HOME_COLUMNS } from "../domain/home-columns.mjs";
+import { HomeColumns } from "./HomeColumns.jsx";
 import React, { useRef, useState } from "react";
 import {
   ArrowUpRight,
@@ -38,6 +40,7 @@ import { TrackingScore, TrackingDot } from "./TrackingScore.jsx";
 
 export function Compare({
   sessions,
+  homeColumns = DEFAULT_HOME_COLUMNS,
   boards = [],
   defaultBoardId,
   goals = [],
@@ -46,6 +49,10 @@ export function Compare({
   onManage,
 }) {
   const units = useUnits();
+  const [choosingColumns, setChoosingColumns] = useState(false);
+  const columns = Object.keys(HOME_COLUMNS).filter((c) =>
+    homeColumns.includes(c),
+  );
   const displaySpeed = (value) => units.convert(value, "speed");
   goals = goals.filter((g) => g.active !== false && g.target_si != null);
   const [editing, setEditing] = useState(null);
@@ -311,9 +318,22 @@ export function Compare({
               ? "Best 20-minute metrics"
               : "Whole-session metrics"}
           </h2>
-          <span className="caption">Most recent first</span>
+          <div className="home-list-actions">
+            <span className="caption">Most recent first</span>
+            <button
+              className="text-button"
+              onClick={() => setChoosingColumns(true)}
+            >
+              Columns
+            </button>
+          </div>
         </div>
-        <div className="table-scroll">
+        <div
+          className="table-scroll"
+          tabIndex={0}
+          role="region"
+          aria-label="Session columns; scroll horizontally for more metrics"
+        >
           <table className="home-sessions-table clean-metrics-table">
             <caption className="sr-only">
               Session metrics.{" "}
@@ -327,11 +347,7 @@ export function Compare({
               <tr>
                 {[
                   "Session",
-                  "Speed @ cadence",
-                  "Max speed (10 s)",
-                  "Distance / stroke",
-                  "TCS",
-                  "HR",
+                  ...columns.map((c) => HOME_COLUMNS[c]),
                   "Details",
                   "Actions",
                 ].map((label) => (
@@ -365,79 +381,191 @@ export function Compare({
                         "Board unknown"}
                     </small>
                   </td>
-                  <td data-label="Speed @ cadence">
-                    <strong>
-                      <GoalMetric progress={s.goalProgress.speed}>
-                        <Measure value={s.view.speed} group="speed" />
-                      </GoalMetric>
-                      {change(index, "speed")}{" "}
-                      <span className="metric-cadence-value">
-                        @ {fmt(s.view.cadence)} <span>spm</span>
-                        {change(index, "cadenceValue")}
-                      </span>
-                    </strong>
-                    <small>
-                      {s.speed == null
-                        ? "No supported effort"
-                        : fmt(s.view.coverage) +
-                          "% matched" +
-                          (!s.view.paired ? " · cadence unavailable" : "")}
-                    </small>
-                  </td>
-                  <td
-                    data-label="Max speed (10 s)"
-                    title={s.statistics?.speed_mps?.max_source || "Unavailable"}
-                  >
-                    <strong>
-                      <GoalMetric progress={s.goalProgress.maxSpeed}>
+                  {columns.includes("speed") && (
+                    <td data-label="Speed @ cadence">
+                      <strong>
+                        <GoalMetric progress={s.goalProgress.speed}>
+                          <Measure value={s.view.speed} group="speed" />
+                        </GoalMetric>
+                        {change(index, "speed")}{" "}
+                        <span className="metric-cadence-value">
+                          @ {fmt(s.view.cadence)} <span>spm</span>
+                          {change(index, "cadenceValue")}
+                        </span>
+                      </strong>
+                      <small>
+                        {s.speed == null
+                          ? "No supported effort"
+                          : fmt(s.view.coverage) +
+                            "% matched" +
+                            (!s.view.paired ? " · cadence unavailable" : "")}
+                      </small>
+                    </td>
+                  )}
+                  {columns.includes("maxSpeed") && (
+                    <td
+                      data-label="Max speed (10 s)"
+                      title={
+                        s.statistics?.speed_mps?.max_source || "Unavailable"
+                      }
+                    >
+                      <strong>
+                        <GoalMetric progress={s.goalProgress.maxSpeed}>
+                          <Measure
+                            value={s.statistics?.speed_mps?.max}
+                            group="speed"
+                          />
+                        </GoalMetric>
+                        {change(index, "maxSpeed")}
+                      </strong>
+                      <small>
+                        {s.statistics?.speed_mps?.summary_max_excluded ||
+                        s.statistics?.speed_mps?.quality?.excluded_sample_count
+                          ? "filtered 10 s average · see details"
+                          : "continuous 10 s average"}
+                      </small>
+                    </td>
+                  )}
+                  {columns.includes("dps") && (
+                    <td data-label="Distance / stroke">
+                      <strong>
                         <Measure
-                          value={s.statistics?.speed_mps?.max}
-                          group="speed"
+                          value={s.view.dps}
+                          group="length"
+                          suffix="/stroke"
+                        />
+                        {change(index, "dps")}
+                      </strong>
+                      <small>
+                        estimated
+                        {s.dps != null && !s.view.paired ? " · partial" : ""}
+                      </small>
+                    </td>
+                  )}
+                  {columns.includes("tracking") && (
+                    <td data-label="TCS">
+                      <GoalMetric progress={s.goalProgress.tracking}>
+                        <TrackingScore
+                          value={s.tracking}
+                          detail={s.goalProgress.tracking?.label || ""}
                         />
                       </GoalMetric>
-                      {change(index, "maxSpeed")}
-                    </strong>
-                    <small>
-                      {s.statistics?.speed_mps?.summary_max_excluded ||
-                      s.statistics?.speed_mps?.quality?.excluded_sample_count
-                        ? "filtered 10 s average · see details"
-                        : "continuous 10 s average"}
-                    </small>
-                  </td>
-                  <td data-label="Distance / stroke">
-                    <strong>
-                      <Measure
-                        value={s.view.dps}
-                        group="length"
-                        suffix="/stroke"
-                      />
-                      {change(index, "dps")}
-                    </strong>
-                    <small>
-                      estimated
-                      {s.dps != null && !s.view.paired ? " · partial" : ""}
-                    </small>
-                  </td>
-                  <td data-label="TCS">
-                    <GoalMetric progress={s.goalProgress.tracking}>
-                      <TrackingScore
-                        value={s.tracking}
-                        detail={s.goalProgress.tracking?.label || ""}
-                      />
-                    </GoalMetric>
-                    {change(index, "tracking")}
-                    <small>
-                      {fmt(s.view.evidence?.tracking?.coverage_pct)}% eligible
-                    </small>
-                  </td>
-                  <td data-label="Heart rate">
-                    {fmt(s.hr)} bpm{change(index, "hr")}
-                    {(s.hrQuality ||
-                      (s.view.evidence?.heart_rate_bpm?.coverage_pct ?? 0) <
-                        90) && (
-                      <small>{s.hrQuality || "Partial / unavailable"}</small>
-                    )}
-                  </td>
+                      {change(index, "tracking")}
+                      <small>
+                        {fmt(s.view.evidence?.tracking?.coverage_pct)}% eligible
+                      </small>
+                    </td>
+                  )}
+                  {columns.includes("hr") && (
+                    <td data-label="Heart rate">
+                      {fmt(s.hr)} bpm{change(index, "hr")}
+                      {(s.hrQuality ||
+                        (s.view.evidence?.heart_rate_bpm?.coverage_pct ?? 0) <
+                          90) && (
+                        <small>{s.hrQuality || "Partial / unavailable"}</small>
+                      )}
+                    </td>
+                  )}
+                  {columns
+                    .filter(
+                      (c) =>
+                        ![
+                          "speed",
+                          "maxSpeed",
+                          "dps",
+                          "tracking",
+                          "hr",
+                        ].includes(c),
+                    )
+                    .map((c) => (
+                      <td key={c} data-label={HOME_COLUMNS[c]}>
+                        {c === "bestWindows" ? (
+                          <div className="home-best-windows">
+                            {[300, 600, 1200].map((d) => {
+                              const v = metricView(s, d),
+                                w = v.window;
+                              return (
+                                <span
+                                  key={d}
+                                  title={
+                                    w?.start != null
+                                      ? "Continuous " +
+                                        d / 60 +
+                                        " min; " +
+                                        Math.round(w.start) +
+                                        "–" +
+                                        Math.round(w.end) +
+                                        " elapsed seconds"
+                                      : "No supported continuous effort"
+                                  }
+                                >
+                                  <b>{d / 60} min</b>
+                                  <GoalMetric
+                                    progress={
+                                      sessionGoalProgress(s, goals, d).speed
+                                    }
+                                  >
+                                    <Measure value={v.speed} group="speed" />
+                                  </GoalMetric>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        ) : c === "distance" ? (
+                          <Measure
+                            value={
+                              s.distance == null ? null : s.distance * 1609.344
+                            }
+                            group="distance"
+                          />
+                        ) : c === "active" ? (
+                          durationLabel(s.active)
+                        ) : c === "elapsed" ? (
+                          durationLabel(s.elapsed)
+                        ) : c === "board" ? (
+                          boards.find((b) => b.id === s.boardId)?.name ||
+                          "Not recorded"
+                        ) : c === "type" ? (
+                          s.type || "Not recorded"
+                        ) : c === "medianSpeed" ? (
+                          <>
+                            <Measure
+                              value={s.statistics?.speed_mps?.median}
+                              group="speed"
+                            />
+                            <small>whole session</small>
+                          </>
+                        ) : c === "cadence" ? (
+                          <>{fmt(s.view.cadence)} spm</>
+                        ) : c === "wind" ? (
+                          <>
+                            <Measure
+                              value={s.wind == null ? null : s.wind * 0.44704}
+                              group="speed"
+                            />
+                            <small>
+                              {s.weatherQuality || "Source unavailable"}
+                            </small>
+                          </>
+                        ) : c === "availability" ? (
+                          <>
+                            {s.records.length
+                              ? "Recorded telemetry"
+                              : "Summary only"}
+                            <small>
+                              {s.records.some(
+                                (r) =>
+                                  Number.isFinite(r.latitude_deg) &&
+                                  Number.isFinite(r.longitude_deg),
+                              )
+                                ? "GPS route"
+                                : "No GPS route"}
+                              {s.hrQuality ? " · " + s.hrQuality : ""}
+                            </small>
+                          </>
+                        ) : null}
+                      </td>
+                    ))}
                   <td data-label="Metric details">
                     <button
                       className="text-button"
@@ -451,6 +579,18 @@ export function Compare({
                   <td data-label="Session actions">
                     <details
                       className="session-actions-menu"
+                      onToggle={(e) => {
+                        const menu = e.currentTarget;
+                        if (!menu.open) return;
+                        const anchor = menu
+                          .querySelector("summary")
+                          .getBoundingClientRect();
+                        const panel = menu.querySelector("div");
+                        panel.style.position = "fixed";
+                        panel.style.right = "auto";
+                        panel.style.left = `${Math.max(8, Math.min(anchor.right - 180, window.innerWidth - 188))}px`;
+                        panel.style.top = `${Math.max(8, Math.min(anchor.bottom + 4, window.innerHeight - panel.offsetHeight - 8))}px`;
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === "Escape") {
                           e.currentTarget.open = false;
@@ -511,6 +651,13 @@ export function Compare({
           </p>
         )}
       </section>
+      {choosingColumns && (
+        <HomeColumns
+          columns={columns}
+          onClose={() => setChoosingColumns(false)}
+          onAction={onAction}
+        />
+      )}
       {details && (
         <MetricDetails
           session={details}
