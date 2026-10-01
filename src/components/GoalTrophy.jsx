@@ -3,6 +3,25 @@ import { Trophy } from "@phosphor-icons/react";
 import { GOAL_METRICS, goalUnit, goalValue } from "../domain/goals.mjs";
 import "./GoalTrophy.css";
 
+export function GoalMetric({ progress, children }) {
+  return (
+    <span
+      className={`goal-metric${progress ? ` is-${progress.state}` : ""}`}
+      title={
+        progress
+          ? `${GOAL_METRICS[progress.goal.metric]} · ${progress.label}`
+          : undefined
+      }
+    >
+      {children}
+      {progress && <span className="sr-only"> · {progress.label}</span>}
+      <GoalTrophy
+        goal={progress?.state === "achieved" ? progress.goal : null}
+      />
+    </span>
+  );
+}
+
 export function GoalTrophy({ goal }) {
   return goal ? <ReachedGoal key={goal.id} goal={goal} /> : null;
 }

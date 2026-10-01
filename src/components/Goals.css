@@ -75,18 +75,51 @@
   background: linear-gradient(90deg, #f1f8f4, #f9fcfa);
   border-bottom-color: #e3eee7;
 }
-.goal-achieved-target {
+.goal-item.is-far {
+  background: linear-gradient(90deg, #fff2f1, #fffafa);
+  border-bottom-color: #f1deda;
+}
+.goal-item.is-near {
+  background: linear-gradient(90deg, #fff7e9, #fffdf8);
+  border-bottom-color: #f0e4cd;
+}
+.goal-item.is-far .goal-overview:hover {
+  background: #fbeae6;
+}
+.goal-item.is-near .goal-overview:hover {
+  background: #fff0d6;
+}
+.goal-progress-target {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   padding: 2px 6px;
   border-radius: 6px;
-  background: #e3f1e9;
-  color: #286447;
   white-space: nowrap;
 }
-.goal-achieved-target small {
-  color: #426f57;
+.goal-progress-target.is-achieved {
+  background: #e3f1e9;
+  color: #286447;
+}
+.goal-progress-target.is-far {
+  background: #fbe5e2;
+  color: #b13d32;
+}
+.goal-progress-target.is-near {
+  background: #ffedce;
+  color: #a46112;
+}
+.goal-progress-target small {
+  color: inherit;
+}
+.goal-item.is-far .goal-number > strong {
+  color: #b13d32;
+}
+.goal-item.is-near .goal-number > strong {
+  color: #a46112;
+}
+.goal-item.is-achieved .goal-number > strong {
+  color: #286447;
 }
 .goal-drag-handle {
   display: grid;

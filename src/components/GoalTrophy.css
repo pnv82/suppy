@@ -29,6 +29,34 @@ button.goal-trophy:focus-visible {
   font-size: inherit;
   font-weight: inherit;
 }
+.goal-metric {
+  display: inline-block;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.clean-metrics-table td strong .goal-metric {
+  font-size: inherit;
+  font-weight: inherit;
+}
+.goal-metric.is-achieved {
+  color: #286447;
+  background: #edf7f0;
+}
+.goal-metric.is-far {
+  color: #b13d32;
+  background: #fff0ee;
+}
+.goal-metric.is-near {
+  color: #a46112;
+  background: #fff3dc;
+}
+.goal-metric.is-neutral {
+  color: inherit;
+}
+.goal-metric:is(.is-achieved, .is-far, .is-near, .is-neutral) .tracking-score {
+  color: inherit;
+  background: transparent;
+}
 .goal-trophy-hint[popover] {
   position: fixed;
   inset: auto;

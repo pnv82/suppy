@@ -19,7 +19,7 @@ import {
   goalFactor,
   goalUnit,
   goalLowerIsBetter,
-  goalAchieved,
+  goalProgress,
   goalScope,
 } from "../domain/goals.mjs";
 import { EvidenceDialog } from "./MetricEvidence.jsx";
@@ -618,12 +618,13 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
               <ul className="goals-list">
                 {bucket.map((goal, index) => {
                   const best = bestGoalResult(sessions, goal),
-                    achieved = goalAchieved(goal, best),
+                    progress = goalProgress(goal, best),
+                    achieved = progress?.state === "achieved",
                     Icon = iconFor(goal.metric),
                     unit = goalUnit(goal);
                   return (
                     <li
-                      className={`goal-item${achieved ? " is-achieved" : ""}${drag?.id === goal.id ? " is-drag-source" : ""}${drag?.target?.active === active && drag.target.beforeId === goal.id ? " is-drop-before" : ""}`}
+                      className={`goal-item${progress ? ` is-${progress.state}` : ""}${drag?.id === goal.id ? " is-drag-source" : ""}${drag?.target?.active === active && drag.target.beforeId === goal.id ? " is-drop-before" : ""}`}
                       key={goal.id}
                       data-goal-id={goal.id}
                       aria-label={GOAL_METRICS[goal.metric]}
@@ -643,7 +644,7 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                         className="goal-overview"
                         aria-label={`Edit ${GOAL_METRICS[goal.metric]}`}
                         aria-describedby={
-                          achieved ? `goal-achieved-${goal.id}` : undefined
+                          progress ? `goal-progress-${goal.id}` : undefined
                         }
                         onClick={() => {
                           setEditing(goal.id);
@@ -678,9 +679,11 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                           ) : (
                             <span
                               className={
-                                achieved ? "goal-achieved-target" : undefined
+                                progress
+                                  ? `goal-progress-target is-${progress.state}`
+                                  : undefined
                               }
-                              title={achieved ? "Target achieved" : undefined}
+                              title={progress?.label}
                             >
                               {achieved && (
                                 <>
@@ -689,13 +692,15 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                                     weight="fill"
                                     aria-hidden="true"
                                   />
-                                  <span
-                                    className="sr-only"
-                                    id={`goal-achieved-${goal.id}`}
-                                  >
-                                    Target achieved
-                                  </span>
                                 </>
+                              )}
+                              {progress && (
+                                <span
+                                  className="sr-only"
+                                  id={`goal-progress-${goal.id}`}
+                                >
+                                  {progress.label}
+                                </span>
                               )}
                               <span>
                                 {goalLowerIsBetter(goal) ? "≤" : "≥"}{" "}

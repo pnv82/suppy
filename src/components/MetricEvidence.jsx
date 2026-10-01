@@ -4,8 +4,8 @@ import { mph, timeLabel, durationLabel } from "../domain/metrics.mjs";
 import { metricView } from "../domain/metric-view.mjs";
 import { intervalTitle, reviewIntervals } from "../domain/intervals.mjs";
 import { TrackingScore } from "./TrackingScore.jsx";
-import { GoalTrophy } from "./GoalTrophy.jsx";
-import { sessionGoalAchievements } from "../domain/goals.mjs";
+import { GoalMetric } from "./GoalTrophy.jsx";
+import { sessionGoalProgress } from "../domain/goals.mjs";
 import {
   detectedEventLabel,
   detectedEventDescription,
@@ -275,7 +275,7 @@ export function MetricsInspector({
   const view = metricView(session, selected),
     e = view.evidence,
     z = e?.tracking;
-  const achievements = sessionGoalAchievements(session, goals, selected);
+  const progress = sessionGoalProgress(session, goals, selected);
   const best =
     session.windows.find((w) => w.duration === 1200 && w.start != null) ||
     reviewIntervals(session).find((w) => w.start != null);
@@ -298,8 +298,9 @@ export function MetricsInspector({
           {selected == null ? "Whole session" : intervalTitle(view.window)}
         </h2>
         <p className="paired-headline">
-          {fmt(mph(view.speed), 2)} <small>mph</small>{" "}
-          <GoalTrophy goal={achievements.speed} />
+          <GoalMetric progress={progress.speed}>
+            {fmt(mph(view.speed), 2)} <small>mph</small>
+          </GoalMetric>{" "}
           <span>
             @ {fmt(view.cadence)} <small>spm</small>
           </span>
@@ -336,10 +337,12 @@ export function MetricsInspector({
       <div className="inspector-tracking">
         <div>
           <span title="Tracking Control Score">TCS</span>
-          <span>
-            <TrackingScore value={view.tracking} />
-            <GoalTrophy goal={achievements.tracking} />
-          </span>
+          <GoalMetric progress={progress.tracking}>
+            <TrackingScore
+              value={view.tracking}
+              detail={progress.tracking?.label || ""}
+            />
+          </GoalMetric>
         </div>
         <p>Higher = steadier trajectory · {fmt(z?.coverage_pct)}% eligible</p>
       </div>

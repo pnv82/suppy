@@ -27,9 +27,9 @@ import {
   goalUnit,
   goalScope,
   goalLowerIsBetter,
-  sessionGoalAchievements,
+  sessionGoalProgress,
 } from "../domain/goals.mjs";
-import { GoalTrophy } from "./GoalTrophy.jsx";
+import { GoalMetric } from "./GoalTrophy.jsx";
 import { fmt, shortDate } from "./SessionViews.jsx";
 import { MetricDetails } from "./MetricEvidence.jsx";
 
@@ -56,7 +56,7 @@ export function Compare({
     return {
       ...session,
       view,
-      achievements: sessionGoalAchievements(session, goals, duration),
+      goalProgress: sessionGoalProgress(session, goals, duration),
       speed: mph(view.speed),
       maxSpeed: mph(session.statistics?.speed_mps?.max),
       average_speed: mph(metricView(session).speed),
@@ -341,8 +341,9 @@ export function Compare({
                   </td>
                   <td data-label="Speed @ cadence">
                     <strong>
-                      {fmt(s.speed, 2)} <span>mph</span>
-                      <GoalTrophy goal={s.achievements.speed} />
+                      <GoalMetric progress={s.goalProgress.speed}>
+                        {fmt(s.speed, 2)} <span>mph</span>
+                      </GoalMetric>
                       {change(index, "speed")}{" "}
                       <span className="metric-cadence-value">
                         @ {fmt(s.view.cadence)} <span>spm</span>
@@ -362,8 +363,9 @@ export function Compare({
                     title={s.statistics?.speed_mps?.max_source || "Unavailable"}
                   >
                     <strong>
-                      {fmt(s.maxSpeed, 2)} <span>mph</span>
-                      <GoalTrophy goal={s.achievements.maxSpeed} />
+                      <GoalMetric progress={s.goalProgress.maxSpeed}>
+                        {fmt(s.maxSpeed, 2)} <span>mph</span>
+                      </GoalMetric>
                       {change(index, "maxSpeed")}
                     </strong>
                     <small>
@@ -384,8 +386,12 @@ export function Compare({
                     </small>
                   </td>
                   <td data-label="TCS">
-                    <TrackingScore value={s.tracking} />
-                    <GoalTrophy goal={s.achievements.tracking} />
+                    <GoalMetric progress={s.goalProgress.tracking}>
+                      <TrackingScore
+                        value={s.tracking}
+                        detail={s.goalProgress.tracking?.label || ""}
+                      />
+                    </GoalMetric>
                     {change(index, "tracking")}
                     <small>
                       {fmt(s.view.evidence?.tracking?.coverage_pct)}% eligible

@@ -53,18 +53,40 @@ export function goalAchieved(goal, best) {
     : best.value_si >= goal.target_si;
 }
 
-// A trophy describes the displayed value in this session, never a different
+export function goalProgress(goal, best) {
+  if (
+    !Number.isFinite(goal?.target_si) ||
+    goal.target_si <= 0 ||
+    !Number.isFinite(best?.value_si)
+  )
+    return null;
+  if (goalAchieved(goal, best))
+    return { state: "achieved", gapPercent: 0, label: "Target achieved" };
+  const lower = goalLowerIsBetter(goal);
+  const gap =
+    (lower ? best.value_si - goal.target_si : goal.target_si - best.value_si) /
+    goal.target_si;
+  // Allow only floating-point noise at the exact 10% and 20% boundaries.
+  const tolerance = Number.EPSILON * 8;
+  const state =
+    gap > 0.2 + tolerance ? "far" : gap <= 0.1 + tolerance ? "near" : "neutral";
+  return {
+    state,
+    gapPercent: gap * 100,
+    label: `${(gap * 100).toFixed(1)}% ${lower ? "above" : "below"} target${lower ? " · lower is better" : ""}`,
+  };
+}
+
+// Goal progress describes the displayed value in this session, never a different
 // interval or the athlete's all-time best. Conditional goals need their own
 // matched evidence, so ordinary HR, cadence and DPS values cannot earn them.
-export function sessionGoalAchievements(session, goals = [], selected = null) {
+export function sessionGoalProgress(session, goals = [], selected = null) {
   const view = metricView(session, selected);
-  const reached = (metric, value) =>
-    goals.find(
-      (g) =>
-        g.active !== false &&
-        g.metric === metric &&
-        goalAchieved(g, { value_si: value }),
-    ) ?? null;
+  const matching = (metric, value) => {
+    const goal = goals.find((g) => g.active !== false && g.metric === metric);
+    const progress = goalProgress(goal, { value_si: value });
+    return progress ? { goal, ...progress } : null;
+  };
   const speedMetric =
     selected == null
       ? "average_speed"
@@ -72,11 +94,22 @@ export function sessionGoalAchievements(session, goals = [], selected = null) {
         ? `best_${selected}`
         : null;
   return {
-    speed: reached(speedMetric, view.speed),
-    maxSpeed: reached("max_speed", session.statistics?.speed_mps?.max),
+    speed: matching(speedMetric, view.speed),
+    maxSpeed: matching("max_speed", session.statistics?.speed_mps?.max),
     tracking:
-      selected == null ? reached("tracking_control", view.tracking) : null,
+      selected == null ? matching("tracking_control", view.tracking) : null,
   };
+}
+
+export function sessionGoalAchievements(session, goals = [], selected = null) {
+  return Object.fromEntries(
+    Object.entries(sessionGoalProgress(session, goals, selected)).map(
+      ([metric, progress]) => [
+        metric,
+        progress?.state === "achieved" ? progress.goal : null,
+      ],
+    ),
+  );
 }
 
 export function goalScope(g) {
