@@ -6,6 +6,92 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import { createHttpServer } from "../server/index.mjs";
 import { toolSchemas } from "../server/tools.mjs";
 
+test("a first catalog target saves through HTTP and MCP alongside an existing cadence goal", async (t) => {
+  const store = testStore(t);
+  const cadence = store.upsertGoal({
+    metric: "cadence_duration",
+    target_si: 120,
+    cadence_threshold_spm: 40,
+  });
+  const server = createHttpServer(store);
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  const client = new Client({ name: "first-goal-save-test", version: "1.0.0" });
+  try {
+    const initial = await (await fetch(base + "/api/dashboard")).json();
+    const maximum = initial.goals.find((goal) => goal.metric === "max_speed");
+    assert.equal(maximum.target_si, null);
+    const response = await fetch(base + "/api/tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: "upsert_goal",
+        arguments: {
+          goal_id: maximum.id,
+          metric: maximum.metric,
+          target_si: 7 * 0.44704,
+          cadence_threshold_spm: null,
+        },
+      }),
+    });
+    assert.equal(response.status, 200);
+    const result = await response.json();
+    assert.notEqual(result.isError, true);
+    assert.equal(result.structuredContent.id, maximum.id);
+    const saved = await (await fetch(base + "/api/dashboard")).json();
+    assert.equal(
+      saved.goals.find((goal) => goal.id === maximum.id).target_si,
+      7 * 0.44704,
+    );
+    assert.equal(
+      saved.goals.find((goal) => goal.id === maximum.id).active,
+      false,
+    );
+    assert.deepEqual(
+      saved.goals.map((goal) => goal.id),
+      initial.goals.map((goal) => goal.id),
+    );
+    assert.equal(
+      saved.goals.find((goal) => goal.id === cadence.id).target_si,
+      120,
+    );
+    await client.connect(
+      new StreamableHTTPClientTransport(new URL(base + "/mcp")),
+    );
+    const average = saved.goals.find((goal) => goal.metric === "average_speed");
+    const created = await client.callTool({
+      name: "upsert_goal",
+      arguments: {
+        goal_id: average.id,
+        metric: average.metric,
+        target_si: 2,
+        cadence_threshold_spm: null,
+      },
+    });
+    assert.notEqual(created.isError, true);
+    assert.equal(created.structuredContent.id, average.id);
+    const updated = await client.callTool({
+      name: "upsert_goal",
+      arguments: {
+        goal_id: maximum.id,
+        metric: maximum.metric,
+        target_si: 8 * 0.44704,
+        cadence_threshold_spm: null,
+      },
+    });
+    assert.notEqual(updated.isError, true);
+    assert.equal(updated.structuredContent.id, maximum.id);
+    assert.equal(
+      updated._meta.appData.goals.filter((goal) => goal.metric === "max_speed")
+        .length,
+      1,
+    );
+  } finally {
+    await client.close();
+    await new Promise((resolve) => server.close(resolve));
+  }
+});
+
 test("goal reorder is registered and shared by the HTTP and MCP handlers", async (t) => {
   const server = createHttpServer(testStore(t));
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));

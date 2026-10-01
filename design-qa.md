@@ -414,3 +414,9 @@ Checked the actual built app with isolated synthetic SQLite data at 1440×1000 a
 All 129 tests and the production build passed, including new insertion/no-op/stale-target tests and an HTTP/MCP reorder registration and shared-state test. Existing dependency/chunk warnings remain.
 
 The user's “Unknown tool” report was traced to the local port-3001 server predating the goals API update. Read-only MCP discovery confirmed both `reorder_goals` and `set_goal_practice` were absent. Restarted that identified process with current code, the same production SQLite path and local tenant/authentication. Discovery then confirmed both tools, and all nine sessions remained present. No database reset or production test fixture was used. Development guidance now explains that rebuilding frontend assets does not reload server tool definitions.
+
+## First-time goal save verification — 2026-10-01
+
+The reported “Goal not found” screenshot was saved before the server restart above. The earlier backend rejected any goal ID not already persisted; the current handler resolves unset catalog entries before saving. Read-only inspection confirmed the user's setup has one saved cadence goal and an unset maximum-speed catalog entry. No production targets were changed during diagnosis.
+
+Recreated that setup with synthetic sessions and one cadence goal above 40 spm in an isolated in-memory SQLite preview. In the browser at 1440×1000, saved the previously unset Maximum speed target at 7 mph, then reloaded and confirmed the saved value. At 390×844, saved a previously unset endurance target via Enter despite its missing best result. No browser errors. Screenshot: ignored `data/storage/goal-first-save-desktop.png`. Added and passed an HTTP/MCP regression test for first catalog saves, later edits, stable IDs/order, preserved activation and the existing cadence target. All five MCP/HTTP tests pass; application code and build are unchanged from the verified drag-and-drop release.
