@@ -244,15 +244,6 @@
   color: var(--muted);
   font-size: 12px;
 }
-.goal-reorder-tools {
-  position: absolute;
-  right: 45px;
-  display: flex;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 2px 8px #12283f0a;
-}
 .goal-popover {
   position: absolute;
   z-index: 30;
@@ -397,10 +388,6 @@
   .goals-heading p {
     font-size: 12px;
   }
-  .goals-heading .button {
-    font-size: 12px;
-    padding: 9px;
-  }
   .goal-section-heading {
     display: flex;
     justify-content: space-between;
@@ -455,11 +442,6 @@
   .goal-row-tools .icon-button {
     min-height: 44px;
     min-width: 36px;
-  }
-  .goal-reorder-tools {
-    top: 56px;
-    right: 0;
-    flex-direction: column;
   }
   .goal-dialog-fields {
     grid-template-columns: minmax(0, 1fr);

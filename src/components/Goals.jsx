@@ -1,10 +1,6 @@
 import React, { useEffect, useId, useRef, useState } from "react";
 import {
-  ArrowUp,
-  ArrowDown,
   DotsThree,
-  ArrowsDownUp,
-  Check,
   Timer,
   Heart,
   Compass,
@@ -502,7 +498,6 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
   const configured = configuredGoals(goals);
   const [editing, setEditing] = useState(null);
   const [practice, setPractice] = useState(null);
-  const [reordering, setReordering] = useState(false);
   const [menu, setMenu] = useState(null);
   const menuRef = useRef(null);
   const dragInstructions = useId();
@@ -577,8 +572,8 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
     <div className={`goals-page${drag ? " is-dragging" : ""}`} ref={root}>
       <p className="sr-only" id={dragInstructions}>
         Drag to reorder or move between Active and Inactive. For keyboard use,
-        choose Reorder for up and down controls, or use the goal’s actions menu
-        to change its bucket. Press Escape to cancel a drag.
+        use the goal’s actions menu to move up, move down or change its bucket.
+        Press Escape to cancel a drag.
       </p>
       <div className="sr-only" role="status" aria-live="polite">
         {drag
@@ -590,17 +585,6 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
           <h1>Goals</h1>
           <p>Your next milestones.</p>
         </div>
-        <button
-          className={`button ${reordering ? "primary" : "plain"}`}
-          aria-pressed={reordering}
-          onClick={() => {
-            setReordering(!reordering);
-            setMenu(null);
-          }}
-        >
-          {reordering ? <Check size={17} /> : <ArrowsDownUp size={17} />}{" "}
-          {reordering ? "Done" : "Reorder"}
-        </button>
       </div>
       {[true, false].map((active) => {
         const bucket = configured.filter((g) => g.active === active),
@@ -698,29 +682,7 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                         className="goal-row-tools"
                         ref={menu === goal.id ? menuRef : null}
                       >
-                        {!reordering && (
-                          <GoalHint goal={goal} onOpen={() => setMenu(null)} />
-                        )}
-                        {reordering && (
-                          <div className="goal-reorder-tools">
-                            <button
-                              className="icon-button"
-                              aria-label={`Move ${GOAL_METRICS[goal.metric]} up`}
-                              disabled={busy || index === 0}
-                              onClick={() => move(goal, -1)}
-                            >
-                              <ArrowUp size={16} />
-                            </button>
-                            <button
-                              className="icon-button"
-                              aria-label={`Move ${GOAL_METRICS[goal.metric]} down`}
-                              disabled={busy || index === bucket.length - 1}
-                              onClick={() => move(goal, 1)}
-                            >
-                              <ArrowDown size={16} />
-                            </button>
-                          </div>
-                        )}
+                        <GoalHint goal={goal} onOpen={() => setMenu(null)} />
                         <button
                           id={`goal-menu-${goal.id}`}
                           className="icon-button"
@@ -766,7 +728,22 @@ export function Goals({ goals, sessions = [], busy, onAction, onOpen }) {
                                 View best session
                               </button>
                             )}
-                            <button onClick={() => move(goal, 0)}>
+                            <button
+                              disabled={busy || index === 0}
+                              onClick={() => move(goal, -1)}
+                            >
+                              Move up
+                            </button>
+                            <button
+                              disabled={busy || index === bucket.length - 1}
+                              onClick={() => move(goal, 1)}
+                            >
+                              Move down
+                            </button>
+                            <button
+                              disabled={busy}
+                              onClick={() => move(goal, 0)}
+                            >
                               Move to {active ? "inactive" : "active"}
                             </button>
                           </div>
