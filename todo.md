@@ -1,10 +1,6 @@
 # Next - Other
-- [x] Resolve launch names during import preview, preselect for review, preserve confirmed source provenance, and automatically offer suggestions when editing coordinate-fallback sessions.
-- [x] Show faint travel chevrons within the full track, with gap-aware geometry and zoom-dependent spacing beneath interval highlights.
-- [x] Convert event candidates into reviewed annotations: activation pins their range and opens an approximate note draft without confirming a fall.
-- [x] Request fresh whole-session analysis and a saved summary from an empty highlight in the ChatGPT widget; show standalone instructions and host error/retry states.
-- [x] Filter unreasonable recorded speed and FIT maxima with an explicit 6 m/s ceiling, retain raw evidence and show exclusions in metric details.
-- [x] Add on-demand personal Garmin Connect sign-in/MFA, SUP activity browsing and reviewed original-file import, with temporary tenant-scoped account storage.
+- [ ] Replace the headline maximum speed with **Max speed (10 s)**: the highest elapsed-time-weighted average over a continuous 10-second window with sufficient recorded coverage. Never bridge pauses, missing data or rejected readings; retain existing speed-quality checks and keep Garmin's original peak in metric details. Apply the same definition to session summaries, Home comparisons, maximum-speed goals and external analysis evidence, without adding persistent vertical UI space. Unsupported sessions remain unavailable rather than falling back to an instantaneous peak. Preserve original data and method provenance; averaging reduces spike influence but does not validate measurements. Update metric contracts and test isolated spikes, irregular sampling, pauses/gaps, rejected readings and summary-only sessions; verify desktop/narrow-screen and keyboard flows.
+- [ ] Allow to configure the columns on the main page to see the remaining session parameters (for example a compound columns with 5/10/20 intervals highlights as we have earlier)
 
 # Deferred work
 
